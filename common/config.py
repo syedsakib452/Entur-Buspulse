@@ -14,9 +14,11 @@ CODESPACE = "KOL"  # Kolumbus (Rogaland)
 ET_URL = "https://api.entur.io/realtime/v1/rest/et"
 SX_URL = "https://api.entur.io/realtime/v1/rest/sx"
 VEHICLES_URL = "https://api.entur.io/realtime/v2/vehicles/graphql"
+GTFS_URL = "https://storage.googleapis.com/marduk-production/outbound/gtfs/rb_kol-aggregated-gtfs.zip"
 
-REQUEST_TIMEOUT = 60   # seconds
-SIRI_MAX_SIZE = 10000  # max elements per SIRI response
+REQUEST_TIMEOUT = 60    # seconds
+DOWNLOAD_TIMEOUT = 300  # seconds, for big files (GTFS zip)
+SIRI_MAX_SIZE = 10000   # max elements per SIRI response
 
 
 def bronze_path(feed: str, ext: str) -> Path:
