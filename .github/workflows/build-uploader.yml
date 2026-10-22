@@ -1,0 +1,51 @@
+name: build-uploader
+
+on:
+  push:
+    branches: [main]
+    paths: ["uploader/**", ".github/workflows/build-uploader.yml"]
+  pull_request:
+    paths: ["uploader/**"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: uploader/go.mod
+
+      - name: Test
+        working-directory: uploader
+        run: go test ./...
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}-uploader
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha
+
+      - name: Build (and push on main)
+        uses: docker/build-push-action@v6
+        with:
+          context: uploader
+          push: ${{ github.event_name == 'push' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
