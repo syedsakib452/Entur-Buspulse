@@ -27,3 +27,15 @@ services:
   static_timetable:
     <<: *collector
     command: collectors.static_timetable
+    
+  uploader:
+    build: ./uploader
+    image: buspulse-uploader
+    profiles: ["jobs"]
+    env_file: ${HOME}/openstack.env   # OS_* login, kept outside the repo
+    environment:
+      SWIFT_CONTAINER: buspulse-raw
+      DELETE_LOCAL: "true"            # "false" = upload but keep local files
+    volumes:
+      - ./data:/data
+      - ./logs:/logs
