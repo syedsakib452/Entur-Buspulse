@@ -1,0 +1,182 @@
+[
+  {
+    "line_ref": "KOL:Line:8_3329",
+    "journey_ref": "KOL:ServiceJourney:3329_250903083245264_2000",
+    "summary": "Forsinket på grunn av mye trafikk",
+    "severity": "severe",
+    "start_time": "2026-10-20T00:00:00+02:00",
+    "end_time": "2026-10-20T16:48:00+02:00",
+    "situation_id": "KOL:SituationNumber:6b4259a5-7f54-4b05-b985-489e0c852dea",
+    "original_xml": "<ns0:PtSituationElement xmlns:ns0=\"http://www.siri.org.uk/siri\"><ns0:CreationTime>2026-10-20T00:00:00+02:00</ns0:CreationTime><ns0:ParticipantRef>KOL</ns0:ParticipantRef><ns0:SituationNumber>KOL:SituationNumber:6b4259a5-7f54-4b05-b985-489e0c852dea</ns0:SituationNumber><ns0:Source><ns0:SourceType>directReport</ns0:SourceType></ns0:Source><ns0:VersionedAtTime>2026-10-20T00:00:00+02:00</ns0:VersionedAtTime><ns0:Progress>open</ns0:Progress><ns0:ValidityPeriod><ns0:StartTime>2026-10-20T00:00:00+02:00</ns0:StartTime><ns0:EndTime>2026-10-20T16:48:00+02:00</ns0:EndTime></ns0:ValidityPeriod><ns0:UndefinedReason /><ns0:Severity>severe</ns0:Severity><ns0:ReportType>incident</ns0:ReportType><ns0:Planned>false</ns0:Planned><ns0:Keywords /><ns0:Summary xml:lang=\"NO\">Forsinket på grunn av mye trafikk</ns0:Summary><ns0:Affects><ns0:VehicleJourneys><ns0:AffectedVehicleJourney><ns0:VehicleJourneyRef>KOL:ServiceJourney:3329_250903083245264_2000</ns0:VehicleJourneyRef><ns0:Operator><ns0:OperatorRef>KOL:Operator:315</ns0:OperatorRef></ns0:Operator><ns0:LineRef>KOL:Line:8_3329</ns0:LineRef><ns0:OriginAimedDepartureTime>2026-10-20T15:10:00+02:00</ns0:OriginAimedDepartureTime></ns0:AffectedVehicleJourney></ns0:VehicleJourneys></ns0:Affects></ns0:PtSituationElement>"
+  },
+  {
+    "line_ref": "KOL:Line:8_1024",
+    "journey_ref": "KOL:ServiceJourney:1024_251013076735988_2004",
+    "summary": "Forsinket på grunn av mye trafikk",
+    "severity": "severe",
+    "start_time": "2026-10-20T00:00:00+02:00",
+    "end_time": "2026-10-20T17:55:00+02:00",
+    "situation_id": "KOL:SituationNumber:ddfec1ac-1f59-430f-acd5-5480cc270293",
+    "original_xml": "<ns0:PtSituationElement xmlns:ns0=\"http://www.siri.org.uk/siri\"><ns0:CreationTime>2026-10-20T00:00:00+02:00</ns0:CreationTime><ns0:ParticipantRef>KOL</ns0:ParticipantRef><ns0:SituationNumber>KOL:SituationNumber:ddfec1ac-1f59-430f-acd5-5480cc270293</ns0:SituationNumber><ns0:Source><ns0:SourceType>directReport</ns0:SourceType></ns0:Source><ns0:VersionedAtTime>2026-10-20T00:00:00+02:00</ns0:VersionedAtTime><ns0:Progress>open</ns0:Progress><ns0:ValidityPeriod><ns0:StartTime>2026-10-20T00:00:00+02:00</ns0:StartTime><ns0:EndTime>2026-10-20T17:55:00+02:00</ns0:EndTime></ns0:ValidityPeriod><ns0:UndefinedReason /><ns0:Severity>severe</ns0:Severity><ns0:ReportType>incident</ns0:ReportType><ns0:Planned>false</ns0:Planned><ns0:Keywords /><ns0:Summary xml:lang=\"NO\">Forsinket på grunn av mye trafikk</ns0:Summary><ns0:Affects><ns0:VehicleJourneys><ns0:AffectedVehicleJourney><ns0:VehicleJourneyRef>KOL:ServiceJourney:1024_251013076735988_2004</ns0:VehicleJourneyRef><ns0:Operator><ns0:OperatorRef>KOL:Operator:309</ns0:OperatorRef></ns0:Operator><ns0:LineRef>KOL:Line:8_1024</ns0:LineRef><ns0:OriginAimedDepartureTime>2026-10-20T16:25:00+02:00</ns0:OriginAimedDepartureTime></ns0:AffectedVehicleJourney></ns0:VehicleJourneys></ns0:Affects></ns0:PtSituationElement>"
+  },
+  {
+    "line_ref": "KOL:Line:8_1013",
+    "journey_ref": "KOL:ServiceJourney:1013_260827077936513_2023",
+    "summary": "Forsinket fra forrige rute",
+    "severity": "severe",
+    "start_time": "2026-10-20T00:00:00+02:00",
+    "end_time": "2026-10-20T16:56:00+02:00",
+    "situation_id": "KOL:SituationNumber:31c7bc6e-3715-434f-bbf6-a239cc9488a1",
+    "original_xml": "<ns0:PtSituationElement xmlns:ns0=\"http://www.siri.org.uk/siri\"><ns0:CreationTime>2026-10-20T00:00:00+02:00</ns0:CreationTime><ns0:ParticipantRef>KOL</ns0:ParticipantRef><ns0:SituationNumber>KOL:SituationNumber:31c7bc6e-3715-434f-bbf6-a239cc9488a1</ns0:SituationNumber><ns0:Source><ns0:SourceType>directReport</ns0:SourceType></ns0:Source><ns0:VersionedAtTime>2026-10-20T00:00:00+02:00</ns0:VersionedAtTime><ns0:Progress>open</ns0:Progress><ns0:ValidityPeriod><ns0:StartTime>2026-10-20T00:00:00+02:00</ns0:StartTime><ns0:EndTime>2026-10-20T16:56:00+02:00</ns0:EndTime></ns0:ValidityPeriod><ns0:UndefinedReason /><ns0:Severity>severe</ns0:Severity><ns0:ReportType>incident</ns0:ReportType><ns0:Planned>false</ns0:Planned><ns0:Keywords /><ns0:Summary xml:lang=\"NO\">Forsinket fra forrige rute</ns0:Summary><ns0:Affects><ns0:VehicleJourneys><ns0:AffectedVehicleJourney><ns0:VehicleJourneyRef>KOL:ServiceJourney:1013_260827077936513_2023</ns0:VehicleJourneyRef><ns0:Operator><ns0:OperatorRef>KOL:Operator:309</ns0:OperatorRef></ns0:Operator><ns0:LineRef>KOL:Line:8_1013</ns0:LineRef><ns0:OriginAimedDepartureTime>2026-10-20T15:02:00+02:00</ns0:OriginAimedDepartureTime></ns0:AffectedVehicleJourney></ns0:VehicleJourneys></ns0:Affects></ns0:PtSituationElement>"
+  },
+  {
+    "line_ref": "KOL:Line:8_1012",
+    "journey_ref": "KOL:ServiceJourney:1012_261005057814235_1038",
+    "summary": "Forsinket fra forrige rute",
+    "severity": "severe",
+    "start_time": "2026-10-20T00:00:00+02:00",
+    "end_time": "2026-10-20T17:33:00+02:00",
+    "situation_id": "KOL:SituationNumber:8f5a6ae0-5617-45ff-aeed-26e4b1921c26",
+    "original_xml": "<ns0:PtSituationElement xmlns:ns0=\"http://www.siri.org.uk/siri\"><ns0:CreationTime>2026-10-20T00:00:00+02:00</ns0:CreationTime><ns0:ParticipantRef>KOL</ns0:ParticipantRef><ns0:SituationNumber>KOL:SituationNumber:8f5a6ae0-5617-45ff-aeed-26e4b1921c26</ns0:SituationNumber><ns0:Source><ns0:SourceType>directReport</ns0:SourceType></ns0:Source><ns0:VersionedAtTime>2026-10-20T00:00:00+02:00</ns0:VersionedAtTime><ns0:Progress>open</ns0:Progress><ns0:ValidityPeriod><ns0:StartTime>2026-10-20T00:00:00+02:00</ns0:StartTime><ns0:EndTime>2026-10-20T17:33:00+02:00</ns0:EndTime></ns0:ValidityPeriod><ns0:UndefinedReason /><ns0:Severity>severe</ns0:Severity><ns0:ReportType>incident</ns0:ReportType><ns0:Planned>false</ns0:Planned><ns0:Keywords /><ns0:Summary xml:lang=\"NO\">Forsinket fra forrige rute</ns0:Summary><ns0:Affects><ns0:VehicleJourneys><ns0:AffectedVehicleJourney><ns0:VehicleJourneyRef>KOL:ServiceJourney:1012_261005057814235_1038</ns0:VehicleJourneyRef><ns0:Operator><ns0:OperatorRef>KOL:Operator:309</ns0:OperatorRef></ns0:Operator><ns0:LineRef>KOL:Line:8_1012</ns0:LineRef><ns0:OriginAimedDepartureTime>2026-10-20T15:31:00+02:00</ns0:OriginAimedDepartureTime></ns0:AffectedVehicleJourney></ns0:VehicleJourneys></ns0:Affects></ns0:PtSituationElement>"
+  },
+  {
+    "line_ref": "KOL:Line:8_1013",
+    "journey_ref": "KOL:ServiceJourney:1013_260827077936513_2023",
+    "summary": "Forsinket fra forrige rute",
+    "severity": "severe",
+    "start_time": "2026-10-20T00:00:00+02:00",
+    "end_time": "2026-10-20T16:56:00+02:00",
+    "situation_id": "KOL:SituationNumber:6375b1dc-a167-4ada-b6d8-3f12f012595c",
+    "original_xml": "<ns0:PtSituationElement xmlns:ns0=\"http://www.siri.org.uk/siri\"><ns0:CreationTime>2026-10-20T00:00:00+02:00</ns0:CreationTime><ns0:ParticipantRef>KOL</ns0:ParticipantRef><ns0:SituationNumber>KOL:SituationNumber:6375b1dc-a167-4ada-b6d8-3f12f012595c</ns0:SituationNumber><ns0:Source><ns0:SourceType>directReport</ns0:SourceType></ns0:Source><ns0:VersionedAtTime>2026-10-20T00:00:00+02:00</ns0:VersionedAtTime><ns0:Progress>open</ns0:Progress><ns0:ValidityPeriod><ns0:StartTime>2026-10-20T00:00:00+02:00</ns0:StartTime><ns0:EndTime>2026-10-20T16:56:00+02:00</ns0:EndTime></ns0:ValidityPeriod><ns0:UndefinedReason /><ns0:Severity>severe</ns0:Severity><ns0:ReportType>incident</ns0:ReportType><ns0:Planned>false</ns0:Planned><ns0:Keywords /><ns0:Summary xml:lang=\"NO\">Forsinket fra forrige rute</ns0:Summary><ns0:Affects><ns0:VehicleJourneys><ns0:AffectedVehicleJourney><ns0:VehicleJourneyRef>KOL:ServiceJourney:1013_260827077936513_2023</ns0:VehicleJourneyRef><ns0:Operator><ns0:OperatorRef>KOL:Operator:309</ns0:OperatorRef></ns0:Operator><ns0:LineRef>KOL:Line:8_1013</ns0:LineRef><ns0:OriginAimedDepartureTime>2026-10-20T15:02:00+02:00</ns0:OriginAimedDepartureTime></ns0:AffectedVehicleJourney></ns0:VehicleJourneys></ns0:Affects></ns0:PtSituationElement>"
+  },
+  {
+    "line_ref": "KOL:Line:8_2011",
+    "journey_ref": "KOL:ServiceJourney:2011_261005046358559_1019",
+    "summary": "Forsinket fra forrige rute",
+    "severity": "severe",
+    "start_time": "2026-10-20T00:00:00+02:00",
+    "end_time": "2026-10-20T17:59:00+02:00",
+    "situation_id": "KOL:SituationNumber:4386cfd3-44bf-4d51-8d68-2bd9ac2b0675",
+    "original_xml": "<ns0:PtSituationElement xmlns:ns0=\"http://www.siri.org.uk/siri\"><ns0:CreationTime>2026-10-20T00:00:00+02:00</ns0:CreationTime><ns0:ParticipantRef>KOL</ns0:ParticipantRef><ns0:SituationNumber>KOL:SituationNumber:4386cfd3-44bf-4d51-8d68-2bd9ac2b0675</ns0:SituationNumber><ns0:Source><ns0:SourceType>directReport</ns0:SourceType></ns0:Source><ns0:VersionedAtTime>2026-10-20T00:00:00+02:00</ns0:VersionedAtTime><ns0:Progress>open</ns0:Progress><ns0:ValidityPeriod><ns0:StartTime>2026-10-20T00:00:00+02:00</ns0:StartTime><ns0:EndTime>2026-10-20T17:59:00+02:00</ns0:EndTime></ns0:ValidityPeriod><ns0:UndefinedReason /><ns0:Severity>severe</ns0:Severity><ns0:ReportType>incident</ns0:ReportType><ns0:Planned>false</ns0:Planned><ns0:Keywords /><ns0:Summary xml:lang=\"NO\">Forsinket fra forrige rute</ns0:Summary><ns0:Affects><ns0:VehicleJourneys><ns0:AffectedVehicleJourney><ns0:VehicleJourneyRef>KOL:ServiceJourney:2011_261005046358559_1019</ns0:VehicleJourneyRef><ns0:Operator><ns0:OperatorRef>KOL:Operator:310</ns0:OperatorRef></ns0:Operator><ns0:LineRef>KOL:Line:8_2011</ns0:LineRef><ns0:OriginAimedDepartureTime>2026-10-20T16:35:00+02:00</ns0:OriginAimedDepartureTime></ns0:AffectedVehicleJourney></ns0:VehicleJourneys></ns0:Affects></ns0:PtSituationElement>"
+  },
+  {
+    "line_ref": "KOL:Line:8_1032",
+    "journey_ref": "KOL:ServiceJourney:1032_250903083237931_1010",
+    "summary": "Forsinket på grunn av mye trafikk",
+    "severity": "severe",
+    "start_time": "2026-10-20T00:00:00+02:00",
+    "end_time": "2026-10-20T17:44:00+02:00",
+    "situation_id": "KOL:SituationNumber:e57691ac-d0cf-4cc4-9dba-9d33e7910ee8",
+    "original_xml": "<ns0:PtSituationElement xmlns:ns0=\"http://www.siri.org.uk/siri\"><ns0:CreationTime>2026-10-20T00:00:00+02:00</ns0:CreationTime><ns0:ParticipantRef>KOL</ns0:ParticipantRef><ns0:SituationNumber>KOL:SituationNumber:e57691ac-d0cf-4cc4-9dba-9d33e7910ee8</ns0:SituationNumber><ns0:Source><ns0:SourceType>directReport</ns0:SourceType></ns0:Source><ns0:VersionedAtTime>2026-10-20T00:00:00+02:00</ns0:VersionedAtTime><ns0:Progress>open</ns0:Progress><ns0:ValidityPeriod><ns0:StartTime>2026-10-20T00:00:00+02:00</ns0:StartTime><ns0:EndTime>2026-10-20T17:44:00+02:00</ns0:EndTime></ns0:ValidityPeriod><ns0:UndefinedReason /><ns0:Severity>severe</ns0:Severity><ns0:ReportType>incident</ns0:ReportType><ns0:Planned>false</ns0:Planned><ns0:Keywords /><ns0:Summary xml:lang=\"NO\">Forsinket på grunn av mye trafikk</ns0:Summary><ns0:Affects><ns0:VehicleJourneys><ns0:AffectedVehicleJourney><ns0:VehicleJourneyRef>KOL:ServiceJourney:1032_250903083237931_1010</ns0:VehicleJourneyRef><ns0:Operator><ns0:OperatorRef>KOL:Operator:309</ns0:OperatorRef></ns0:Operator><ns0:LineRef>KOL:Line:8_1032</ns0:LineRef><ns0:OriginAimedDepartureTime>2026-10-20T16:10:00+02:00</ns0:OriginAimedDepartureTime></ns0:AffectedVehicleJourney></ns0:VehicleJourneys></ns0:Affects></ns0:PtSituationElement>"
+  },
+  {
+    "line_ref": "KOL:Line:8_2023",
+    "journey_ref": "KOL:ServiceJourney:2023_260410105492330_2003",
+    "summary": "Forsinket på grunn av mye trafikk",
+    "severity": "severe",
+    "start_time": "2026-10-20T00:00:00+02:00",
+    "end_time": "2026-10-20T17:11:00+02:00",
+    "situation_id": "KOL:SituationNumber:209462ba-94f1-4e2c-82fc-4e9210fe58bb",
+    "original_xml": "<ns0:PtSituationElement xmlns:ns0=\"http://www.siri.org.uk/siri\"><ns0:CreationTime>2026-10-20T00:00:00+02:00</ns0:CreationTime><ns0:ParticipantRef>KOL</ns0:ParticipantRef><ns0:SituationNumber>KOL:SituationNumber:209462ba-94f1-4e2c-82fc-4e9210fe58bb</ns0:SituationNumber><ns0:Source><ns0:SourceType>directReport</ns0:SourceType></ns0:Source><ns0:VersionedAtTime>2026-10-20T00:00:00+02:00</ns0:VersionedAtTime><ns0:Progress>open</ns0:Progress><ns0:ValidityPeriod><ns0:StartTime>2026-10-20T00:00:00+02:00</ns0:StartTime><ns0:EndTime>2026-10-20T17:11:00+02:00</ns0:EndTime></ns0:ValidityPeriod><ns0:UndefinedReason /><ns0:Severity>severe</ns0:Severity><ns0:ReportType>incident</ns0:ReportType><ns0:Planned>false</ns0:Planned><ns0:Keywords /><ns0:Summary xml:lang=\"NO\">Forsinket på grunn av mye trafikk</ns0:Summary><ns0:Affects><ns0:VehicleJourneys><ns0:AffectedVehicleJourney><ns0:VehicleJourneyRef>KOL:ServiceJourney:2023_260410105492330_2003</ns0:VehicleJourneyRef><ns0:Operator><ns0:OperatorRef>KOL:Operator:310</ns0:OperatorRef></ns0:Operator><ns0:LineRef>KOL:Line:8_2023</ns0:LineRef><ns0:OriginAimedDepartureTime>2026-10-20T15:35:00+02:00</ns0:OriginAimedDepartureTime></ns0:AffectedVehicleJourney></ns0:VehicleJourneys></ns0:Affects></ns0:PtSituationElement>"
+  },
+  {
+    "line_ref": "KOL:Line:8_1011",
+    "journey_ref": "KOL:ServiceJourney:1011_260916107232790_1053",
+    "summary": "Forsinket på grunn av mye trafikk",
+    "severity": "severe",
+    "start_time": "2026-10-20T00:00:00+02:00",
+    "end_time": "2026-10-20T17:10:00+02:00",
+    "situation_id": "KOL:SituationNumber:e6fb7dbf-c378-4bae-827a-2f0f185ca88f",
+    "original_xml": "<ns0:PtSituationElement xmlns:ns0=\"http://www.siri.org.uk/siri\"><ns0:CreationTime>2026-10-20T00:00:00+02:00</ns0:CreationTime><ns0:ParticipantRef>KOL</ns0:ParticipantRef><ns0:SituationNumber>KOL:SituationNumber:e6fb7dbf-c378-4bae-827a-2f0f185ca88f</ns0:SituationNumber><ns0:Source><ns0:SourceType>directReport</ns0:SourceType></ns0:Source><ns0:VersionedAtTime>2026-10-20T00:00:00+02:00</ns0:VersionedAtTime><ns0:Progress>open</ns0:Progress><ns0:ValidityPeriod><ns0:StartTime>2026-10-20T00:00:00+02:00</ns0:StartTime><ns0:EndTime>2026-10-20T17:10:00+02:00</ns0:EndTime></ns0:ValidityPeriod><ns0:UndefinedReason /><ns0:Severity>severe</ns0:Severity><ns0:ReportType>incident</ns0:ReportType><ns0:Planned>false</ns0:Planned><ns0:Keywords /><ns0:Summary xml:lang=\"NO\">Forsinket på grunn av mye trafikk</ns0:Summary><ns0:Affects><ns0:VehicleJourneys><ns0:AffectedVehicleJourney><ns0:VehicleJourneyRef>KOL:ServiceJourney:1011_260916107232790_1053</ns0:VehicleJourneyRef><ns0:Operator><ns0:OperatorRef>KOL:Operator:309</ns0:OperatorRef></ns0:Operator><ns0:LineRef>KOL:Line:8_1011</ns0:LineRef><ns0:OriginAimedDepartureTime>2026-10-20T15:47:00+02:00</ns0:OriginAimedDepartureTime></ns0:AffectedVehicleJourney></ns0:VehicleJourneys></ns0:Affects></ns0:PtSituationElement>"
+  },
+  {
+    "line_ref": "KOL:Line:8_1007",
+    "journey_ref": "KOL:ServiceJourney:1007_260916103674688_2061",
+    "summary": "Forsinket på grunn av mye trafikk",
+    "severity": "severe",
+    "start_time": "2026-10-20T00:00:00+02:00",
+    "end_time": "2026-10-20T17:46:00+02:00",
+    "situation_id": "KOL:SituationNumber:d3cafcea-f1ce-42c9-9103-6d0fa580ae39",
+    "original_xml": "<ns0:PtSituationElement xmlns:ns0=\"http://www.siri.org.uk/siri\"><ns0:CreationTime>2026-10-20T00:00:00+02:00</ns0:CreationTime><ns0:ParticipantRef>KOL</ns0:ParticipantRef><ns0:SituationNumber>KOL:SituationNumber:d3cafcea-f1ce-42c9-9103-6d0fa580ae39</ns0:SituationNumber><ns0:Source><ns0:SourceType>directReport</ns0:SourceType></ns0:Source><ns0:VersionedAtTime>2026-10-20T00:00:00+02:00</ns0:VersionedAtTime><ns0:Progress>open</ns0:Progress><ns0:ValidityPeriod><ns0:StartTime>2026-10-20T00:00:00+02:00</ns0:StartTime><ns0:EndTime>2026-10-20T17:46:00+02:00</ns0:EndTime></ns0:ValidityPeriod><ns0:UndefinedReason /><ns0:Severity>severe</ns0:Severity><ns0:ReportType>incident</ns0:ReportType><ns0:Planned>false</ns0:Planned><ns0:Keywords /><ns0:Summary xml:lang=\"NO\">Forsinket på grunn av mye trafikk</ns0:Summary><ns0:Affects><ns0:VehicleJourneys><ns0:AffectedVehicleJourney><ns0:VehicleJourneyRef>KOL:ServiceJourney:1007_260916103674688_2061</ns0:VehicleJourneyRef><ns0:Operator><ns0:OperatorRef>KOL:Operator:309</ns0:OperatorRef></ns0:Operator><ns0:LineRef>KOL:Line:8_1007</ns0:LineRef><ns0:OriginAimedDepartureTime>2026-10-20T15:41:00+02:00</ns0:OriginAimedDepartureTime></ns0:AffectedVehicleJourney></ns0:VehicleJourneys></ns0:Affects></ns0:PtSituationElement>"
+  },
+  {
+    "line_ref": "KOL:Line:8_2025",
+    "journey_ref": "KOL:ServiceJourney:2025_261005051689562_2003",
+    "summary": "Forsinket fra forrige rute",
+    "severity": "severe",
+    "start_time": "2026-10-20T00:00:00+02:00",
+    "end_time": "2026-10-20T17:20:00+02:00",
+    "situation_id": "KOL:SituationNumber:efe52256-d28d-455b-9015-019e9a205b32",
+    "original_xml": "<ns0:PtSituationElement xmlns:ns0=\"http://www.siri.org.uk/siri\"><ns0:CreationTime>2026-10-20T00:00:00+02:00</ns0:CreationTime><ns0:ParticipantRef>KOL</ns0:ParticipantRef><ns0:SituationNumber>KOL:SituationNumber:efe52256-d28d-455b-9015-019e9a205b32</ns0:SituationNumber><ns0:Source><ns0:SourceType>directReport</ns0:SourceType></ns0:Source><ns0:VersionedAtTime>2026-10-20T00:00:00+02:00</ns0:VersionedAtTime><ns0:Progress>open</ns0:Progress><ns0:ValidityPeriod><ns0:StartTime>2026-10-20T00:00:00+02:00</ns0:StartTime><ns0:EndTime>2026-10-20T17:20:00+02:00</ns0:EndTime></ns0:ValidityPeriod><ns0:UndefinedReason /><ns0:Severity>severe</ns0:Severity><ns0:ReportType>incident</ns0:ReportType><ns0:Planned>false</ns0:Planned><ns0:Keywords /><ns0:Summary xml:lang=\"NO\">Forsinket fra forrige rute</ns0:Summary><ns0:Affects><ns0:VehicleJourneys><ns0:AffectedVehicleJourney><ns0:VehicleJourneyRef>KOL:ServiceJourney:2025_261005051689562_2003</ns0:VehicleJourneyRef><ns0:Operator><ns0:OperatorRef>KOL:Operator:310</ns0:OperatorRef></ns0:Operator><ns0:LineRef>KOL:Line:8_2025</ns0:LineRef><ns0:OriginAimedDepartureTime>2026-10-20T15:40:00+02:00</ns0:OriginAimedDepartureTime></ns0:AffectedVehicleJourney></ns0:VehicleJourneys></ns0:Affects></ns0:PtSituationElement>"
+  },
+  {
+    "line_ref": "KOL:Line:8_1011",
+    "journey_ref": "KOL:ServiceJourney:1011_260916107232790_1053",
+    "summary": "Forsinket fra forrige rute",
+    "severity": "severe",
+    "start_time": "2026-10-20T00:00:00+02:00",
+    "end_time": "2026-10-20T17:10:00+02:00",
+    "situation_id": "KOL:SituationNumber:c8f8ef9a-0c91-42df-a0c2-1bb369cb62e7",
+    "original_xml": "<ns0:PtSituationElement xmlns:ns0=\"http://www.siri.org.uk/siri\"><ns0:CreationTime>2026-10-20T00:00:00+02:00</ns0:CreationTime><ns0:ParticipantRef>KOL</ns0:ParticipantRef><ns0:SituationNumber>KOL:SituationNumber:c8f8ef9a-0c91-42df-a0c2-1bb369cb62e7</ns0:SituationNumber><ns0:Source><ns0:SourceType>directReport</ns0:SourceType></ns0:Source><ns0:VersionedAtTime>2026-10-20T00:00:00+02:00</ns0:VersionedAtTime><ns0:Progress>open</ns0:Progress><ns0:ValidityPeriod><ns0:StartTime>2026-10-20T00:00:00+02:00</ns0:StartTime><ns0:EndTime>2026-10-20T17:10:00+02:00</ns0:EndTime></ns0:ValidityPeriod><ns0:UndefinedReason /><ns0:Severity>severe</ns0:Severity><ns0:ReportType>incident</ns0:ReportType><ns0:Planned>false</ns0:Planned><ns0:Keywords /><ns0:Summary xml:lang=\"NO\">Forsinket fra forrige rute</ns0:Summary><ns0:Affects><ns0:VehicleJourneys><ns0:AffectedVehicleJourney><ns0:VehicleJourneyRef>KOL:ServiceJourney:1011_260916107232790_1053</ns0:VehicleJourneyRef><ns0:Operator><ns0:OperatorRef>KOL:Operator:309</ns0:OperatorRef></ns0:Operator><ns0:LineRef>KOL:Line:8_1011</ns0:LineRef><ns0:OriginAimedDepartureTime>2026-10-20T15:47:00+02:00</ns0:OriginAimedDepartureTime></ns0:AffectedVehicleJourney></ns0:VehicleJourneys></ns0:Affects></ns0:PtSituationElement>"
+  },
+  {
+    "line_ref": "KOL:Line:8_2012",
+    "journey_ref": "KOL:ServiceJourney:2012_260410061138428_1026",
+    "summary": "Forsinket på grunn av mye trafikk",
+    "severity": "severe",
+    "start_time": "2026-10-20T00:00:00+02:00",
+    "end_time": "2026-10-20T17:14:00+02:00",
+    "situation_id": "KOL:SituationNumber:76911f08-ca62-498c-831f-8be372e7b9f3",
+    "original_xml": "<ns0:PtSituationElement xmlns:ns0=\"http://www.siri.org.uk/siri\"><ns0:CreationTime>2026-10-20T00:00:00+02:00</ns0:CreationTime><ns0:ParticipantRef>KOL</ns0:ParticipantRef><ns0:SituationNumber>KOL:SituationNumber:76911f08-ca62-498c-831f-8be372e7b9f3</ns0:SituationNumber><ns0:Source><ns0:SourceType>directReport</ns0:SourceType></ns0:Source><ns0:VersionedAtTime>2026-10-20T00:00:00+02:00</ns0:VersionedAtTime><ns0:Progress>open</ns0:Progress><ns0:ValidityPeriod><ns0:StartTime>2026-10-20T00:00:00+02:00</ns0:StartTime><ns0:EndTime>2026-10-20T17:14:00+02:00</ns0:EndTime></ns0:ValidityPeriod><ns0:UndefinedReason /><ns0:Severity>severe</ns0:Severity><ns0:ReportType>incident</ns0:ReportType><ns0:Planned>false</ns0:Planned><ns0:Keywords /><ns0:Summary xml:lang=\"NO\">Forsinket på grunn av mye trafikk</ns0:Summary><ns0:Affects><ns0:VehicleJourneys><ns0:AffectedVehicleJourney><ns0:VehicleJourneyRef>KOL:ServiceJourney:2012_260410061138428_1026</ns0:VehicleJourneyRef><ns0:Operator><ns0:OperatorRef>KOL:Operator:310</ns0:OperatorRef></ns0:Operator><ns0:LineRef>KOL:Line:8_2012</ns0:LineRef><ns0:OriginAimedDepartureTime>2026-10-20T15:46:00+02:00</ns0:OriginAimedDepartureTime></ns0:AffectedVehicleJourney></ns0:VehicleJourneys></ns0:Affects></ns0:PtSituationElement>"
+  },
+  {
+    "line_ref": "KOL:Line:8_1006",
+    "journey_ref": "KOL:ServiceJourney:1006_260916095798941_2041",
+    "summary": "Forsinket fra forrige rute",
+    "severity": "severe",
+    "start_time": "2026-10-20T00:00:00+02:00",
+    "end_time": "2026-10-20T17:52:00+02:00",
+    "situation_id": "KOL:SituationNumber:d35d75e6-3a96-4567-8192-dac069ad2fde",
+    "original_xml": "<ns0:PtSituationElement xmlns:ns0=\"http://www.siri.org.uk/siri\"><ns0:CreationTime>2026-10-20T00:00:00+02:00</ns0:CreationTime><ns0:ParticipantRef>KOL</ns0:ParticipantRef><ns0:SituationNumber>KOL:SituationNumber:d35d75e6-3a96-4567-8192-dac069ad2fde</ns0:SituationNumber><ns0:Source><ns0:SourceType>directReport</ns0:SourceType></ns0:Source><ns0:VersionedAtTime>2026-10-20T00:00:00+02:00</ns0:VersionedAtTime><ns0:Progress>open</ns0:Progress><ns0:ValidityPeriod><ns0:StartTime>2026-10-20T00:00:00+02:00</ns0:StartTime><ns0:EndTime>2026-10-20T17:52:00+02:00</ns0:EndTime></ns0:ValidityPeriod><ns0:UndefinedReason /><ns0:Severity>severe</ns0:Severity><ns0:ReportType>incident</ns0:ReportType><ns0:Planned>false</ns0:Planned><ns0:Keywords /><ns0:Summary xml:lang=\"NO\">Forsinket fra forrige rute</ns0:Summary><ns0:Affects><ns0:VehicleJourneys><ns0:AffectedVehicleJourney><ns0:VehicleJourneyRef>KOL:ServiceJourney:1006_260916095798941_2041</ns0:VehicleJourneyRef><ns0:Operator><ns0:OperatorRef>KOL:Operator:309</ns0:OperatorRef></ns0:Operator><ns0:LineRef>KOL:Line:8_1006</ns0:LineRef><ns0:OriginAimedDepartureTime>2026-10-20T15:43:00+02:00</ns0:OriginAimedDepartureTime></ns0:AffectedVehicleJourney></ns0:VehicleJourneys></ns0:Affects></ns0:PtSituationElement>"
+  },
+  {
+    "line_ref": "KOL:Line:8_1007",
+    "journey_ref": "KOL:ServiceJourney:1007_260916103673927_1062",
+    "summary": "Forsinket fra forrige rute",
+    "severity": "severe",
+    "start_time": "2026-10-20T00:00:00+02:00",
+    "end_time": "2026-10-20T17:41:00+02:00",
+    "situation_id": "KOL:SituationNumber:fdc8b41a-f2e4-40f4-b018-a0ffb7b3b6b1",
+    "original_xml": "<ns0:PtSituationElement xmlns:ns0=\"http://www.siri.org.uk/siri\"><ns0:CreationTime>2026-10-20T00:00:00+02:00</ns0:CreationTime><ns0:ParticipantRef>KOL</ns0:ParticipantRef><ns0:SituationNumber>KOL:SituationNumber:fdc8b41a-f2e4-40f4-b018-a0ffb7b3b6b1</ns0:SituationNumber><ns0:Source><ns0:SourceType>directReport</ns0:SourceType></ns0:Source><ns0:VersionedAtTime>2026-10-20T00:00:00+02:00</ns0:VersionedAtTime><ns0:Progress>open</ns0:Progress><ns0:ValidityPeriod><ns0:StartTime>2026-10-20T00:00:00+02:00</ns0:StartTime><ns0:EndTime>2026-10-20T17:41:00+02:00</ns0:EndTime></ns0:ValidityPeriod><ns0:UndefinedReason /><ns0:Severity>severe</ns0:Severity><ns0:ReportType>incident</ns0:ReportType><ns0:Planned>false</ns0:Planned><ns0:Keywords /><ns0:Summary xml:lang=\"NO\">Forsinket fra forrige rute</ns0:Summary><ns0:Affects><ns0:VehicleJourneys><ns0:AffectedVehicleJourney><ns0:VehicleJourneyRef>KOL:ServiceJourney:1007_260916103673927_1062</ns0:VehicleJourneyRef><ns0:Operator><ns0:OperatorRef>KOL:Operator:309</ns0:OperatorRef></ns0:Operator><ns0:LineRef>KOL:Line:8_1007</ns0:LineRef><ns0:OriginAimedDepartureTime>2026-10-20T15:36:00+02:00</ns0:OriginAimedDepartureTime></ns0:AffectedVehicleJourney></ns0:VehicleJourneys></ns0:Affects></ns0:PtSituationElement>"
+  },
+  {
+    "line_ref": "KOL:Line:8_1024",
+    "journey_ref": "KOL:ServiceJourney:1024_251013076735878_2003",
+    "summary": "Forsinket på grunn av mye trafikk",
+    "severity": "severe",
+    "start_time": "2026-10-20T00:00:00+02:00",
+    "end_time": "2026-10-20T17:25:00+02:00",
+    "situation_id": "KOL:SituationNumber:c0aa72b0-9a40-445c-bf40-f56c6b5f37dc",
+    "original_xml": "<ns0:PtSituationElement xmlns:ns0=\"http://www.siri.org.uk/siri\"><ns0:CreationTime>2026-10-20T00:00:00+02:00</ns0:CreationTime><ns0:ParticipantRef>KOL</ns0:ParticipantRef><ns0:SituationNumber>KOL:SituationNumber:c0aa72b0-9a40-445c-bf40-f56c6b5f37dc</ns0:SituationNumber><ns0:Source><ns0:SourceType>directReport</ns0:SourceType></ns0:Source><ns0:VersionedAtTime>2026-10-20T00:00:00+02:00</ns0:VersionedAtTime><ns0:Progress>open</ns0:Progress><ns0:ValidityPeriod><ns0:StartTime>2026-10-20T00:00:00+02:00</ns0:StartTime><ns0:EndTime>2026-10-20T17:25:00+02:00</ns0:EndTime></ns0:ValidityPeriod><ns0:UndefinedReason /><ns0:Severity>severe</ns0:Severity><ns0:ReportType>incident</ns0:ReportType><ns0:Planned>false</ns0:Planned><ns0:Keywords /><ns0:Summary xml:lang=\"NO\">Forsinket på grunn av mye trafikk</ns0:Summary><ns0:Affects><ns0:VehicleJourneys><ns0:AffectedVehicleJourney><ns0:VehicleJourneyRef>KOL:ServiceJourney:1024_251013076735878_2003</ns0:VehicleJourneyRef><ns0:Operator><ns0:OperatorRef>KOL:Operator:309</ns0:OperatorRef></ns0:Operator><ns0:LineRef>KOL:Line:8_1024</ns0:LineRef><ns0:OriginAimedDepartureTime>2026-10-20T15:55:00+02:00</ns0:OriginAimedDepartureTime></ns0:AffectedVehicleJourney></ns0:VehicleJourneys></ns0:Affects></ns0:PtSituationElement>"
+  },
+  {
+    "line_ref": "KOL:Line:8_3011",
+    "journey_ref": "KOL:ServiceJourney:3011_260529122498449_2009",
+    "summary": "Forsinket på grunn av tekniske problemer",
+    "severity": "severe",
+    "start_time": "2026-10-20T00:00:00+02:00",
+    "end_time": "2026-10-20T17:17:00+02:00",
+    "situation_id": "KOL:SituationNumber:a8af82a4-e5ad-41db-a7f1-55a80461be7f",
+    "original_xml": "<ns0:PtSituationElement xmlns:ns0=\"http://www.siri.org.uk/siri\"><ns0:CreationTime>2026-10-20T00:00:00+02:00</ns0:CreationTime><ns0:ParticipantRef>KOL</ns0:ParticipantRef><ns0:SituationNumber>KOL:SituationNumber:a8af82a4-e5ad-41db-a7f1-55a80461be7f</ns0:SituationNumber><ns0:Source><ns0:SourceType>directReport</ns0:SourceType></ns0:Source><ns0:VersionedAtTime>2026-10-20T00:00:00+02:00</ns0:VersionedAtTime><ns0:Progress>open</ns0:Progress><ns0:ValidityPeriod><ns0:StartTime>2026-10-20T00:00:00+02:00</ns0:StartTime><ns0:EndTime>2026-10-20T17:17:00+02:00</ns0:EndTime></ns0:ValidityPeriod><ns0:UndefinedReason /><ns0:Severity>severe</ns0:Severity><ns0:ReportType>incident</ns0:ReportType><ns0:Planned>false</ns0:Planned><ns0:Keywords /><ns0:Summary xml:lang=\"NO\">Forsinket på grunn av tekniske problemer</ns0:Summary><ns0:Affects><ns0:VehicleJourneys><ns0:AffectedVehicleJourney><ns0:VehicleJourneyRef>KOL:ServiceJourney:3011_260529122498449_2009</ns0:VehicleJourneyRef><ns0:Operator><ns0:OperatorRef>KOL:Operator:315</ns0:OperatorRef></ns0:Operator><ns0:LineRef>KOL:Line:8_3011</ns0:LineRef><ns0:OriginAimedDepartureTime>2026-10-20T14:54:00+02:00</ns0:OriginAimedDepartureTime></ns0:AffectedVehicleJourney></ns0:VehicleJourneys></ns0:Affects></ns0:PtSituationElement>"
+  },
+  {
+    "line_ref": "KOL:Line:8_2022",
+    "journey_ref": "KOL:ServiceJourney:2022_250903083238529_1003",
+    "summary": "Forsinket på grunn av mye trafikk",
+    "severity": "severe",
+    "start_time": "2026-10-20T00:00:00+02:00",
+    "end_time": "2026-10-20T16:53:00+02:00",
+    "situation_id": "KOL:SituationNumber:f1dc99d5-204e-42bf-89d8-37a0c3770e53",
+    "original_xml": "<ns0:PtSituationElement xmlns:ns0=\"http://www.siri.org.uk/siri\"><ns0:CreationTime>2026-10-20T00:00:00+02:00</ns0:CreationTime><ns0:ParticipantRef>KOL</ns0:ParticipantRef><ns0:SituationNumber>KOL:SituationNumber:f1dc99d5-204e-42bf-89d8-37a0c3770e53</ns0:SituationNumber><ns0:Source><ns0:SourceType>directReport</ns0:SourceType></ns0:Source><ns0:VersionedAtTime>2026-10-20T00:00:00+02:00</ns0:VersionedAtTime><ns0:Progress>open</ns0:Progress><ns0:ValidityPeriod><ns0:StartTime>2026-10-20T00:00:00+02:00</ns0:StartTime><ns0:EndTime>2026-10-20T16:53:00+02:00</ns0:EndTime></ns0:ValidityPeriod><ns0:UndefinedReason /><ns0:Severity>severe</ns0:Severity><ns0:ReportType>incident</ns0:ReportType><ns0:Planned>false</ns0:Planned><ns0:Keywords /><ns0:Summary xml:lang=\"NO\">Forsinket på grunn av mye trafikk</ns0:Summary><ns0:Affects><ns0:VehicleJourneys><ns0:AffectedVehicleJourney><ns0:VehicleJourneyRef>KOL:ServiceJourney:2022_250903083238529_1003</ns0:VehicleJourneyRef><ns0:Operator><ns0:OperatorRef>KOL:Operator:310</ns0:OperatorRef></ns0:Operator><ns0:LineRef>KOL:Line:8_2022</ns0:LineRef><ns0:OriginAimedDepartureTime>2026-10-20T15:35:00+02:00</ns0:OriginAimedDepartureTime></ns0:AffectedVehicleJourney></ns0:VehicleJourneys></ns0:Affects></ns0:PtSituationElement>"
+  }
+]

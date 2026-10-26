@@ -1,0 +1,138 @@
+[
+  {
+    "vehicleId": "258001700",
+    "lastUpdated": "2026-10-20T14:48:06.96Z",
+    "line": {
+      "lineRef": "KOL:Line:26_5958",
+      "lineName": "Hjelmeland - Nesvik - Skipavik",
+      "publicCode": "1054"
+    },
+    "location": {
+      "latitude": 59.25297333333333,
+      "longitude": 6.1644483333333335
+    },
+    "bearing": 354.0,
+    "speed": null,
+    "delay": 0.0,
+    "occupancyStatus": "noData"
+  },
+  {
+    "vehicleId": "258002060",
+    "lastUpdated": "2026-10-20T14:48:06.222Z",
+    "line": {
+      "lineRef": "KOL:Line:26_5958",
+      "lineName": "Hjelmeland - Nesvik - Skipavik",
+      "publicCode": "1054"
+    },
+    "location": {
+      "latitude": 59.247886666666666,
+      "longitude": 6.161536666666667
+    },
+    "bearing": 162.0,
+    "speed": null,
+    "delay": 0.0,
+    "occupancyStatus": "noData"
+  },
+  {
+    "vehicleId": "258001700",
+    "lastUpdated": "2026-10-20T14:16:38.029Z",
+    "line": {
+      "lineRef": "KOL:Line:26_5958",
+      "lineName": "Hjelmeland - Nesvik - Skipavik",
+      "publicCode": "1054"
+    },
+    "location": {
+      "latitude": 59.253040000000006,
+      "longitude": 6.096183333333333
+    },
+    "bearing": 262.0,
+    "speed": null,
+    "delay": 0.0,
+    "occupancyStatus": "noData"
+  },
+  {
+    "vehicleId": "258001700",
+    "lastUpdated": "2026-10-20T14:36:00.043Z",
+    "line": {
+      "lineRef": "KOL:Line:26_5958",
+      "lineName": "Hjelmeland - Nesvik - Skipavik",
+      "publicCode": "1054"
+    },
+    "location": {
+      "latitude": 59.23484166666666,
+      "longitude": 6.166073333333333
+    },
+    "bearing": 177.0,
+    "speed": null,
+    "delay": 0.0,
+    "occupancyStatus": "noData"
+  },
+  {
+    "vehicleId": "258002060",
+    "lastUpdated": "2026-10-20T14:32:52.214Z",
+    "line": {
+      "lineRef": "KOL:Line:26_5958",
+      "lineName": "Hjelmeland - Nesvik - Skipavik",
+      "publicCode": "1054"
+    },
+    "location": {
+      "latitude": 59.261023333333334,
+      "longitude": 6.159725
+    },
+    "bearing": 330.0,
+    "speed": null,
+    "delay": 0.0,
+    "occupancyStatus": "noData"
+  },
+  {
+    "vehicleId": "258002060",
+    "lastUpdated": "2026-10-20T13:52:40.197Z",
+    "line": {
+      "lineRef": "KOL:Line:26_5958",
+      "lineName": "Hjelmeland - Nesvik - Skipavik",
+      "publicCode": "1054"
+    },
+    "location": {
+      "latitude": 59.26112666666667,
+      "longitude": 6.159641666666667
+    },
+    "bearing": 331.0,
+    "speed": null,
+    "delay": 0.0,
+    "occupancyStatus": "noData"
+  },
+  {
+    "vehicleId": "258001700",
+    "lastUpdated": "2026-10-20T13:52:40.035Z",
+    "line": {
+      "lineRef": "KOL:Line:26_5958",
+      "lineName": "Hjelmeland - Nesvik - Skipavik",
+      "publicCode": "1054"
+    },
+    "location": {
+      "latitude": 59.23480333333334,
+      "longitude": 6.165991666666667
+    },
+    "bearing": 178.0,
+    "speed": null,
+    "delay": 0.0,
+    "occupancyStatus": "noData"
+  },
+  {
+    "vehicleId": "258002060",
+    "lastUpdated": "2026-10-20T14:13:00.203Z",
+    "line": {
+      "lineRef": "KOL:Line:26_5958",
+      "lineName": "Hjelmeland - Nesvik - Skipavik",
+      "publicCode": "1054"
+    },
+    "location": {
+      "latitude": 59.23495166666667,
+      "longitude": 6.166023333333333
+    },
+    "bearing": 179.0,
+    "speed": null,
+    "delay": 0.0,
+    "occupancyStatus": "noData"
+  }
+]
