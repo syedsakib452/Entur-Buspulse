@@ -1,0 +1,2546 @@
+[
+  {
+    "lineRef": "KOL:Line:26_5958",
+    "publicCode": "1054",
+    "lineName": "Hjelmeland - Nesvik - Skipavik",
+    "mode": "1004",
+    "operator": "Norled AS",
+    "trips": 122
+  },
+  {
+    "lineRef": "KOL:Line:30_1130",
+    "publicCode": "1130",
+    "lineName": "Mortavika - Arsvågen",
+    "mode": "1004",
+    "operator": "Fjord1 ASA",
+    "trips": 443
+  },
+  {
+    "lineRef": "KOL:Line:8_1001",
+    "publicCode": "1",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 498
+  },
+  {
+    "lineRef": "KOL:Line:8_1003",
+    "publicCode": "2",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 498
+  },
+  {
+    "lineRef": "KOL:Line:8_1006",
+    "publicCode": "5",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 691
+  },
+  {
+    "lineRef": "KOL:Line:8_1007",
+    "publicCode": "6",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 391
+  },
+  {
+    "lineRef": "KOL:Line:8_1008",
+    "publicCode": "7",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 188
+  },
+  {
+    "lineRef": "KOL:Line:8_1009",
+    "publicCode": "14",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 187
+  },
+  {
+    "lineRef": "KOL:Line:8_1010",
+    "publicCode": "16",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 123
+  },
+  {
+    "lineRef": "KOL:Line:8_1011",
+    "publicCode": "8",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 294
+  },
+  {
+    "lineRef": "KOL:Line:8_1012",
+    "publicCode": "42",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 588
+  },
+  {
+    "lineRef": "KOL:Line:8_1013",
+    "publicCode": "10",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 130
+  },
+  {
+    "lineRef": "KOL:Line:8_1014",
+    "publicCode": "11",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 188
+  },
+  {
+    "lineRef": "KOL:Line:8_1015",
+    "publicCode": "15",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 66
+  },
+  {
+    "lineRef": "KOL:Line:8_1016",
+    "publicCode": "31",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 13
+  },
+  {
+    "lineRef": "KOL:Line:8_1017",
+    "publicCode": "33",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 31
+  },
+  {
+    "lineRef": "KOL:Line:8_1018",
+    "publicCode": "34",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 33
+  },
+  {
+    "lineRef": "KOL:Line:8_1019",
+    "publicCode": "36",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 10
+  },
+  {
+    "lineRef": "KOL:Line:8_1020",
+    "publicCode": "38",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 57
+  },
+  {
+    "lineRef": "KOL:Line:8_1021",
+    "publicCode": "37",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 13
+  },
+  {
+    "lineRef": "KOL:Line:8_1022",
+    "publicCode": "41",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 35
+  },
+  {
+    "lineRef": "KOL:Line:8_1024",
+    "publicCode": "43",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 13
+  },
+  {
+    "lineRef": "KOL:Line:8_1025",
+    "publicCode": "70",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 41
+  },
+  {
+    "lineRef": "KOL:Line:8_1029",
+    "publicCode": "13",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 154
+  },
+  {
+    "lineRef": "KOL:Line:8_1030",
+    "publicCode": "X30",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 27
+  },
+  {
+    "lineRef": "KOL:Line:8_1031",
+    "publicCode": "X40",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 12
+  },
+  {
+    "lineRef": "KOL:Line:8_1032",
+    "publicCode": "X50",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 28
+  },
+  {
+    "lineRef": "KOL:Line:8_1038",
+    "publicCode": "X74",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 41
+  },
+  {
+    "lineRef": "KOL:Line:8_1039",
+    "publicCode": "X76",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 41
+  },
+  {
+    "lineRef": "KOL:Line:8_1043",
+    "publicCode": "X31",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 295
+  },
+  {
+    "lineRef": "KOL:Line:8_1103",
+    "publicCode": "3",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 533
+  },
+  {
+    "lineRef": "KOL:Line:8_1104",
+    "publicCode": "4",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 394
+  },
+  {
+    "lineRef": "KOL:Line:8_1109",
+    "publicCode": "9",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 632
+  },
+  {
+    "lineRef": "KOL:Line:8_1112",
+    "publicCode": "12",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 468
+  },
+  {
+    "lineRef": "KOL:Line:8_1305",
+    "publicCode": "N84",
+    "lineName": null,
+    "mode": "705",
+    "operator": "Kolumbus",
+    "trips": 26
+  },
+  {
+    "lineRef": "KOL:Line:8_1306",
+    "publicCode": "N85",
+    "lineName": null,
+    "mode": "705",
+    "operator": "Kolumbus",
+    "trips": 22
+  },
+  {
+    "lineRef": "KOL:Line:8_1307",
+    "publicCode": "N86",
+    "lineName": null,
+    "mode": "705",
+    "operator": "Kolumbus",
+    "trips": 26
+  },
+  {
+    "lineRef": "KOL:Line:8_1310",
+    "publicCode": "N89",
+    "lineName": null,
+    "mode": "705",
+    "operator": "Kolumbus",
+    "trips": 10
+  },
+  {
+    "lineRef": "KOL:Line:8_1502",
+    "publicCode": "SK0302",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 2
+  },
+  {
+    "lineRef": "KOL:Line:8_1503",
+    "publicCode": "SK2401",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 2
+  },
+  {
+    "lineRef": "KOL:Line:8_1504",
+    "publicCode": "SK2701",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 1
+  },
+  {
+    "lineRef": "KOL:Line:8_1505",
+    "publicCode": "SK2702",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 2
+  },
+  {
+    "lineRef": "KOL:Line:8_1506",
+    "publicCode": "SK2402",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_1512",
+    "publicCode": "SK4202",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 6
+  },
+  {
+    "lineRef": "KOL:Line:8_2000",
+    "publicCode": "81",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 6
+  },
+  {
+    "lineRef": "KOL:Line:8_2002",
+    "publicCode": "83",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 18
+  },
+  {
+    "lineRef": "KOL:Line:8_2003",
+    "publicCode": "25",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 141
+  },
+  {
+    "lineRef": "KOL:Line:8_2004",
+    "publicCode": "24",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 210
+  },
+  {
+    "lineRef": "KOL:Line:8_2005",
+    "publicCode": "26",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 168
+  },
+  {
+    "lineRef": "KOL:Line:8_2006",
+    "publicCode": "27",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 190
+  },
+  {
+    "lineRef": "KOL:Line:8_2007",
+    "publicCode": "28",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 188
+  },
+  {
+    "lineRef": "KOL:Line:8_2008",
+    "publicCode": "29",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 59
+  },
+  {
+    "lineRef": "KOL:Line:8_2010",
+    "publicCode": "21",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 225
+  },
+  {
+    "lineRef": "KOL:Line:8_2011",
+    "publicCode": "22",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 248
+  },
+  {
+    "lineRef": "KOL:Line:8_2012",
+    "publicCode": "23",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 163
+  },
+  {
+    "lineRef": "KOL:Line:8_2013",
+    "publicCode": "45",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 15
+  },
+  {
+    "lineRef": "KOL:Line:8_2015",
+    "publicCode": "47",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 23
+  },
+  {
+    "lineRef": "KOL:Line:8_2016",
+    "publicCode": "48",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 33
+  },
+  {
+    "lineRef": "KOL:Line:8_2017",
+    "publicCode": "50",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 199
+  },
+  {
+    "lineRef": "KOL:Line:8_2018",
+    "publicCode": "53",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_2019",
+    "publicCode": "52",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 148
+  },
+  {
+    "lineRef": "KOL:Line:8_2020",
+    "publicCode": "54",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 2
+  },
+  {
+    "lineRef": "KOL:Line:8_2021",
+    "publicCode": "56",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 5
+  },
+  {
+    "lineRef": "KOL:Line:8_2022",
+    "publicCode": "57",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 5
+  },
+  {
+    "lineRef": "KOL:Line:8_2023",
+    "publicCode": "58",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 5
+  },
+  {
+    "lineRef": "KOL:Line:8_2024",
+    "publicCode": "59",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 157
+  },
+  {
+    "lineRef": "KOL:Line:8_2025",
+    "publicCode": "62",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 12
+  },
+  {
+    "lineRef": "KOL:Line:8_2028",
+    "publicCode": "89",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 5
+  },
+  {
+    "lineRef": "KOL:Line:8_2029",
+    "publicCode": "93",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 11
+  },
+  {
+    "lineRef": "KOL:Line:8_2030",
+    "publicCode": "85",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_2031",
+    "publicCode": "99",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 11
+  },
+  {
+    "lineRef": "KOL:Line:8_2032",
+    "publicCode": "87",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 6
+  },
+  {
+    "lineRef": "KOL:Line:8_2033",
+    "publicCode": "98",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 12
+  },
+  {
+    "lineRef": "KOL:Line:8_2034",
+    "publicCode": "96",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_2035",
+    "publicCode": "92",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 2
+  },
+  {
+    "lineRef": "KOL:Line:8_2036",
+    "publicCode": "88",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 11
+  },
+  {
+    "lineRef": "KOL:Line:8_2040",
+    "publicCode": "E90",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 10
+  },
+  {
+    "lineRef": "KOL:Line:8_2043",
+    "publicCode": "X39",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 11
+  },
+  {
+    "lineRef": "KOL:Line:8_2044",
+    "publicCode": "X44",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 14
+  },
+  {
+    "lineRef": "KOL:Line:8_2304",
+    "publicCode": "N94",
+    "lineName": null,
+    "mode": "705",
+    "operator": "Kolumbus",
+    "trips": 11
+  },
+  {
+    "lineRef": "KOL:Line:8_2305",
+    "publicCode": "N95",
+    "lineName": null,
+    "mode": "705",
+    "operator": "Kolumbus",
+    "trips": 6
+  },
+  {
+    "lineRef": "KOL:Line:8_2306",
+    "publicCode": "N96",
+    "lineName": null,
+    "mode": "705",
+    "operator": "Kolumbus",
+    "trips": 8
+  },
+  {
+    "lineRef": "KOL:Line:8_2600",
+    "publicCode": "SK0101",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 10
+  },
+  {
+    "lineRef": "KOL:Line:8_2602",
+    "publicCode": "SK0103",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_2605",
+    "publicCode": "SK0106",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 6
+  },
+  {
+    "lineRef": "KOL:Line:8_2606",
+    "publicCode": "SK0107",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_2608",
+    "publicCode": "SK0109",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_2609",
+    "publicCode": "SK0110",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 2
+  },
+  {
+    "lineRef": "KOL:Line:8_2610",
+    "publicCode": "SK0111",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 2
+  },
+  {
+    "lineRef": "KOL:Line:8_2612",
+    "publicCode": "SK0113",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_2615",
+    "publicCode": "SK0116",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 1
+  },
+  {
+    "lineRef": "KOL:Line:8_2616",
+    "publicCode": "SK0117",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_2621",
+    "publicCode": "SK0207",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 2
+  },
+  {
+    "lineRef": "KOL:Line:8_2623",
+    "publicCode": "SK1110",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 5
+  },
+  {
+    "lineRef": "KOL:Line:8_2624",
+    "publicCode": "SK1111",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 10
+  },
+  {
+    "lineRef": "KOL:Line:8_2625",
+    "publicCode": "SK1122",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 8
+  },
+  {
+    "lineRef": "KOL:Line:8_2626",
+    "publicCode": "SK1131",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 13
+  },
+  {
+    "lineRef": "KOL:Line:8_2629",
+    "publicCode": "SK1205",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_2630",
+    "publicCode": "SK1201",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 5
+  },
+  {
+    "lineRef": "KOL:Line:8_2631",
+    "publicCode": "SK1401",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_2632",
+    "publicCode": "SK1402",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_2633",
+    "publicCode": "SK1403",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 2
+  },
+  {
+    "lineRef": "KOL:Line:8_2634",
+    "publicCode": "SK1404",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 6
+  },
+  {
+    "lineRef": "KOL:Line:8_2635",
+    "publicCode": "SK1405",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_2636",
+    "publicCode": "SK1406",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 5
+  },
+  {
+    "lineRef": "KOL:Line:8_2637",
+    "publicCode": "SK1407",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 1
+  },
+  {
+    "lineRef": "KOL:Line:8_2638",
+    "publicCode": "SK1408",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 5
+  },
+  {
+    "lineRef": "KOL:Line:8_2640",
+    "publicCode": "SK1410",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 10
+  },
+  {
+    "lineRef": "KOL:Line:8_2641",
+    "publicCode": "SK1411",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 6
+  },
+  {
+    "lineRef": "KOL:Line:8_2643",
+    "publicCode": "SK2201",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_2644",
+    "publicCode": "SK2202",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_2645",
+    "publicCode": "SK2203",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_2647",
+    "publicCode": "SK1901",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 5
+  },
+  {
+    "lineRef": "KOL:Line:8_2648",
+    "publicCode": "SK1902",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 5
+  },
+  {
+    "lineRef": "KOL:Line:8_2649",
+    "publicCode": "SK1903",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 10
+  },
+  {
+    "lineRef": "KOL:Line:8_2650",
+    "publicCode": "SK1904",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_2651",
+    "publicCode": "SK1905",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_2652",
+    "publicCode": "SK1906",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 5
+  },
+  {
+    "lineRef": "KOL:Line:8_2653",
+    "publicCode": "SK1907",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 5
+  },
+  {
+    "lineRef": "KOL:Line:8_2654",
+    "publicCode": "SK1908",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_2655",
+    "publicCode": "SK1909",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_2656",
+    "publicCode": "SK1910",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 7
+  },
+  {
+    "lineRef": "KOL:Line:8_2658",
+    "publicCode": "SK2102",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 7
+  },
+  {
+    "lineRef": "KOL:Line:8_2659",
+    "publicCode": "SK2103",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 9
+  },
+  {
+    "lineRef": "KOL:Line:8_2660",
+    "publicCode": "SK2104",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 11
+  },
+  {
+    "lineRef": "KOL:Line:8_2661",
+    "publicCode": "SK2105",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 1
+  },
+  {
+    "lineRef": "KOL:Line:8_2662",
+    "publicCode": "SK2106",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 5
+  },
+  {
+    "lineRef": "KOL:Line:8_2664",
+    "publicCode": "SK2108",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_2665",
+    "publicCode": "SK2101",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_2666",
+    "publicCode": "SK2107",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_2667",
+    "publicCode": "SK2003",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 6
+  },
+  {
+    "lineRef": "KOL:Line:8_2668",
+    "publicCode": "SK2004",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 5
+  },
+  {
+    "lineRef": "KOL:Line:8_2670",
+    "publicCode": "SK2002",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_2671",
+    "publicCode": "SK2005",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 5
+  },
+  {
+    "lineRef": "KOL:Line:8_2672",
+    "publicCode": "SK2001",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_2674",
+    "publicCode": "SK2006",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_2675",
+    "publicCode": "SK2100",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 2
+  },
+  {
+    "lineRef": "KOL:Line:8_2677",
+    "publicCode": "SK2110",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_2678",
+    "publicCode": "SK2007",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_2679",
+    "publicCode": "SK2008",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 6
+  },
+  {
+    "lineRef": "KOL:Line:8_2680",
+    "publicCode": "SK1202",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_2681",
+    "publicCode": "SK0202",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 12
+  },
+  {
+    "lineRef": "KOL:Line:8_2682",
+    "publicCode": "SK0201",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 2
+  },
+  {
+    "lineRef": "KOL:Line:8_2683",
+    "publicCode": "SK1203",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_2685",
+    "publicCode": "SK1911",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_2686",
+    "publicCode": "SK1912",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_2687",
+    "publicCode": "SK0203",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 9
+  },
+  {
+    "lineRef": "KOL:Line:8_2691",
+    "publicCode": "SK0206",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_2692",
+    "publicCode": "SK0220",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 5
+  },
+  {
+    "lineRef": "KOL:Line:8_2693",
+    "publicCode": "SK0221",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 11
+  },
+  {
+    "lineRef": "KOL:Line:8_2694",
+    "publicCode": "SK0120",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_2695",
+    "publicCode": "SK0121",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_2696",
+    "publicCode": "SK0122",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 8
+  },
+  {
+    "lineRef": "KOL:Line:8_2697",
+    "publicCode": "SK0123",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 10
+  },
+  {
+    "lineRef": "KOL:Line:8_2699",
+    "publicCode": "H2",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_2700",
+    "publicCode": "SK0222",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 5
+  },
+  {
+    "lineRef": "KOL:Line:8_2701",
+    "publicCode": "SK0223",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_3000",
+    "publicCode": "201",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 418
+  },
+  {
+    "lineRef": "KOL:Line:8_3001",
+    "publicCode": "202",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 263
+  },
+  {
+    "lineRef": "KOL:Line:8_3008",
+    "publicCode": "207",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 60
+  },
+  {
+    "lineRef": "KOL:Line:8_3009",
+    "publicCode": "208",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 28
+  },
+  {
+    "lineRef": "KOL:Line:8_3010",
+    "publicCode": "209",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 87
+  },
+  {
+    "lineRef": "KOL:Line:8_3011",
+    "publicCode": "210",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 130
+  },
+  {
+    "lineRef": "KOL:Line:8_3012",
+    "publicCode": "X210",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 16
+  },
+  {
+    "lineRef": "KOL:Line:8_3022",
+    "publicCode": "221",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 8
+  },
+  {
+    "lineRef": "KOL:Line:8_3025",
+    "publicCode": "223",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 15
+  },
+  {
+    "lineRef": "KOL:Line:8_3026",
+    "publicCode": "224",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 43
+  },
+  {
+    "lineRef": "KOL:Line:8_3029",
+    "publicCode": "226",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 12
+  },
+  {
+    "lineRef": "KOL:Line:8_3034",
+    "publicCode": "231",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 5
+  },
+  {
+    "lineRef": "KOL:Line:8_3047",
+    "publicCode": "241",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 2
+  },
+  {
+    "lineRef": "KOL:Line:8_3048",
+    "publicCode": "242",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 5
+  },
+  {
+    "lineRef": "KOL:Line:8_3049",
+    "publicCode": "243",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 2
+  },
+  {
+    "lineRef": "KOL:Line:8_3050",
+    "publicCode": "244",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 5
+  },
+  {
+    "lineRef": "KOL:Line:8_3051",
+    "publicCode": "245",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 18
+  },
+  {
+    "lineRef": "KOL:Line:8_3052",
+    "publicCode": "246",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 31
+  },
+  {
+    "lineRef": "KOL:Line:8_3060",
+    "publicCode": "251",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 7
+  },
+  {
+    "lineRef": "KOL:Line:8_3061",
+    "publicCode": "252",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_3070",
+    "publicCode": "SK6025",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 7
+  },
+  {
+    "lineRef": "KOL:Line:8_3071",
+    "publicCode": "151",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 26
+  },
+  {
+    "lineRef": "KOL:Line:8_3073",
+    "publicCode": "152",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 11
+  },
+  {
+    "lineRef": "KOL:Line:8_3074",
+    "publicCode": "260",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 54
+  },
+  {
+    "lineRef": "KOL:Line:8_3078",
+    "publicCode": "150",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 32
+  },
+  {
+    "lineRef": "KOL:Line:8_3083",
+    "publicCode": "206",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 76
+  },
+  {
+    "lineRef": "KOL:Line:8_3084",
+    "publicCode": "240",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_3200",
+    "publicCode": "N281",
+    "lineName": null,
+    "mode": "705",
+    "operator": "Kolumbus",
+    "trips": 15
+  },
+  {
+    "lineRef": "KOL:Line:8_3202",
+    "publicCode": "N283",
+    "lineName": null,
+    "mode": "705",
+    "operator": "Kolumbus",
+    "trips": 19
+  },
+  {
+    "lineRef": "KOL:Line:8_3203",
+    "publicCode": "N284",
+    "lineName": null,
+    "mode": "705",
+    "operator": "Kolumbus",
+    "trips": 6
+  },
+  {
+    "lineRef": "KOL:Line:8_3205",
+    "publicCode": "N285",
+    "lineName": null,
+    "mode": "705",
+    "operator": "Kolumbus",
+    "trips": 10
+  },
+  {
+    "lineRef": "KOL:Line:8_3206",
+    "publicCode": "N286",
+    "lineName": null,
+    "mode": "705",
+    "operator": "Kolumbus",
+    "trips": 1
+  },
+  {
+    "lineRef": "KOL:Line:8_3208",
+    "publicCode": "N288",
+    "lineName": null,
+    "mode": "705",
+    "operator": "Kolumbus",
+    "trips": 11
+  },
+  {
+    "lineRef": "KOL:Line:8_3298",
+    "publicCode": "SK0612",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 10
+  },
+  {
+    "lineRef": "KOL:Line:8_3299",
+    "publicCode": "SK0611",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_3300",
+    "publicCode": "SK0610",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 1
+  },
+  {
+    "lineRef": "KOL:Line:8_3301",
+    "publicCode": "SK3410",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 6
+  },
+  {
+    "lineRef": "KOL:Line:8_3302",
+    "publicCode": "SK3510",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 5
+  },
+  {
+    "lineRef": "KOL:Line:8_3304",
+    "publicCode": "SK4511",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 5
+  },
+  {
+    "lineRef": "KOL:Line:8_3305",
+    "publicCode": "SK4512",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_3306",
+    "publicCode": "SK4621",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 5
+  },
+  {
+    "lineRef": "KOL:Line:8_3307",
+    "publicCode": "SK4620",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 7
+  },
+  {
+    "lineRef": "KOL:Line:8_3308",
+    "publicCode": "SK4635",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 5
+  },
+  {
+    "lineRef": "KOL:Line:8_3309",
+    "publicCode": "SK4636",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 5
+  },
+  {
+    "lineRef": "KOL:Line:8_3310",
+    "publicCode": "SK4642",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_3311",
+    "publicCode": "SK4643",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_3312",
+    "publicCode": "SK4645",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 6
+  },
+  {
+    "lineRef": "KOL:Line:8_3313",
+    "publicCode": "SK4647",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 8
+  },
+  {
+    "lineRef": "KOL:Line:8_3314",
+    "publicCode": "SK4648",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_3315",
+    "publicCode": "SK4649",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_3316",
+    "publicCode": "SK4910",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 13
+  },
+  {
+    "lineRef": "KOL:Line:8_3317",
+    "publicCode": "SK4911",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_3318",
+    "publicCode": "SK4913",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_3319",
+    "publicCode": "SK4914",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 7
+  },
+  {
+    "lineRef": "KOL:Line:8_3320",
+    "publicCode": "SK4915",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 5
+  },
+  {
+    "lineRef": "KOL:Line:8_3321",
+    "publicCode": "SK4916",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_3322",
+    "publicCode": "SK4917",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 6
+  },
+  {
+    "lineRef": "KOL:Line:8_3323",
+    "publicCode": "SK4918",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 7
+  },
+  {
+    "lineRef": "KOL:Line:8_3324",
+    "publicCode": "SK4919",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 2
+  },
+  {
+    "lineRef": "KOL:Line:8_3326",
+    "publicCode": "SK4922",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 7
+  },
+  {
+    "lineRef": "KOL:Line:8_3327",
+    "publicCode": "SK4923",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_3329",
+    "publicCode": "SK4925",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_3337",
+    "publicCode": "SK4651",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_3350",
+    "publicCode": "SK6010",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 6
+  },
+  {
+    "lineRef": "KOL:Line:8_3353",
+    "publicCode": "SK6012",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_3354",
+    "publicCode": "SK6013",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_3355",
+    "publicCode": "SK6014",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 1
+  },
+  {
+    "lineRef": "KOL:Line:8_3356",
+    "publicCode": "SK6015",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 1
+  },
+  {
+    "lineRef": "KOL:Line:8_3357",
+    "publicCode": "SK4646",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 1
+  },
+  {
+    "lineRef": "KOL:Line:8_3359",
+    "publicCode": "SK6016",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 15
+  },
+  {
+    "lineRef": "KOL:Line:8_3360",
+    "publicCode": "SK6017",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 6
+  },
+  {
+    "lineRef": "KOL:Line:8_3365",
+    "publicCode": "SK6020",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_3366",
+    "publicCode": "SK6024",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 6
+  },
+  {
+    "lineRef": "KOL:Line:8_3370",
+    "publicCode": "SK6022",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 9
+  },
+  {
+    "lineRef": "KOL:Line:8_3371",
+    "publicCode": "SK6023",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 1
+  },
+  {
+    "lineRef": "KOL:Line:8_3372",
+    "publicCode": "SK4921",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 1
+  },
+  {
+    "lineRef": "KOL:Line:8_3373",
+    "publicCode": "SK4650",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_3375",
+    "publicCode": "SK4912",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 7
+  },
+  {
+    "lineRef": "KOL:Line:8_3376",
+    "publicCode": "SK4931",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 5
+  },
+  {
+    "lineRef": "KOL:Line:8_3379",
+    "publicCode": "SK6021",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 2
+  },
+  {
+    "lineRef": "KOL:Line:8_3380",
+    "publicCode": "SK4909",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 13
+  },
+  {
+    "lineRef": "KOL:Line:8_3381",
+    "publicCode": "SK4641",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_3382",
+    "publicCode": "SK4924",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_3384",
+    "publicCode": "SK4908",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_3385",
+    "publicCode": "SK3511",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 7
+  },
+  {
+    "lineRef": "KOL:Line:8_3386",
+    "publicCode": "SK3512",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 5
+  },
+  {
+    "lineRef": "KOL:Line:8_3388",
+    "publicCode": "SK4640",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_3389",
+    "publicCode": "SK6031",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 2
+  },
+  {
+    "lineRef": "KOL:Line:8_3390",
+    "publicCode": "SK6032",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 6
+  },
+  {
+    "lineRef": "KOL:Line:8_3501",
+    "publicCode": "SK6011",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 2
+  },
+  {
+    "lineRef": "KOL:Line:8_3502",
+    "publicCode": "SK6026",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_3503",
+    "publicCode": "SK6027",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_3504",
+    "publicCode": "SK6028",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 8
+  },
+  {
+    "lineRef": "KOL:Line:8_3505",
+    "publicCode": "SK6029",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 2
+  },
+  {
+    "lineRef": "KOL:Line:8_3507",
+    "publicCode": "SK4926",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 2
+  },
+  {
+    "lineRef": "KOL:Line:8_3508",
+    "publicCode": "SK0613",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 1
+  },
+  {
+    "lineRef": "KOL:Line:8_4500",
+    "publicCode": "160",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 42
+  },
+  {
+    "lineRef": "KOL:Line:8_4501",
+    "publicCode": "161",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 9
+  },
+  {
+    "lineRef": "KOL:Line:8_4504",
+    "publicCode": "163",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_4602",
+    "publicCode": "SK3402",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_4604",
+    "publicCode": "SK3404",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 6
+  },
+  {
+    "lineRef": "KOL:Line:8_4605",
+    "publicCode": "SK3405",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 5
+  },
+  {
+    "lineRef": "KOL:Line:8_4606",
+    "publicCode": "SK3406",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 5
+  },
+  {
+    "lineRef": "KOL:Line:8_4609",
+    "publicCode": "SK3409",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_4613",
+    "publicCode": "SK3327",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 2
+  },
+  {
+    "lineRef": "KOL:Line:8_4614",
+    "publicCode": "SK3412",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_4617",
+    "publicCode": "SK3413",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 6
+  },
+  {
+    "lineRef": "KOL:Line:8_4618",
+    "publicCode": "SK3414",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_4619",
+    "publicCode": "SK3415",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_4620",
+    "publicCode": "SK3416",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_4621",
+    "publicCode": "SK3417",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 7
+  },
+  {
+    "lineRef": "KOL:Line:8_4629",
+    "publicCode": "SK3426",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 7
+  },
+  {
+    "lineRef": "KOL:Line:8_4630",
+    "publicCode": "SK3509",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_4631",
+    "publicCode": "SK6018",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 5
+  },
+  {
+    "lineRef": "KOL:Line:8_5200",
+    "publicCode": "800",
+    "lineName": null,
+    "mode": "1014",
+    "operator": "Kolumbus",
+    "trips": 67
+  },
+  {
+    "lineRef": "KOL:Line:8_5400",
+    "publicCode": "500",
+    "lineName": null,
+    "mode": "1014",
+    "operator": "Kolumbus",
+    "trips": 5
+  },
+  {
+    "lineRef": "KOL:Line:8_5408",
+    "publicCode": "506",
+    "lineName": null,
+    "mode": "1014",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_5430",
+    "publicCode": "528",
+    "lineName": null,
+    "mode": "1014",
+    "operator": "Kolumbus",
+    "trips": 15
+  },
+  {
+    "lineRef": "KOL:Line:8_5431",
+    "publicCode": "520",
+    "lineName": null,
+    "mode": "1014",
+    "operator": "Kolumbus",
+    "trips": 5
+  },
+  {
+    "lineRef": "KOL:Line:8_5460",
+    "publicCode": "560",
+    "lineName": null,
+    "mode": "1008",
+    "operator": "Kolumbus",
+    "trips": 12
+  },
+  {
+    "lineRef": "KOL:Line:8_5502",
+    "publicCode": "504",
+    "lineName": null,
+    "mode": "1014",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_5529",
+    "publicCode": "532",
+    "lineName": null,
+    "mode": "1014",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_5550",
+    "publicCode": "522",
+    "lineName": null,
+    "mode": "1014",
+    "operator": "Kolumbus",
+    "trips": 8
+  },
+  {
+    "lineRef": "KOL:Line:8_5560",
+    "publicCode": "510",
+    "lineName": null,
+    "mode": "1014",
+    "operator": "Kolumbus",
+    "trips": 23
+  },
+  {
+    "lineRef": "KOL:Line:8_5650",
+    "publicCode": "350",
+    "lineName": null,
+    "mode": "1004",
+    "operator": "Kolumbus",
+    "trips": 23
+  },
+  {
+    "lineRef": "KOL:Line:8_5750",
+    "publicCode": "700",
+    "lineName": null,
+    "mode": "1014",
+    "operator": "Kolumbus",
+    "trips": 95
+  },
+  {
+    "lineRef": "KOL:Line:8_5900",
+    "publicCode": "518",
+    "lineName": null,
+    "mode": "1014",
+    "operator": "Kolumbus",
+    "trips": 29
+  },
+  {
+    "lineRef": "KOL:Line:8_5912",
+    "publicCode": "526",
+    "lineName": null,
+    "mode": "1014",
+    "operator": "Kolumbus",
+    "trips": 6
+  },
+  {
+    "lineRef": "KOL:Line:8_5956",
+    "publicCode": "1023",
+    "lineName": "Mekjarvik - Kvitsøy",
+    "mode": "1004",
+    "operator": "Kolumbus",
+    "trips": 76
+  },
+  {
+    "lineRef": "KOL:Line:8_5960",
+    "publicCode": "898",
+    "lineName": null,
+    "mode": "1004",
+    "operator": "Kolumbus",
+    "trips": 86
+  },
+  {
+    "lineRef": "KOL:Line:8_5961",
+    "publicCode": "580",
+    "lineName": null,
+    "mode": "1004",
+    "operator": "Kolumbus",
+    "trips": 33
+  },
+  {
+    "lineRef": "KOL:Line:8_5962",
+    "publicCode": "590",
+    "lineName": null,
+    "mode": "1004",
+    "operator": "Kolumbus",
+    "trips": 2
+  },
+  {
+    "lineRef": "KOL:Line:8_5986",
+    "publicCode": "1025",
+    "lineName": "Fogn - Judaberg - Helgøy",
+    "mode": "1004",
+    "operator": "Kolumbus",
+    "trips": 143
+  },
+  {
+    "lineRef": "KOL:Line:8_6100",
+    "publicCode": "100",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 199
+  },
+  {
+    "lineRef": "KOL:Line:8_6101",
+    "publicCode": "101",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 204
+  },
+  {
+    "lineRef": "KOL:Line:8_6120",
+    "publicCode": "120",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 14
+  },
+  {
+    "lineRef": "KOL:Line:8_6121",
+    "publicCode": "121",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 9
+  },
+  {
+    "lineRef": "KOL:Line:8_6122",
+    "publicCode": "122",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 10
+  },
+  {
+    "lineRef": "KOL:Line:8_6130",
+    "publicCode": "130",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 24
+  },
+  {
+    "lineRef": "KOL:Line:8_6140",
+    "publicCode": "140",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 38
+  },
+  {
+    "lineRef": "KOL:Line:8_6141",
+    "publicCode": "141",
+    "lineName": null,
+    "mode": "704",
+    "operator": "Kolumbus",
+    "trips": 9
+  },
+  {
+    "lineRef": "KOL:Line:8_6201",
+    "publicCode": "SK2901",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_6202",
+    "publicCode": "SK2902",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 6
+  },
+  {
+    "lineRef": "KOL:Line:8_6203",
+    "publicCode": "SK2903",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 5
+  },
+  {
+    "lineRef": "KOL:Line:8_6209",
+    "publicCode": "SK2905",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_6301",
+    "publicCode": "SK3001",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_6302",
+    "publicCode": "SK3002",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 1
+  },
+  {
+    "lineRef": "KOL:Line:8_6303",
+    "publicCode": "SK3003",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_6304",
+    "publicCode": "SK3004",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 9
+  },
+  {
+    "lineRef": "KOL:Line:8_6305",
+    "publicCode": "SK3005",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 8
+  },
+  {
+    "lineRef": "KOL:Line:8_6307",
+    "publicCode": "SK3007",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 3
+  },
+  {
+    "lineRef": "KOL:Line:8_6308",
+    "publicCode": "SK3008",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 1
+  },
+  {
+    "lineRef": "KOL:Line:8_6309",
+    "publicCode": "SK3009",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_6310",
+    "publicCode": "SK3010",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 1
+  },
+  {
+    "lineRef": "KOL:Line:8_6314",
+    "publicCode": "SK3014",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 1
+  },
+  {
+    "lineRef": "KOL:Line:8_6401",
+    "publicCode": "SK3301",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 6
+  },
+  {
+    "lineRef": "KOL:Line:8_6402",
+    "publicCode": "SK3302",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 7
+  },
+  {
+    "lineRef": "KOL:Line:8_6403",
+    "publicCode": "SK3303",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 5
+  },
+  {
+    "lineRef": "KOL:Line:8_6404",
+    "publicCode": "SK3304",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 2
+  },
+  {
+    "lineRef": "KOL:Line:8_6405",
+    "publicCode": "SK3305",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 4
+  },
+  {
+    "lineRef": "KOL:Line:8_6406",
+    "publicCode": "SK3306",
+    "lineName": null,
+    "mode": "712",
+    "operator": "Kolumbus",
+    "trips": 1
+  }
+]
