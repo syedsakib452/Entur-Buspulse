@@ -20,11 +20,29 @@ REQUEST_TIMEOUT = 60    # seconds
 DOWNLOAD_TIMEOUT = 300  # seconds, for big files (GTFS zip)
 SIRI_MAX_SIZE = 10000   # max elements per SIRI response
 
+# Where collected data goes (see common/storage.py)
+#   local: files under DATA_DIR (VM + Docker Compose; the Go uploader moves them to Swift)
+#   swift: straight to Swift (Kubernetes), with BUFFER_DIR as fallback when an upload fails
+STORAGE_MODE = os.getenv("STORAGE_MODE", "local")
+SWIFT_CONTAINER = os.getenv("SWIFT_CONTAINER", "buspulse-raw")
+BUFFER_DIR = Path(os.getenv("BUFFER_DIR", "/buffer"))
+UPLOAD_ATTEMPTS = int(os.getenv("UPLOAD_ATTEMPTS", "3"))
+BUFFER_RETRY_SECONDS = int(os.getenv("BUFFER_RETRY_SECONDS", "60"))
 
-def bronze_path(feed: str, ext: str) -> Path:
-    """Naming convention for raw files:
-    /data/<feed>/date=YYYY-MM-DD/<feed>_YYYYMMDDTHHMMSSZ.<ext>   (UTC)"""
-    now = datetime.now(timezone.utc)
-    folder = DATA_DIR / feed / f"date={now:%Y-%m-%d}"
-    folder.mkdir(parents=True, exist_ok=True)
-    return folder / f"{feed}_{now:%Y%m%dT%H%M%SZ}.{ext}"
+# Heartbeat files for the Kubernetes liveness probe (see common/health.py)
+HEARTBEAT_DIR = Path(os.getenv("HEARTBEAT_DIR", "/tmp"))
+
+
+def object_name(feed: str, ext: str, now: datetime | None = None) -> str:
+    """Naming convention for raw data, the same locally and in Swift (UTC):
+    <feed>/date=YYYY-MM-DD/<feed>_YYYYMMDDTHHMMSSZ.<ext>
+    The Go uploader and the processing step depend on this layout."""
+    now = now or datetime.now(timezone.utc)
+    return f"{feed}/date={now:%Y-%m-%d}/{feed}_{now:%Y%m%dT%H%M%SZ}.{ext}"
+
+
+def bronze_path(feed: str, ext: str, now: datetime | None = None) -> Path:
+    """Local file for raw data: DATA_DIR/<object_name>. Creates the day folder."""
+    path = DATA_DIR / object_name(feed, ext, now)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return path

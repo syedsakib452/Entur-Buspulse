@@ -2,8 +2,9 @@
 
 Alerts only change when someone publishes or edits one, so the feed is checked
 every INTERVAL seconds but a file is saved ONLY when the alerts changed
-(and once at startup), to
-/data/service_alerts/date=YYYY-MM-DD/service_alerts_<UTC time>.xml
+(and once at startup), as
+service_alerts/date=YYYY-MM-DD/service_alerts_<UTC time>.xml(.gz)
+(locally under /data or in Swift, see common/storage.py)
 
 Run: python -m collectors.service_alerts
 """
@@ -13,15 +14,17 @@ import signal
 import sys
 import time
 
-from common import config
+from common import config, health
 from common.entur_client import EnturClient
 from common.logger import get_logger
+from common.storage import Storage
 
 NAME = "service_alerts"
 CLIENT_NAME = "uis-buspulse-service-alerts"
 INTERVAL = 60  # seconds
 
 log = get_logger(NAME)
+storage = Storage(log)
 
 
 def fingerprint(payload: bytes) -> str:
@@ -36,7 +39,7 @@ def collect(client: EnturClient, last_fingerprint: str | None) -> str:
     payload = client.get_siri(config.SX_URL)
     current = fingerprint(payload)
     if current != last_fingerprint:
-        config.bronze_path(NAME, "xml").write_bytes(payload)
+        storage.save(NAME, "xml", payload)
     return current
 
 
@@ -44,13 +47,16 @@ def main():
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))  # docker stop -> "stopped" gets logged
     client = EnturClient(CLIENT_NAME)
     last_fingerprint = None
+    storage.start_flusher()  # swift mode: retries the fallback buffer in the background
     log.info("started")
+    health.beat(NAME)
     try:
         while True:
             try:
                 last_fingerprint = collect(client, last_fingerprint)
             except Exception:
                 log.exception("collect failed")
+            health.beat(NAME)  # liveness probe: the loop is still going
             time.sleep(INTERVAL)
     finally:
         log.info("stopped")

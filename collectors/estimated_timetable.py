@@ -1,8 +1,9 @@
 """Estimated timetable (SIRI ET): when each bus arrives/departs at each stop,
 planned vs. actual/expected times.
 
-Saves the raw XML response every INTERVAL seconds to
-/data/estimated_timetable/date=YYYY-MM-DD/estimated_timetable_<UTC time>.xml
+Saves the raw XML response every INTERVAL seconds as
+estimated_timetable/date=YYYY-MM-DD/estimated_timetable_<UTC time>.xml(.gz)
+(locally under /data or in Swift, see common/storage.py)
 
 Run: python -m collectors.estimated_timetable
 """
@@ -11,20 +12,22 @@ import signal
 import sys
 import time
 
-from common import config
+from common import config, health
 from common.entur_client import EnturClient
 from common.logger import get_logger
+from common.storage import Storage
 
 NAME = "estimated_timetable"
 CLIENT_NAME = "uis-buspulse-estimated-timetable"
 INTERVAL = 60  # seconds
 
 log = get_logger(NAME)
+storage = Storage(log)
 
 
 def collect(client: EnturClient):
     payload = client.get_siri(config.ET_URL)
-    config.bronze_path(NAME, "xml").write_bytes(payload)
+    storage.save(NAME, "xml", payload)
     if re.search(rb"MoreData>\s*true\s*<", payload):
         log.error("snapshot was cut off: raise SIRI_MAX_SIZE in common/config.py")
 
@@ -32,13 +35,16 @@ def collect(client: EnturClient):
 def main():
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))  # docker stop -> "stopped" gets logged
     client = EnturClient(CLIENT_NAME)
+    storage.start_flusher()  # swift mode: retries the fallback buffer in the background
     log.info("started")
+    health.beat(NAME)
     try:
         while True:
             try:
                 collect(client)
             except Exception:
                 log.exception("collect failed")
+            health.beat(NAME)  # liveness probe: the loop is still going
             time.sleep(INTERVAL)
     finally:
         log.info("stopped")
