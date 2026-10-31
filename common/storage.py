@@ -62,6 +62,10 @@ class SwiftTarget:
             except Exception:
                 self._conn = None  # log in again next time (expired token, network change, ...)
                 raise
+        # openstacksdk does NOT raise on HTTP errors (404, 400, 403, 5xx...), it returns the
+        # response. So check it: anything but 2xx means the object was not stored.
+        if not 200 <= resp.status_code < 300:
+            raise RuntimeError(f"Swift answered HTTP {resp.status_code} for {name}")
         etag = resp.headers.get("Etag", "").strip('"')
         if etag and etag != md5:
             raise RuntimeError(f"checksum mismatch for {name}: sent {md5}, Swift has {etag}")

@@ -155,6 +155,83 @@ def test_stalled_swift_times_out_instead_of_hanging():
     srv.close()
 
 
+class SwiftHTTP:
+    """Tiny HTTP server playing Swift: answers every upload with `status`."""
+
+    def __init__(self, status, etag=None):
+        import http.server
+
+        outer = self
+        self.status, self.etag, self.received = status, etag, []
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def do_PUT(self):
+                body = self.rfile.read(int(self.headers.get("Content-Length", 0)))
+                outer.received.append((self.path, body))
+                self.send_response(outer.status)
+                if outer.etag == "md5-of-body":  # like real Swift: fingerprint of what it received
+                    import hashlib
+                    self.send_header("Etag", hashlib.md5(body).hexdigest())
+                elif outer.etag:
+                    self.send_header("Etag", outer.etag)
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+
+            def log_message(self, *args):
+                pass
+
+        self.server = http.server.HTTPServer(("127.0.0.1", 0), Handler)
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+
+    def target(self):
+        import openstack
+
+        target = SwiftTarget("buspulse-raw-test", timeout=5)
+        target._conn = openstack.connect(  # real openstacksdk connection, test server instead of Keystone
+            auth_type="admin_token", api_timeout=5,
+            auth={"endpoint": f"http://127.0.0.1:{self.server.server_port}/v1/AUTH_test", "token": "test"})
+        return target
+
+    def close(self):
+        self.server.shutdown()
+
+
+@pytest.mark.parametrize("status", [400, 401, 403, 404, 500, 503])
+def test_http_error_from_swift_goes_to_buffer(status):
+    """Swift rejecting an upload (e.g. 404 missing container, 400 from the proxy)
+    must NOT count as success: the snapshot has to end up in the buffer."""
+    swift = SwiftHTTP(status)
+    try:
+        store = Storage(LOG, target=swift.target())
+        assert store.save("vehicle_positions", "json", b"1", now=NOW) == "buffer"
+        assert len(swift.received) == 1
+        assert buffered_files() == [name("vehicle_positions", "json.gz")]
+    finally:
+        swift.close()
+
+
+def test_http_201_with_matching_etag_is_success():
+    data = b'{"a":1}'
+    swift = SwiftHTTP(201, etag="md5-of-body")
+    try:
+        assert Storage(LOG, target=swift.target()).save("vehicle_positions", "json", data, now=NOW) == "swift"
+        path, body = swift.received[0]
+        assert path.endswith("/buspulse-raw-test/vehicle_positions/date%3D2026-10-31/"
+                             "vehicle_positions_20261031T100530Z.json.gz")
+        assert gzip.decompress(body) == data
+        assert buffered_files() == []
+    finally:
+        swift.close()
+
+
+def test_http_201_with_wrong_etag_goes_to_buffer():
+    swift = SwiftHTTP(201, etag="0" * 32)  # Swift stored something else than we sent
+    try:
+        assert Storage(LOG, target=swift.target()).save("vehicle_positions", "json", b"1", now=NOW) == "buffer"
+    finally:
+        swift.close()
+
+
 def test_heartbeat():
     assert not health.is_alive("vehicle_positions", 60)  # no heartbeat yet
     health.beat("vehicle_positions")
