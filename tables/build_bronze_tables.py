@@ -37,6 +37,7 @@ BRONZE_CONTAINER = os.getenv("BRONZE_CONTAINER", "buspulse-bronze")
 BATCH_ROWS = 100_000
 # parallel downloads; lower if Swift returns 400 errors
 WORKERS = int(os.getenv("WORKERS", "4"))
+EVERY = 1   # use only every Nth file per feed; set with --every
 FEEDS = ["vehicle_positions", "service_alerts",
          "estimated_timetable", "static_timetable"]
 
@@ -241,10 +242,10 @@ FEED_TABLE = {"vehicle_positions": ("vehicle_positions", parse_vehicle_positions
 
 
 # ---------------------------------------------------------------------- jobs
-def list_files(conn, feed, day, max_files):
+def list_files(conn, feed, day, max_files, every=1):
     _, objects = conn.get_container(
         RAW_CONTAINER, prefix=f"{feed}/date={day}/", full_listing=True)
-    names = sorted(o["name"] for o in objects)
+    names = sorted(o["name"] for o in objects)[::every]
     return names[:max_files] if max_files else names
 
 
@@ -280,7 +281,7 @@ def fetch(name):
 
 def build_realtime(conn, feed, day, workdir, max_files):
     table, parser = FEED_TABLE[feed]
-    names = list_files(conn, feed, day, max_files)
+    names = list_files(conn, feed, day, max_files, EVERY)
     print(f"{feed}: {len(names)} files ({WORKERS} parallel downloads)")
     if not names:
         return
@@ -344,6 +345,7 @@ def build_gtfs(conn, day, workdir, max_files):
 
 
 def main():
+    global EVERY
     yesterday = (datetime.now(timezone.utc) -
                  timedelta(days=1)).strftime("%Y-%m-%d")
     parser = argparse.ArgumentParser(
@@ -353,12 +355,15 @@ def main():
     parser.add_argument("--feeds", nargs="+", default=FEEDS, choices=FEEDS)
     parser.add_argument("--max-files", type=int,
                         help="only the first N files per feed (for testing)")
+    parser.add_argument("--every", type=int, default=1,
+                        help="use only every Nth file per feed, e.g. 10")
     args = parser.parse_args()
+    EVERY = args.every
 
     conn = swift_connection()
     conn.put_container(BRONZE_CONTAINER)    # no-op if it exists
-    print(
-        f"Building bronze tables for {args.date}  ({RAW_CONTAINER} -> {BRONZE_CONTAINER})")
+    print(f"Building bronze tables for {args.date}  ({RAW_CONTAINER} -> {BRONZE_CONTAINER})"
+          + (f", every {EVERY}th file" if EVERY > 1 else ""))
     with tempfile.TemporaryDirectory() as tmp:
         for feed in args.feeds:
             if feed == "static_timetable":
