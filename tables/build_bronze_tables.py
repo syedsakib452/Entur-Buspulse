@@ -21,6 +21,8 @@ import os
 import re
 import tempfile
 import zipfile
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import xml.etree.ElementTree as ET
@@ -33,7 +35,10 @@ from swiftclient.client import Connection
 RAW_CONTAINER = os.getenv("RAW_CONTAINER", "buspulse-raw")
 BRONZE_CONTAINER = os.getenv("BRONZE_CONTAINER", "buspulse-bronze")
 BATCH_ROWS = 100_000
-FEEDS = ["vehicle_positions", "service_alerts", "estimated_timetable", "static_timetable"]
+# parallel downloads; lower if Swift returns 400 errors
+WORKERS = int(os.getenv("WORKERS", "4"))
+FEEDS = ["vehicle_positions", "service_alerts",
+         "estimated_timetable", "static_timetable"]
 
 UTC_TS = pa.timestamp("s", tz="UTC")
 S, F, I, B = pa.string(), pa.float64(), pa.int32(), pa.bool_()
@@ -50,14 +55,18 @@ SCHEMAS = {
         ("public_code", S), ("latitude", F), ("longitude", F), ("bearing", F),
         ("speed", F), ("delay", F), ("occupancy_status", S)),
     "service_alerts": schema(
-        ("situation_number", S), ("creation_time", S), ("version_time", S), ("progress", S),
+        ("situation_number", S), ("creation_time",
+                                  S), ("version_time", S), ("progress", S),
         ("severity", S), ("report_type", S), ("planned", S), ("summary", S),
         ("valid_start", S), ("valid_end", S), ("affect_type", S), ("line_ref", S),
         ("journey_ref", S), ("operator_ref", S), ("origin_aimed_departure", S)),
     "stop_visits": schema(
-        ("recorded_at", S), ("journey_ref", S), ("data_frame_ref", S), ("line_ref", S),
-        ("direction_ref", S), ("vehicle_mode", S), ("operator_ref", S), ("monitored", B),
-        ("journey_cancelled", B), ("call_type", S), ("stop_order", I), ("stop_ref", S),
+        ("recorded_at", S), ("journey_ref",
+                             S), ("data_frame_ref", S), ("line_ref", S),
+        ("direction_ref", S), ("vehicle_mode",
+                               S), ("operator_ref", S), ("monitored", B),
+        ("journey_cancelled", B), ("call_type",
+                                   S), ("stop_order", I), ("stop_ref", S),
         ("stop_name", S), ("destination", S),
         ("aimed_arrival", S), ("expected_arrival", S), ("actual_arrival", S),
         ("aimed_departure", S), ("expected_departure", S), ("actual_departure", S),
@@ -132,7 +141,8 @@ class TableWriter:
 
     def flush(self):
         if self.rows:
-            self.writer.write_table(pa.Table.from_pylist(self.rows, schema=self.schema))
+            self.writer.write_table(pa.Table.from_pylist(
+                self.rows, schema=self.schema))
             self.count += len(self.rows)
             self.rows = []
 
@@ -180,7 +190,8 @@ def parse_service_alerts(payload, base):
                                  "origin_aimed_departure": first_text(part, "OriginAimedDepartureTime")})
             elif local(part.tag) == "AffectedNetwork":
                 operator = first_text(part, "OperatorRef")
-                lines = [first_text(l, "LineRef") for l in part.iter() if local(l.tag) == "AffectedLine"]
+                lines = [first_text(l, "LineRef") for l in part.iter() if local(
+                    l.tag) == "AffectedLine"]
                 for line_ref in lines or [None]:
                     affected.append({**empty, "affect_type": "line", "line_ref": line_ref,
                                      "operator_ref": operator})
@@ -231,7 +242,8 @@ FEED_TABLE = {"vehicle_positions": ("vehicle_positions", parse_vehicle_positions
 
 # ---------------------------------------------------------------------- jobs
 def list_files(conn, feed, day, max_files):
-    _, objects = conn.get_container(RAW_CONTAINER, prefix=f"{feed}/date={day}/", full_listing=True)
+    _, objects = conn.get_container(
+        RAW_CONTAINER, prefix=f"{feed}/date={day}/", full_listing=True)
     names = sorted(o["name"] for o in objects)
     return names[:max_files] if max_files else names
 
@@ -247,6 +259,23 @@ def upload(conn, local_path, object_name):
                         content_length=os.path.getsize(local_path),
                         content_type="application/vnd.apache.parquet")
     print(f"    uploaded -> {BRONZE_CONTAINER}/{object_name}")
+
+
+_local = threading.local()
+
+
+def thread_conn():
+    """One Swift connection per download thread (connections are not thread-safe)."""
+    if not hasattr(_local, "conn"):
+        _local.conn = swift_connection()
+    return _local.conn
+
+
+def fetch(name):
+    try:
+        return name, download(thread_conn(), name), None
+    except Exception as error:
+        return name, None, error
 
 
 def build_realtime(conn, feed, day, workdir, max_files):
@@ -267,7 +296,8 @@ def build_realtime(conn, feed, day, workdir, max_files):
             failed += 1
             print(f"    ERROR {name}: {error}")
         if i % 100 == 0:
-            print(f"    {i}/{len(names)} files, {writer.count + len(writer.rows):,} rows")
+            print(
+                f"    {i}/{len(names)} files, {writer.count + len(writer.rows):,} rows")
     writer.close()
     print(f"    {writer.count:,} rows from {len(names) - failed} files ({failed} failed), "
           f"{out.stat().st_size / 1e6:.1f} MB")
@@ -276,22 +306,27 @@ def build_realtime(conn, feed, day, workdir, max_files):
 
 
 def build_gtfs(conn, day, workdir, max_files):
-    names = [n for n in list_files(conn, "static_timetable", day, None) if ".zip" in n]
+    names = [n for n in list_files(
+        conn, "static_timetable", day, None) if ".zip" in n]
     print(f"static_timetable: {len(names)} files")
     if not names:
         return
-    name = names[-1]                        # the day's latest timetable is enough
+    # the day's latest timetable is enough
+    name = names[-1]
     with zipfile.ZipFile(io.BytesIO(download(conn, name))) as zf:
         for member in sorted(n for n in zf.namelist() if n.endswith(".txt")):
             data = zf.read(member)
-            columns = data.decode("utf-8-sig").split("\n", 1)[0].strip().split(",")
+            columns = data.decode("utf-8-sig").split("\n",
+                                                     1)[0].strip().split(",")
             columns = [c.strip().strip('"') for c in columns]
             # Read everything as text: GTFS times can be past 24:00 (e.g. 25:10:00)
             tbl = pacsv.read_csv(
                 io.BytesIO(data),
                 convert_options=pacsv.ConvertOptions(column_types={c: pa.string() for c in columns}))
-            tbl = tbl.append_column("snapshot_time", pa.array([snapshot_time(name)] * tbl.num_rows, UTC_TS))
-            tbl = tbl.append_column("source_file", pa.array([name] * tbl.num_rows, S))
+            tbl = tbl.append_column("snapshot_time", pa.array(
+                [snapshot_time(name)] * tbl.num_rows, UTC_TS))
+            tbl = tbl.append_column(
+                "source_file", pa.array([name] * tbl.num_rows, S))
             table = "gtfs_" + member[:-4]
             out = workdir / f"{table}.parquet"
             pq.write_table(tbl, out, compression="zstd")
@@ -301,22 +336,28 @@ def build_gtfs(conn, day, workdir, max_files):
 
 
 def main():
-    yesterday = (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%d")
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--date", default=yesterday, help="UTC day to process (default: yesterday)")
+    yesterday = (datetime.now(timezone.utc) -
+                 timedelta(days=1)).strftime("%Y-%m-%d")
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--date", default=yesterday,
+                        help="UTC day to process (default: yesterday)")
     parser.add_argument("--feeds", nargs="+", default=FEEDS, choices=FEEDS)
-    parser.add_argument("--max-files", type=int, help="only the first N files per feed (for testing)")
+    parser.add_argument("--max-files", type=int,
+                        help="only the first N files per feed (for testing)")
     args = parser.parse_args()
 
     conn = swift_connection()
     conn.put_container(BRONZE_CONTAINER)    # no-op if it exists
-    print(f"Building bronze tables for {args.date}  ({RAW_CONTAINER} -> {BRONZE_CONTAINER})")
+    print(
+        f"Building bronze tables for {args.date}  ({RAW_CONTAINER} -> {BRONZE_CONTAINER})")
     with tempfile.TemporaryDirectory() as tmp:
         for feed in args.feeds:
             if feed == "static_timetable":
                 build_gtfs(conn, args.date, Path(tmp), args.max_files)
             else:
-                build_realtime(conn, feed, args.date, Path(tmp), args.max_files)
+                build_realtime(conn, feed, args.date,
+                               Path(tmp), args.max_files)
     print("Done.")
 
 
