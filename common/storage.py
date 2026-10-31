@@ -12,11 +12,12 @@ STORAGE_MODE=swift (Kubernetes)
 
     One try per snapshot, limited by the collector's UPLOAD_TIMEOUT (shorter than its
     interval, so a slow Swift never makes the collector miss its next fetch).
-    If that try fails, the snapshot is saved in BUFFER_DIR (the fallback folder).
-    While the buffer has files, new snapshots go straight to the buffer too (Swift is
-    probably still down, so there is no point waiting for another timeout).
+    If that try fails, the snapshot is saved in BUFFER_DIR (the fallback folder) and
+    Swift counts as "down": new snapshots go straight to the buffer too (no point
+    waiting for another timeout).
     A background thread uploads the buffer every BUFFER_RETRY_SECONDS, oldest first.
-    Once the buffer is empty, direct uploads resume.
+    Its first successful upload marks Swift as "up" again: from then on new snapshots
+    go directly to Swift, while the thread uploads the rest of the backlog.
     Buffered files keep their original name, so they land in the right day folder in Swift.
 """
 import gzip
@@ -80,6 +81,7 @@ class Storage:
         self.target = target or (SwiftTarget(config.SWIFT_CONTAINER, upload_timeout)
                                  if self.mode == "swift" else None)
         self._last_wait_log = 0.0
+        self.swift_down = False  # set by a failed upload, cleared by a successful buffer upload
 
     def save(self, feed: str, ext: str, payload: bytes,
              fallback: bool = True, now: datetime | None = None) -> str:
@@ -96,9 +98,9 @@ class Storage:
             data, ext = gzip.compress(payload), ext + ".gz"
         name = config.object_name(feed, ext, now)
 
-        # Swift was failing a moment ago and the buffer is not empty yet:
-        # don't wait for another timeout, queue behind the files already waiting.
-        if fallback and self.buffer_size() > 0:
+        # Swift failed a moment ago and the buffer thread hasn't reached it since:
+        # don't wait for another timeout, go straight to the buffer.
+        if fallback and self.swift_down:
             self._to_buffer(name, data)
             return "buffer"
 
@@ -109,8 +111,10 @@ class Storage:
             if not fallback:
                 raise RuntimeError(f"upload of {name} failed: {e}") from e
             self._to_buffer(name, data)
-            self.log.error("upload of %s failed (%s): saved to buffer, "
-                           "new data goes to the buffer until Swift is back", name, e)
+            if not self.swift_down:
+                self.swift_down = True
+                self.log.error("upload of %s failed (%s): saved to buffer, "
+                               "new data goes to the buffer until Swift is back", name, e)
             self._last_wait_log = time.monotonic()
             return "buffer"
 
@@ -149,11 +153,12 @@ class Storage:
                 break
             path.unlink()
             sent += 1
+            if self.swift_down:  # Swift accepted an upload: it is back
+                self.swift_down = False
+                self.log.info("Swift reachable again: direct uploads resumed, "
+                              "uploading %d buffered file(s) in the background", len(files))
         if sent:
-            if self.buffer_size() == 0:
-                self.log.info("buffer: uploaded %d file(s), direct uploads resumed", sent)
-            else:
-                self.log.info("buffer: uploaded %d file(s)", sent)
+            self.log.info("buffer: uploaded %d file(s)", sent)
         return sent
 
     def start_flusher(self) -> None:

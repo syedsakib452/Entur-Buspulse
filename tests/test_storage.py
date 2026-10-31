@@ -82,7 +82,7 @@ def test_one_try_then_buffer():
     assert buffered_files() == [name("vehicle_positions", "json.gz")]
 
 
-def test_while_buffer_has_files_new_data_skips_swift():
+def test_while_swift_is_down_new_data_skips_swift():
     swift = FakeSwift(down=True)
     store = Storage(LOG, target=swift)
     store.save("vehicle_positions", "json", b"1", now=NOW)
@@ -108,6 +108,34 @@ def test_flush_uploads_oldest_first_then_direct_resumes():
 
     t3 = NOW + timedelta(seconds=60)
     assert store.save("vehicle_positions", "json", b"3", now=t3) == "swift"  # direct again
+
+
+def test_direct_uploads_resume_even_if_buffer_is_not_empty_yet():
+    """The race seen in the cluster: a new snapshot arrives while the buffer is still
+    being uploaded. As soon as Swift accepted one buffered file, new snapshots must
+    go directly to Swift instead of joining the buffer forever."""
+    swift = FakeSwift(down=True)
+    store = Storage(LOG, target=swift)
+    for i in range(3):
+        store.save("vehicle_positions", "json", b"x", now=NOW + timedelta(seconds=30 * i))
+
+    swift.down = False
+    real_put = swift.put
+    results = []
+
+    def put_and_collect_meanwhile(n, d):
+        real_put(n, d)
+        # after Swift accepted the 1st buffered file, the collector fetches a new snapshot
+        # (call 1 = the failed direct upload, call 2 = 1st buffered file accepted)
+        if swift.calls == 3 and not results:
+            results.append(store.save("vehicle_positions", "json", b"new",
+                                      now=NOW + timedelta(seconds=120)))
+
+    swift.put = put_and_collect_meanwhile
+    store.flush_buffer()
+    assert results == ["swift"]
+    assert buffered_files() == []
+    assert not store.swift_down
 
 
 def test_flush_keeps_files_while_swift_is_down():
