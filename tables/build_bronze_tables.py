@@ -281,23 +281,31 @@ def fetch(name):
 def build_realtime(conn, feed, day, workdir, max_files):
     table, parser = FEED_TABLE[feed]
     names = list_files(conn, feed, day, max_files)
-    print(f"{feed}: {len(names)} files")
+    print(f"{feed}: {len(names)} files ({WORKERS} parallel downloads)")
     if not names:
         return
     out = workdir / f"{table}.parquet"
     writer = TableWriter(out, SCHEMAS[table])
-    failed = 0
-    for i, name in enumerate(names, 1):
-        base = {"snapshot_time": snapshot_time(name), "source_file": name}
-        try:
-            for row in parser(download(conn, name), base):
-                writer.add(row)
-        except Exception as error:          # one bad file must not stop the day
-            failed += 1
-            print(f"    ERROR {name}: {error}")
-        if i % 100 == 0:
-            print(
-                f"    {i}/{len(names)} files, {writer.count + len(writer.rows):,} rows")
+    failed = done = 0
+    # limits how many files sit in memory at once
+    chunk_size = WORKERS * 8
+    with ThreadPoolExecutor(WORKERS) as pool:
+        for start in range(0, len(names), chunk_size):
+            for name, payload, error in pool.map(fetch, names[start:start + chunk_size]):
+                done += 1
+                base = {"snapshot_time": snapshot_time(
+                    name), "source_file": name}
+                try:
+                    if error:
+                        raise error
+                    for row in parser(payload, base):
+                        writer.add(row)
+                except Exception as err:    # one bad file must not stop the day
+                    failed += 1
+                    print(f"    ERROR {name}: {err}")
+                if done % 100 == 0:
+                    print(
+                        f"    {done}/{len(names)} files, {writer.count + len(writer.rows):,} rows")
     writer.close()
     print(f"    {writer.count:,} rows from {len(names) - failed} files ({failed} failed), "
           f"{out.stat().st_size / 1e6:.1f} MB")
