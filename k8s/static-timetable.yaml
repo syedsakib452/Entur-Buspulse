@@ -1,0 +1,46 @@
+# Static timetable (GTFS): a job that runs once a day, downloads the zip, uploads it
+# to Swift and exits. A failed run is retried (backoffLimit); a stuck run is stopped
+# after activeDeadlineSeconds. No fallback buffer: it would disappear with the pod.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: static-timetable
+  namespace: buspulse
+  labels: {app: static-timetable, part-of: buspulse-collectors}
+spec:
+  schedule: "0 3 * * *"       # every day at 03:00
+  timeZone: "Etc/UTC"
+  concurrencyPolicy: Forbid   # never two runs at once
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 3             # up to 3 retries if a run fails
+      activeDeadlineSeconds: 1800 # stop a run after 30 min
+      template:
+        metadata:
+          labels: {app: static-timetable, part-of: buspulse-collectors}
+        spec:
+          restartPolicy: Never    # failed pods are kept, so their logs can be read
+          imagePullSecrets:
+            - name: ghcr-pull
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+          containers:
+            - name: collector
+              image: ghcr.io/syedsakib452/entur-buspulse:k8s-migration
+              imagePullPolicy: Always
+              args: ["collectors.static_timetable"]
+              env:
+                - {name: RUN_ONCE, value: "true"}
+              envFrom:
+                - configMapRef: {name: collector-settings}
+                - secretRef: {name: openstack-credentials}
+              resources:
+                requests: {cpu: 50m, memory: 128Mi}
+                limits: {cpu: 500m, memory: 512Mi}
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities: {drop: ["ALL"]}

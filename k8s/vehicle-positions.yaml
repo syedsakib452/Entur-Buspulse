@@ -1,0 +1,52 @@
+# Vehicle positions collector (every 30 s): one pod that is always kept running (Kubernetes restarts it if it crashes
+# or gets stuck, and moves it to the other worker if its worker dies).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vehicle-positions
+  namespace: buspulse
+  labels: {app: vehicle-positions, part-of: buspulse-collectors}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate          # never two copies at once (no duplicate files, no double Entur calls)
+  selector:
+    matchLabels: {app: vehicle-positions}
+  template:
+    metadata:
+      labels: {app: vehicle-positions, part-of: buspulse-collectors}
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull   # only used if the image is private; ignored if it doesn't exist
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000       # makes the buffer volume writable for that user
+      containers:
+        - name: collector
+          image: ghcr.io/syedsakib452/entur-buspulse:k8s-migration
+          imagePullPolicy: Always
+          args: ["collectors.vehicle_positions"]   # the image runs: python -m <this>
+          envFrom:
+            - configMapRef: {name: collector-settings}
+            - secretRef: {name: openstack-credentials}
+          volumeMounts:
+            - {name: buffer, mountPath: /buffer}
+          livenessProbe:    # restart if the loop has not gone round for 300 s (stuck)
+            exec:
+              command: ["python", "-m", "common.health", "vehicle_positions", "300"]
+            initialDelaySeconds: 30
+            periodSeconds: 60
+            timeoutSeconds: 15
+            failureThreshold: 3
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {cpu: 500m, memory: 512Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: ["ALL"]}
+      volumes:
+        - name: buffer      # fallback folder for failed uploads; survives container restarts
+          emptyDir:
+            sizeLimit: 2Gi

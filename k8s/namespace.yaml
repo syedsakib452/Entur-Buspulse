@@ -1,0 +1,5 @@
+# Everything for data collection lives in this namespace.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: buspulse

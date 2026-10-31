@@ -1,0 +1,16 @@
+# Plain settings for all collectors (read by common/config.py).
+# Change SWIFT_CONTAINER to buspulse-raw at the switch-over.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: collector-settings
+  namespace: buspulse
+data:
+  STORAGE_MODE: "swift"                 # upload straight to Swift (VM default is "local")
+  SWIFT_CONTAINER: "buspulse-raw-test"  # test container first, then buspulse-raw
+  BUFFER_DIR: "/buffer"                 # fallback folder, an emptyDir volume
+  BUFFER_RETRY_SECONDS: "60"
+  UPLOAD_ATTEMPTS: "3"
+  HEARTBEAT_DIR: "/tmp"
+  LOG_TO_FILE: "false"                  # read logs with: kubectl logs
+  HOME: "/tmp"                          # writable home for the non-root user

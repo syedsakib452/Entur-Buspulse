@@ -1,0 +1,14 @@
+# Lets you apply everything with one command:  kubectl apply -k k8s/
+# The image tag is set here in one place (k8s-migration while testing, main after merging).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - vehicle-positions.yaml
+  - estimated-timetable.yaml
+  - service-alerts.yaml
+  - static-timetable.yaml
+images:
+  - name: ghcr.io/syedsakib452/entur-buspulse
+    newTag: k8s-migration
