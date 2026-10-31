@@ -23,11 +23,11 @@ SIRI_MAX_SIZE = 10000   # max elements per SIRI response
 # Where collected data goes (see common/storage.py)
 #   local: files under DATA_DIR (VM + Docker Compose; the Go uploader moves them to Swift)
 #   swift: straight to Swift (Kubernetes), with BUFFER_DIR as fallback when an upload fails
+#          (the upload timeout is set per collector, as UPLOAD_TIMEOUT at the top of each file)
 STORAGE_MODE = os.getenv("STORAGE_MODE", "local")
 SWIFT_CONTAINER = os.getenv("SWIFT_CONTAINER", "buspulse-raw")
 BUFFER_DIR = Path(os.getenv("BUFFER_DIR", "/buffer"))
-UPLOAD_ATTEMPTS = int(os.getenv("UPLOAD_ATTEMPTS", "3"))
-BUFFER_RETRY_SECONDS = int(os.getenv("BUFFER_RETRY_SECONDS", "60"))
+BUFFER_RETRY_SECONDS = int(os.getenv("BUFFER_RETRY_SECONDS", "30"))
 
 # Heartbeat files for the Kubernetes liveness probe (see common/health.py)
 HEARTBEAT_DIR = Path(os.getenv("HEARTBEAT_DIR", "/tmp"))

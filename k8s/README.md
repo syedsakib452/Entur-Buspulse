@@ -2,7 +2,8 @@
 
 The four collectors run in the k3s cluster (see `infra/`) in the namespace `buspulse`.
 They upload straight to Swift (`STORAGE_MODE=swift`). If an upload fails, the file waits in
-a fallback folder (`/buffer`, an `emptyDir` volume) and is retried every minute.
+a fallback folder (`/buffer`, an `emptyDir` volume) and is retried every 30 s.
+While the buffer has files, new data goes straight to the buffer; once it is empty, direct uploads resume.
 
 | File | What it creates |
 |---|---|
@@ -78,7 +79,7 @@ kubectl set env -n buspulse deploy/vehicle-positions SWIFT_CONTAINER=buspulse-bu
 sleep 180
 kubectl exec -n buspulse deploy/vehicle-positions -- find /buffer -type f | wc -l   # > 0
 swift post buspulse-buffer-test                                                      # "Swift is back"
-sleep 90
+sleep 60
 kubectl exec -n buspulse deploy/vehicle-positions -- find /buffer -type f | wc -l   # 0
 swift list buspulse-buffer-test | wc -l                                              # the buffered files
 kubectl logs -n buspulse deploy/vehicle-positions | grep buffer                      # "saved to buffer" ... "uploaded N file(s)"

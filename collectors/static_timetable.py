@@ -25,10 +25,11 @@ from common.storage import Storage
 NAME = "static_timetable"
 CLIENT_NAME = "uis-buspulse-static-timetable"
 INTERVAL = 24 * 60 * 60  # once a day
+UPLOAD_TIMEOUT = 300  # seconds; the zip is large
 RUN_ONCE = os.getenv("RUN_ONCE", "false") == "true"
 
 log = get_logger(NAME)
-storage = Storage(log)
+storage = Storage(log, upload_timeout=UPLOAD_TIMEOUT)
 
 
 def collect(client: EnturClient, fallback: bool = True):

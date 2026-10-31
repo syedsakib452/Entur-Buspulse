@@ -22,9 +22,10 @@ from common.storage import Storage
 NAME = "service_alerts"
 CLIENT_NAME = "uis-buspulse-service-alerts"
 INTERVAL = 60  # seconds
+UPLOAD_TIMEOUT = 45  # seconds; less than INTERVAL so a slow Swift never delays the next fetch
 
 log = get_logger(NAME)
-storage = Storage(log)
+storage = Storage(log, upload_timeout=UPLOAD_TIMEOUT)
 
 
 def fingerprint(payload: bytes) -> str:
@@ -50,6 +51,7 @@ def main():
     storage.start_flusher()  # swift mode: retries the fallback buffer in the background
     log.info("started")
     health.beat(NAME)
+    next_run = time.monotonic()
     try:
         while True:
             try:
@@ -57,7 +59,10 @@ def main():
             except Exception:
                 log.exception("collect failed")
             health.beat(NAME)  # liveness probe: the loop is still going
-            time.sleep(INTERVAL)
+            # Fixed rhythm: sleep only what is left of INTERVAL, so a slow fetch or upload
+            # doesn't push every later fetch back. If a round overran, start the next at once.
+            next_run = max(next_run + INTERVAL, time.monotonic())
+            time.sleep(next_run - time.monotonic())
     finally:
         log.info("stopped")
 
