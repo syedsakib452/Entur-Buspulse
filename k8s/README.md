@@ -49,10 +49,12 @@ swift post buspulse-raw-test
 ```bash
 kubectl apply -f k8s/namespace.yaml
 kubectl create secret generic openstack-credentials -n buspulse --from-env-file=$HOME/k8s-openstack.env
-# Only if the ghcr.io image is private (token with read:packages):
-kubectl create secret docker-registry ghcr-pull -n buspulse \
-  --docker-server=ghcr.io --docker-username=<github-user> --docker-password=<token>
 ```
+
+The image `ghcr.io/syedsakib452/entur-buspulse` is public, so no pull secret is needed.
+(If it is ever made private: create a `docker-registry` secret named `ghcr-pull` with a
+GitHub token that has `read:packages`, and add `imagePullSecrets: [{name: ghcr-pull}]`
+to the pod specs.)
 
 ## 2. Deploy
 

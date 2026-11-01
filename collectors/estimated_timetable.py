@@ -12,7 +12,7 @@ import signal
 import sys
 import time
 
-from common import config, health
+from common import config, health, rhythm
 from common.entur_client import EnturClient
 from common.logger import get_logger
 from common.storage import Storage
@@ -47,10 +47,8 @@ def main():
             except Exception:
                 log.exception("collect failed")
             health.beat(NAME)  # liveness probe: the loop is still going
-            # Fixed rhythm: sleep only what is left of INTERVAL, so a slow fetch or upload
-            # doesn't push every later fetch back. If a round overran, start the next at once.
-            next_run = max(next_run + INTERVAL, time.monotonic())
-            time.sleep(next_run - time.monotonic())
+            # Fixed rhythm: sleep only what is left of INTERVAL (see common/rhythm.py)
+            next_run = rhythm.wait_for_next_round(next_run, INTERVAL)
     finally:
         log.info("stopped")
 

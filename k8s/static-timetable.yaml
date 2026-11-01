@@ -22,8 +22,6 @@ spec:
           labels: {app: static-timetable, part-of: buspulse-collectors}
         spec:
           restartPolicy: Never    # failed pods are kept, so their logs can be read
-          imagePullSecrets:
-            - name: ghcr-pull
           securityContext:
             runAsNonRoot: true
             runAsUser: 1000

@@ -16,8 +16,6 @@ spec:
     metadata:
       labels: {app: service-alerts, part-of: buspulse-collectors}
     spec:
-      imagePullSecrets:
-        - name: ghcr-pull   # only used if the image is private; ignored if it doesn't exist
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
