@@ -260,6 +260,37 @@ def test_http_201_with_wrong_etag_goes_to_buffer():
         swift.close()
 
 
+def test_two_snapshots_in_the_same_second_get_different_names():
+    """Right after an overrun, two saves can happen within one second. With one-second
+    file names the second would overwrite the first, so it must wait for the next second."""
+    swift = FakeSwift()
+    store = Storage(LOG, target=swift)
+    store.save("vehicle_positions", "json", b"1")
+    store.save("vehicle_positions", "json", b"2")
+    assert len(swift.objects) == 2
+    assert sorted(gzip.decompress(d) for d in swift.objects.values()) == [b"1", b"2"]
+
+
+def test_same_second_also_protected_in_local_mode(monkeypatch):
+    monkeypatch.setattr(config, "STORAGE_MODE", "local")
+    store = Storage(LOG)
+    store.save("vehicle_positions", "json", b"1")
+    store.save("vehicle_positions", "json", b"2")
+    files = sorted(config.DATA_DIR.rglob("*.json"))
+    assert [f.read_bytes() for f in files] == [b"1", b"2"]
+
+
+def test_401_makes_it_log_in_again():
+    """An expired or rejected login (401) must not be reused for every later upload."""
+    swift = SwiftHTTP(401)
+    try:
+        target = swift.target()
+        assert Storage(LOG, target=target).save("vehicle_positions", "json", b"1", now=NOW) == "buffer"
+        assert target._conn is None  # next upload logs in again
+    finally:
+        swift.close()
+
+
 def test_heartbeat():
     assert not health.is_alive("vehicle_positions", 60)  # no heartbeat yet
     health.beat("vehicle_positions")

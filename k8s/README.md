@@ -98,6 +98,15 @@ kubectl drain k3s-worker1 --ignore-daemonsets --delete-emptydir-data   # pods mo
 kubectl uncordon k3s-worker1
 ```
 
+## Changing settings or the login
+
+Containers read the ConfigMap and the Secret only when they start. After changing either,
+restart the collectors, otherwise they keep using the old values:
+
+```bash
+kubectl rollout restart deploy -n buspulse
+```
+
 ## 4. Switch over to the real container
 
 ```bash

@@ -25,7 +25,7 @@ import hashlib
 import logging
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from urllib.parse import quote
 
 from common import config
@@ -63,10 +63,12 @@ class SwiftTarget:
             except Exception:
                 self._conn = None  # log in again next time (expired token, network change, ...)
                 raise
-        # openstacksdk does NOT raise on HTTP errors (404, 400, 403, 5xx...), it returns the
-        # response. So check it: anything but 2xx means the object was not stored.
-        if not 200 <= resp.status_code < 300:
-            raise RuntimeError(f"Swift answered HTTP {resp.status_code} for {name}")
+            # openstacksdk does NOT raise on HTTP errors (404, 400, 403, 5xx...), it returns
+            # the response. So check it: anything but 2xx means the object was not stored.
+            if not 200 <= resp.status_code < 300:
+                if resp.status_code == 401:
+                    self._conn = None  # login expired or rejected: log in again next time
+                raise RuntimeError(f"Swift answered HTTP {resp.status_code} for {name}")
         etag = resp.headers.get("Etag", "").strip('"')
         if etag and etag != md5:
             raise RuntimeError(f"checksum mismatch for {name}: sent {md5}, Swift has {etag}")
@@ -82,12 +84,27 @@ class Storage:
                                  if self.mode == "swift" else None)
         self._last_wait_log = 0.0
         self.swift_down = False  # set by a failed upload, cleared by a successful buffer upload
+        self._last_second = None
+
+    def _unique_now(self) -> datetime:
+        """Current UTC time, but never in the same second as the previous snapshot.
+        File names have one-second resolution, so two snapshots saved in the same second
+        (possible right after a round that overran) would get the same name and the
+        second would overwrite the first."""
+        while True:
+            t = datetime.now(timezone.utc)
+            second = t.replace(microsecond=0)
+            if second != self._last_second:
+                self._last_second = second
+                return t
+            time.sleep(0.05)
 
     def save(self, feed: str, ext: str, payload: bytes,
              fallback: bool = True, now: datetime | None = None) -> str:
         """Store one raw response. Returns where it went: "local", "swift" or "buffer".
         With fallback=False a failed upload raises instead of going to the buffer
         (used by run-once jobs, whose buffer would disappear when they exit)."""
+        now = now or self._unique_now()
         if self.mode == "local":
             config.bronze_path(feed, ext, now).write_bytes(payload)
             return "local"
