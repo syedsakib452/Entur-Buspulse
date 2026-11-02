@@ -35,9 +35,26 @@ prometheus:
 
 alertmanager:
   alertmanagerSpec:
+    secrets: [discord-webhook]   # mounted at /etc/alertmanager/secrets/discord-webhook/url
     resources:
       requests: {cpu: 10m, memory: 32Mi}
       limits: {memory: 128Mi}
+  config:
+    route:
+      receiver: discord
+      group_by: [alertname, feed]
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h        # re-send every 4 h while it is still broken
+      routes:
+        - receiver: "null"       # always-firing "is alerting alive" test alerts: don't send
+          matchers: ['alertname =~ "Watchdog|InfoInhibitor"']
+    receivers:
+      - name: "null"
+      - name: discord
+        discord_configs:
+          - webhook_url_file: /etc/alertmanager/secrets/discord-webhook/url
+            send_resolved: true  # also post when it is fixed
 
 grafana:
   # Admin login comes from the Secret 'grafana-admin' (created by hand, see README),
