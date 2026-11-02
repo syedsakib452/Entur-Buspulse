@@ -4,6 +4,8 @@ __pycache__/
 *.pyc
 .venv/
 analysis/
+*.parquet
+silver/
 # Kubernetes secrets and test cache
 *.env
 .pytest_cache/
