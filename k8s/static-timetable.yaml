@@ -33,6 +33,7 @@ spec:
               args: ["collectors.static_timetable"]
               env:
                 - {name: RUN_ONCE, value: "true"}
+                - {name: METRICS_PORT, value: "0"}   # runs for seconds: nothing to scrape
               envFrom:
                 - configMapRef: {name: collector-settings}
                 - secretRef: {name: openstack-credentials}

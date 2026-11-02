@@ -1,0 +1,53 @@
+# Alert rules for data collection. Prometheus checks them every 30 s; firing alerts show in
+# Grafana (Alerting -> Alert rules) and in Alertmanager.
+# The chart's built-in rules already cover crash-looping pods (KubePodCrashLooping) and
+# failed jobs such as the daily static timetable (KubeJobFailed).
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: buspulse-collectors
+  namespace: monitoring
+spec:
+  groups:
+    - name: buspulse-collectors
+      rules:
+        - alert: BusPulseNoNewData
+          # The main one: no new snapshot reached Swift for 5 minutes.
+          # Only for the feeds that save every round (alerts are saved only when they change).
+          expr: (time() - buspulse_last_stored_timestamp_seconds{feed=~"vehicle_positions|estimated_timetable"}) > 300
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "No new {{ $labels.feed }} data in Swift for 5+ minutes"
+            description: "Check the buffer (Swift down?) and the collector's log in Grafana."
+
+        - alert: BusPulseCollectorNotFetching
+          # No successful round for 10 minutes: Entur unreachable, or the collector is failing.
+          expr: increase(buspulse_rounds_total{result="ok"}[10m]) == 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.feed }}: no successful round for 10+ minutes"
+            description: "Every round fails. Look for 'collect failed' in the collector's log."
+
+        - alert: BusPulseSwiftDown
+          # Uploads have been failing for 10 minutes; data is safe in the buffer meanwhile.
+          expr: buspulse_swift_down == 1
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.feed }}: uploads to Swift failing for 10+ minutes"
+            description: "Data waits in the buffer meanwhile; it is lost if the pod is deleted before Swift is back."
+
+        - alert: BusPulseCollectorMissing
+          # Fewer than 3 collectors can be reached by Prometheus.
+          expr: sum(up{namespace="buspulse"}) < 3 or absent(up{namespace="buspulse"})
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Fewer than 3 BusPulse collectors are running"
+            description: "Check: kubectl get pods -n buspulse"

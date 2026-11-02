@@ -1,0 +1,59 @@
+# Settings for the Loki Helm chart: one small Loki that stores all pod logs for 7 days
+# on a disk in the cluster (k3s local-path). Logs are sent here by Alloy (alloy-values.yaml).
+# Install: see monitoring/README.md
+
+deploymentMode: SingleBinary   # everything in one pod: enough for our log volume
+
+loki:
+  auth_enabled: false          # one team, one "tenant"
+  commonConfig:
+    replication_factor: 1
+  storage:
+    type: filesystem
+  schemaConfig:
+    configs:
+      - from: "2024-04-01"
+        store: tsdb
+        object_store: filesystem
+        schema: v13
+        index:
+          prefix: loki_index_
+          period: 24h
+  limits_config:
+    retention_period: 168h     # delete logs older than 7 days
+    reject_old_samples: true
+    reject_old_samples_max_age: 168h
+    volume_enabled: true
+  compactor:
+    retention_enabled: true    # needed for retention_period to actually delete
+    delete_request_store: filesystem
+
+singleBinary:
+  replicas: 1
+  persistence:
+    enabled: true
+    size: 5Gi
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {memory: 768Mi}
+  extraEnv:
+    - name: GOMEMLIMIT         # keep Go's memory use below the limit
+      value: 640MiB
+
+# The chart's defaults are for big clusters. Turn off what we don't need:
+read:
+  replicas: 0
+write:
+  replicas: 0
+backend:
+  replicas: 0
+chunksCache:
+  enabled: false               # default asks for ~8 GB of memory
+resultsCache:
+  enabled: false
+gateway:
+  enabled: false               # Alloy and Grafana talk to Loki directly
+lokiCanary:
+  enabled: false
+test:
+  enabled: false

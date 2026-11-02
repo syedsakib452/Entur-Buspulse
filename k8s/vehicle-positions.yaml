@@ -26,6 +26,8 @@ spec:
           image: ghcr.io/syedsakib452/entur-buspulse:k8s-migration
           imagePullPolicy: IfNotPresent  # tag is pinned, so the cached image is the right one
           args: ["collectors.vehicle_positions"]   # the image runs: python -m <this>
+          ports:
+            - {name: metrics, containerPort: 8000}   # /metrics for Prometheus (common/metrics.py)
           envFrom:
             - configMapRef: {name: collector-settings}
             - secretRef: {name: openstack-credentials}

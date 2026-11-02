@@ -1,5 +1,5 @@
 # Tests the collectors and publishes their image to GitHub Container Registry for Kubernetes.
-#   ghcr.io/<owner>/entur-buspulse:<branch>   e.g. :main, :k8s-migration
+#   ghcr.io/<owner>/entur-buspulse:<branch>   e.g. :main, :monitoring
 #   ghcr.io/<owner>/entur-buspulse:latest     newest main
 #   ghcr.io/<owner>/entur-buspulse:sha-<commit>
 # (build.yml is separate: it deploys to the VM with Docker Compose.)
@@ -7,7 +7,7 @@ name: build-image
 
 on:
   push:
-    branches: [main, k8s-migration]
+    branches: ["**"]   # every branch gets an image (tag = branch name); deploy by pinning its sha-<commit> tag
     paths: ["collectors/**", "common/**", "tests/**", "Dockerfile", "requirements.txt",
             "pytest.ini", ".github/workflows/build-image.yml"]
   pull_request:
