@@ -38,10 +38,10 @@ OS_APPLICATION_CREDENTIAL_ID=<id>
 OS_APPLICATION_CREDENTIAL_SECRET=<secret>
 ```
 
-**Test container in Swift:**
+**Swift container for the raw data** (if it does not exist yet):
 
 ```bash
-swift post buspulse-raw-test
+swift post buspulse-raw
 ```
 
 **Namespace and Secrets:**
@@ -67,7 +67,7 @@ kubectl apply -k k8s/
 ```bash
 kubectl get pods -n buspulse -o wide                 # 3 pods Running, spread over the workers
 kubectl logs -n buspulse deploy/vehicle-positions    # "started", no errors
-swift list buspulse-raw-test | cut -d/ -f1,2 | sort | uniq -c   # files arriving per feed/day
+swift list buspulse-raw | cut -d/ -f1,2 | sort | uniq -c   # files arriving per feed/day
 kubectl create job -n buspulse --from=cronjob/static-timetable static-test   # run the daily job now
 kubectl get jobs -n buspulse                         # static-test: Complete
 ```
@@ -107,15 +107,23 @@ restart the collectors, otherwise they keep using the old values:
 kubectl rollout restart deploy -n buspulse
 ```
 
-## 4. Switch over to the real container
+## 4. Deploying a new version
+
+The image is pinned in `kustomization.yaml` (`newTag: sha-<commit>`), so a pod restart never
+picks up code that was not deliberately deployed, and pods can start from the cached image
+even if ghcr.io is unreachable.
+
+1. Push the code change and wait until the `build-image` workflow is green.
+2. Set `newTag` to that run's `sha-<first 7 characters of the commit>` tag and commit it.
+3. `git pull`, then `kubectl apply -k k8s/` (the pods are replaced with the new version).
+
+Save the logs first if you want to keep them (pods' logs are deleted with the pods):
 
 ```bash
-kubectl patch configmap collector-settings -n buspulse --type merge -p '{"data":{"SWIFT_CONTAINER":"buspulse-raw"}}'
-kubectl rollout restart deploy -n buspulse
+for d in vehicle-positions estimated-timetable service-alerts; do
+  kubectl logs -n buspulse deploy/$d > ~/k8s-logs/$d-$(date -u +%Y%m%dT%H%M).log
+done
 ```
-
-Then on the VM: `docker compose down` for the collectors, run the uploader once
-(`docker compose run --rm uploader`), and remove its cron line.
 
 ## Remove
 

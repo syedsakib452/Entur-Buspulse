@@ -1,5 +1,4 @@
 # Plain settings for all collectors (read by common/config.py).
-# Change SWIFT_CONTAINER to buspulse-raw at the switch-over.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -7,7 +6,7 @@ metadata:
   namespace: buspulse
 data:
   STORAGE_MODE: "swift"                 # upload straight to Swift (VM default is "local")
-  SWIFT_CONTAINER: "buspulse-raw-test"  # test container first, then buspulse-raw
+  SWIFT_CONTAINER: "buspulse-raw"       # bronze data (buspulse-raw-test was used for testing)
   BUFFER_DIR: "/buffer"                 # fallback folder, an emptyDir volume
   BUFFER_RETRY_SECONDS: "30"            # how often the buffer is retried
   HEARTBEAT_DIR: "/tmp"

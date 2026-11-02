@@ -29,7 +29,7 @@ spec:
           containers:
             - name: collector
               image: ghcr.io/syedsakib452/entur-buspulse:k8s-migration
-              imagePullPolicy: Always
+              imagePullPolicy: IfNotPresent  # tag is pinned, so the cached image is the right one
               args: ["collectors.static_timetable"]
               env:
                 - {name: RUN_ONCE, value: "true"}
