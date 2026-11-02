@@ -7,3 +7,5 @@ __pycache__/
 .venv
 .env
 uploader/
+tests/
+pytest.ini

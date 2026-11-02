@@ -1,0 +1,14 @@
+# Plain settings for all collectors (read by common/config.py).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: collector-settings
+  namespace: buspulse
+data:
+  STORAGE_MODE: "swift"                 # upload straight to Swift (VM default is "local")
+  SWIFT_CONTAINER: "buspulse-raw"       # bronze data (buspulse-raw-test was used for testing)
+  BUFFER_DIR: "/buffer"                 # fallback folder, an emptyDir volume
+  BUFFER_RETRY_SECONDS: "30"            # how often the buffer is retried
+  HEARTBEAT_DIR: "/tmp"
+  LOG_TO_FILE: "false"                  # read logs with: kubectl logs
+  HOME: "/tmp"                          # writable home for the non-root user

@@ -1,0 +1,63 @@
+# Tests the collectors and publishes their image to GitHub Container Registry for Kubernetes.
+#   ghcr.io/<owner>/entur-buspulse:<branch>   e.g. :main, :k8s-migration
+#   ghcr.io/<owner>/entur-buspulse:latest     newest main
+#   ghcr.io/<owner>/entur-buspulse:sha-<commit>
+# (build.yml is separate: it deploys to the VM with Docker Compose.)
+name: build-image
+
+on:
+  push:
+    branches: [main, k8s-migration]
+    paths: ["collectors/**", "common/**", "tests/**", "Dockerfile", "requirements.txt",
+            "pytest.ini", ".github/workflows/build-image.yml"]
+  pull_request:
+    paths: ["collectors/**", "common/**", "tests/**", "Dockerfile", "requirements.txt"]
+  workflow_dispatch:
+
+jobs:
+  test-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Run tests
+        env:
+          LOG_TO_FILE: "false"
+        run: |
+          pip install -r requirements.txt pytest
+          pytest -q
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=ref,event=branch
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha
+
+      - name: Build (and push, except for pull requests)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

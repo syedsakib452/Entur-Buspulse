@@ -1,0 +1,194 @@
+"""Where collected data goes. Every collector calls Storage.save() instead of writing files itself.
+
+STORAGE_MODE=local (default, VM + Docker Compose)
+    Saves the raw response as a file under DATA_DIR, exactly as before.
+    The Go uploader moves it to Swift at night.
+
+STORAGE_MODE=swift (Kubernetes)
+    gzips the response (zip files are kept as they are) and uploads it straight to Swift,
+    with the same object name the uploader uses, e.g.
+        vehicle_positions/date=2026-10-31/vehicle_positions_20261031T100530Z.json.gz
+    Swift checks the MD5 we send, so a successful upload is a byte-for-byte copy.
+
+    One try per snapshot, limited by the collector's UPLOAD_TIMEOUT (shorter than its
+    interval, so a slow Swift never makes the collector miss its next fetch).
+    If that try fails, the snapshot is saved in BUFFER_DIR (the fallback folder) and
+    Swift counts as "down": new snapshots go straight to the buffer too (no point
+    waiting for another timeout).
+    A background thread uploads the buffer every BUFFER_RETRY_SECONDS, oldest first.
+    Its first successful upload marks Swift as "up" again: from then on new snapshots
+    go directly to Swift, while the thread uploads the rest of the backlog.
+    Buffered files keep their original name, so they land in the right day folder in Swift.
+"""
+import gzip
+import hashlib
+import logging
+import threading
+import time
+from datetime import datetime, timezone
+from urllib.parse import quote
+
+from common import config
+
+
+class SwiftTarget:
+    """Uploads objects to one Swift container. Logs in with the usual OS_* environment
+    variables (password or application credential), the same as openstack.env.
+    timeout: seconds before a Swift request is given up (without it, a stalled
+    upload would block forever)."""
+
+    def __init__(self, container: str, timeout: float):
+        self.container = container
+        self.timeout = timeout
+        self._conn = None
+        self._lock = threading.Lock()  # the collector and the buffer thread share one connection
+
+    def _connection(self):
+        if self._conn is None:
+            import openstack  # only needed in swift mode
+
+            self._conn = openstack.connect(api_timeout=self.timeout)
+        return self._conn
+
+    def put(self, name: str, data: bytes) -> None:
+        md5 = hashlib.md5(data).hexdigest()
+        content_type = "application/zip" if name.endswith(".zip") else "application/gzip"
+        with self._lock:
+            try:
+                resp = self._connection().object_store.put(
+                    f"{quote(self.container)}/{quote(name, safe='/')}",
+                    data=data,
+                    headers={"ETag": md5, "Content-Type": content_type},
+                )
+            except Exception:
+                self._conn = None  # log in again next time (expired token, network change, ...)
+                raise
+            # openstacksdk does NOT raise on HTTP errors (404, 400, 403, 5xx...), it returns
+            # the response. So check it: anything but 2xx means the object was not stored.
+            if not 200 <= resp.status_code < 300:
+                if resp.status_code == 401:
+                    self._conn = None  # login expired or rejected: log in again next time
+                raise RuntimeError(f"Swift answered HTTP {resp.status_code} for {name}")
+        etag = resp.headers.get("Etag", "").strip('"')
+        if etag and etag != md5:
+            raise RuntimeError(f"checksum mismatch for {name}: sent {md5}, Swift has {etag}")
+
+
+class Storage:
+    def __init__(self, log: logging.Logger, upload_timeout: float = 45, target=None):
+        self.log = log
+        self.mode = config.STORAGE_MODE
+        if self.mode not in ("local", "swift"):
+            raise ValueError(f"STORAGE_MODE must be 'local' or 'swift', not {self.mode!r}")
+        self.target = target or (SwiftTarget(config.SWIFT_CONTAINER, upload_timeout)
+                                 if self.mode == "swift" else None)
+        self._last_wait_log = 0.0
+        self.swift_down = False  # set by a failed upload, cleared by a successful buffer upload
+        self._last_second = None
+
+    def _same_second_as_last(self, now: datetime) -> bool:
+        """File names have one-second resolution, so two snapshots in the same second
+        (possible right after a round that overran) would get the same name. They hold
+        practically the same data, so the second one is simply skipped."""
+        second = now.replace(microsecond=0)
+        if second == self._last_second:
+            return True
+        self._last_second = second
+        return False
+
+    def save(self, feed: str, ext: str, payload: bytes,
+             fallback: bool = True, now: datetime | None = None) -> str:
+        """Store one raw response. Returns where it went: "local", "swift" or "buffer",
+        or "skipped" if a snapshot was already stored in the same second.
+        With fallback=False a failed upload raises instead of going to the buffer
+        (used by run-once jobs, whose buffer would disappear when they exit)."""
+        now = now or datetime.now(timezone.utc)
+        if self._same_second_as_last(now):
+            return "skipped"
+        if self.mode == "local":
+            config.bronze_path(feed, ext, now).write_bytes(payload)
+            return "local"
+
+        if ext == "zip":  # already compressed
+            data = payload
+        else:
+            data, ext = gzip.compress(payload), ext + ".gz"
+        name = config.object_name(feed, ext, now)
+
+        # Swift failed a moment ago and the buffer thread hasn't reached it since:
+        # don't wait for another timeout, go straight to the buffer.
+        if fallback and self.swift_down:
+            self._to_buffer(name, data)
+            return "buffer"
+
+        try:
+            self.target.put(name, data)
+            return "swift"
+        except Exception as e:  # noqa: BLE001 - any failure means: buffer it
+            if not fallback:
+                raise RuntimeError(f"upload of {name} failed: {e}") from e
+            self._to_buffer(name, data)
+            if not self.swift_down:
+                self.swift_down = True
+                self.log.error("upload of %s failed (%s): saved to buffer, "
+                               "new data goes to the buffer until Swift is back", name, e)
+            self._last_wait_log = time.monotonic()
+            return "buffer"
+
+    def buffer_size(self) -> int:
+        if not config.BUFFER_DIR.exists():
+            return 0
+        return sum(1 for p in config.BUFFER_DIR.rglob("*")
+                   if p.is_file() and not p.name.endswith(".tmp"))
+
+    def _to_buffer(self, name: str, data: bytes) -> None:
+        path = config.BUFFER_DIR / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_name(path.name + ".tmp")  # write fully, then rename: never half a file
+        tmp.write_bytes(data)
+        tmp.replace(path)
+
+    def flush_buffer(self) -> int:
+        """Upload everything waiting in the buffer, oldest first. Stops at the first
+        failure (Swift is probably still unreachable). Returns how many were uploaded."""
+        if self.mode != "swift" or not config.BUFFER_DIR.exists():
+            return 0
+        files = sorted((p for p in config.BUFFER_DIR.rglob("*")
+                        if p.is_file() and not p.name.endswith(".tmp")),
+                       key=lambda p: p.name)  # file names contain the time: oldest first
+        sent = 0
+        for path in files:
+            name = path.relative_to(config.BUFFER_DIR).as_posix()
+            try:
+                self.target.put(name, path.read_bytes())
+            except Exception as e:  # noqa: BLE001
+                # The outage was already logged once; repeat at most every 10 minutes.
+                if time.monotonic() - self._last_wait_log > 600:
+                    self.log.error("buffer: %d file(s) waiting, Swift still failing (%s)",
+                                   len(files) - sent, e)
+                    self._last_wait_log = time.monotonic()
+                break
+            path.unlink()
+            sent += 1
+            if self.swift_down:  # Swift accepted an upload: it is back
+                self.swift_down = False
+                self.log.info("Swift reachable again: direct uploads resumed, "
+                              "uploading %d buffered file(s) in the background", len(files))
+        if sent:
+            self.log.info("buffer: uploaded %d file(s)", sent)
+        return sent
+
+    def start_flusher(self) -> None:
+        """Retry the buffer at startup and then every BUFFER_RETRY_SECONDS, in the background."""
+        if self.mode != "swift":
+            return
+
+        def loop():
+            while True:
+                try:
+                    self.flush_buffer()
+                except Exception:  # noqa: BLE001 - never let the retry thread die
+                    self.log.exception("buffer flush failed")
+                time.sleep(config.BUFFER_RETRY_SECONDS)
+
+        threading.Thread(target=loop, name="buffer-flusher", daemon=True).start()
