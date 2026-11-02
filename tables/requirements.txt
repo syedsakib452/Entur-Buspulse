@@ -1,3 +1,4 @@
 pyarrow
 python-swiftclient
 python-keystoneclient
+pandas
