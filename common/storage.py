@@ -86,25 +86,25 @@ class Storage:
         self.swift_down = False  # set by a failed upload, cleared by a successful buffer upload
         self._last_second = None
 
-    def _unique_now(self) -> datetime:
-        """Current UTC time, but never in the same second as the previous snapshot.
-        File names have one-second resolution, so two snapshots saved in the same second
-        (possible right after a round that overran) would get the same name and the
-        second would overwrite the first."""
-        while True:
-            t = datetime.now(timezone.utc)
-            second = t.replace(microsecond=0)
-            if second != self._last_second:
-                self._last_second = second
-                return t
-            time.sleep(0.05)
+    def _same_second_as_last(self, now: datetime) -> bool:
+        """File names have one-second resolution, so two snapshots in the same second
+        (possible right after a round that overran) would get the same name. They hold
+        practically the same data, so the second one is simply skipped."""
+        second = now.replace(microsecond=0)
+        if second == self._last_second:
+            return True
+        self._last_second = second
+        return False
 
     def save(self, feed: str, ext: str, payload: bytes,
              fallback: bool = True, now: datetime | None = None) -> str:
-        """Store one raw response. Returns where it went: "local", "swift" or "buffer".
+        """Store one raw response. Returns where it went: "local", "swift" or "buffer",
+        or "skipped" if a snapshot was already stored in the same second.
         With fallback=False a failed upload raises instead of going to the buffer
         (used by run-once jobs, whose buffer would disappear when they exit)."""
-        now = now or self._unique_now()
+        now = now or datetime.now(timezone.utc)
+        if self._same_second_as_last(now):
+            return "skipped"
         if self.mode == "local":
             config.bronze_path(feed, ext, now).write_bytes(payload)
             return "local"

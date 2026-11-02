@@ -40,7 +40,8 @@ def collect(client: EnturClient, last_fingerprint: str | None) -> str:
     payload = client.get_siri(config.SX_URL)
     current = fingerprint(payload)
     if current != last_fingerprint:
-        storage.save(NAME, "xml", payload)
+        if storage.save(NAME, "xml", payload) == "skipped":
+            return last_fingerprint  # not stored (same second as the last save): try again next round
     return current
 
 

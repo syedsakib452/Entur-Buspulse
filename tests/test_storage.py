@@ -260,24 +260,32 @@ def test_http_201_with_wrong_etag_goes_to_buffer():
         swift.close()
 
 
-def test_two_snapshots_in_the_same_second_get_different_names():
-    """Right after an overrun, two saves can happen within one second. With one-second
-    file names the second would overwrite the first, so it must wait for the next second."""
+def test_second_snapshot_in_the_same_second_is_skipped():
+    """Right after an overrun, two saves can happen within one second. They would get the
+    same file name; they hold practically the same data, so the second is skipped."""
     swift = FakeSwift()
     store = Storage(LOG, target=swift)
-    store.save("vehicle_positions", "json", b"1")
-    store.save("vehicle_positions", "json", b"2")
+    assert store.save("vehicle_positions", "json", b"1", now=NOW) == "swift"
+    assert store.save("vehicle_positions", "json", b"2", now=NOW.replace(microsecond=800000)) == "skipped"
+    assert [gzip.decompress(d) for d in swift.objects.values()] == [b"1"]  # first kept, not overwritten
+    assert swift.calls == 1  # no extra upload
+
+
+def test_next_second_is_saved_normally():
+    swift = FakeSwift()
+    store = Storage(LOG, target=swift)
+    store.save("vehicle_positions", "json", b"1", now=NOW)
+    assert store.save("vehicle_positions", "json", b"2", now=NOW + timedelta(seconds=1)) == "swift"
     assert len(swift.objects) == 2
-    assert sorted(gzip.decompress(d) for d in swift.objects.values()) == [b"1", b"2"]
 
 
-def test_same_second_also_protected_in_local_mode(monkeypatch):
+def test_same_second_skipped_in_local_mode_too(monkeypatch):
     monkeypatch.setattr(config, "STORAGE_MODE", "local")
     store = Storage(LOG)
-    store.save("vehicle_positions", "json", b"1")
-    store.save("vehicle_positions", "json", b"2")
+    store.save("vehicle_positions", "json", b"1", now=NOW)
+    assert store.save("vehicle_positions", "json", b"2", now=NOW) == "skipped"
     files = sorted(config.DATA_DIR.rglob("*.json"))
-    assert [f.read_bytes() for f in files] == [b"1", b"2"]
+    assert [f.read_bytes() for f in files] == [b"1"]
 
 
 def test_401_makes_it_log_in_again():
