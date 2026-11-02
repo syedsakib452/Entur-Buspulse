@@ -12,7 +12,7 @@ import signal
 import sys
 import time
 
-from common import config, health, rhythm
+from common import config, health, metrics, rhythm
 from common.entur_client import EnturClient
 from common.logger import get_logger
 from common.storage import Storage
@@ -37,6 +37,7 @@ def main():
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))  # docker stop -> "stopped" gets logged
     client = EnturClient(CLIENT_NAME)
     storage.start_flusher()  # swift mode: retries the fallback buffer in the background
+    metrics.start(NAME)  # /metrics endpoint for Prometheus
     log.info("started")
     health.beat(NAME)
     next_run = time.monotonic()
@@ -44,8 +45,10 @@ def main():
         while True:
             try:
                 collect(client)
+                metrics.round_done(NAME, ok=True)
             except Exception:
                 log.exception("collect failed")
+                metrics.round_done(NAME, ok=False)
             health.beat(NAME)  # liveness probe: the loop is still going
             # Fixed rhythm: sleep only what is left of INTERVAL (see common/rhythm.py)
             next_run = rhythm.wait_for_next_round(next_run, INTERVAL)

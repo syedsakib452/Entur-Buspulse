@@ -14,4 +14,4 @@ resources:
   - static-timetable.yaml
 images:
   - name: ghcr.io/syedsakib452/entur-buspulse
-    newTag: sha-1e64fd7
+    newTag: sha-48ed42b

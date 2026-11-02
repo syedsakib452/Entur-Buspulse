@@ -28,7 +28,7 @@ import time
 from datetime import datetime, timezone
 from urllib.parse import quote
 
-from common import config
+from common import config, metrics
 
 
 class SwiftTarget:
@@ -98,6 +98,15 @@ class Storage:
 
     def save(self, feed: str, ext: str, payload: bytes,
              fallback: bool = True, now: datetime | None = None) -> str:
+        """Store one raw response and count where it went (see common/metrics.py)."""
+        destination = self._store(feed, ext, payload, fallback, now)
+        metrics.stored(feed, destination)
+        if destination == "buffer":
+            metrics.buffer_files(feed, self.buffer_size())
+        return destination
+
+    def _store(self, feed: str, ext: str, payload: bytes,
+               fallback: bool, now: datetime | None) -> str:
         """Store one raw response. Returns where it went: "local", "swift" or "buffer",
         or "skipped" if a snapshot was already stored in the same second.
         With fallback=False a failed upload raises instead of going to the buffer
@@ -130,6 +139,7 @@ class Storage:
             self._to_buffer(name, data)
             if not self.swift_down:
                 self.swift_down = True
+                metrics.swift_down(feed, True)
                 self.log.error("upload of %s failed (%s): saved to buffer, "
                                "new data goes to the buffer until Swift is back", name, e)
             self._last_wait_log = time.monotonic()
@@ -170,12 +180,16 @@ class Storage:
                 break
             path.unlink()
             sent += 1
+            feed = name.split("/", 1)[0]
+            metrics.buffer_uploaded(feed, 1)
             if self.swift_down:  # Swift accepted an upload: it is back
                 self.swift_down = False
+                metrics.swift_down(feed, False)
                 self.log.info("Swift reachable again: direct uploads resumed, "
                               "uploading %d buffered file(s) in the background", len(files))
         if sent:
             self.log.info("buffer: uploaded %d file(s)", sent)
+            metrics.buffer_files(feed, self.buffer_size())
         return sent
 
     def start_flusher(self) -> None:
