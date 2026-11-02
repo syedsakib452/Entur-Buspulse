@@ -1,0 +1,56 @@
+# Settings for the Grafana Alloy Helm chart: reads the logs of every pod in the cluster
+# through the Kubernetes API and sends them to Loki. Logs are kept even when pods are
+# restarted or replaced, which `kubectl logs` can't do.
+# Install: see monitoring/README.md
+
+controller:
+  type: deployment   # one Alloy for the whole cluster (it reads logs via the API, not from disk)
+  replicas: 1
+
+alloy:
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits: {memory: 384Mi}
+  configMap:
+    content: |
+      // Find all pods and give their log lines useful labels
+      discovery.kubernetes "pods" {
+        role = "pod"
+      }
+
+      discovery.relabel "pods" {
+        targets = discovery.kubernetes.pods.targets
+
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          target_label  = "namespace"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_name"]
+          target_label  = "pod"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_name"]
+          target_label  = "container"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_app"]
+          target_label  = "app"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_node_name"]
+          target_label  = "node"
+        }
+      }
+
+      // Read the logs and send them to Loki
+      loki.source.kubernetes "pods" {
+        targets    = discovery.relabel.pods.output
+        forward_to = [loki.write.default.receiver]
+      }
+
+      loki.write "default" {
+        endpoint {
+          url = "http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push"
+        }
+      }

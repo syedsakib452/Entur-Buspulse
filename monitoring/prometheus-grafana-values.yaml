@@ -1,0 +1,59 @@
+# Settings for the kube-prometheus-stack Helm chart (Prometheus, Grafana, Alertmanager,
+# node and Kubernetes metrics), sized for our three small VMs (2 CPU / 4 GB each).
+# Install: see monitoring/README.md
+
+# k3s runs the scheduler, controller manager, proxy and etcd inside its own process,
+# so there are no separate targets to scrape (they would only show as "down").
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeProxy:
+  enabled: false
+kubeEtcd:
+  enabled: false
+
+prometheus:
+  prometheusSpec:
+    retention: 7d              # keep metrics for a week
+    retentionSize: 4GB         # ...or less, if the disk fills first
+    resources:
+      requests: {cpu: 100m, memory: 400Mi}
+      limits: {memory: 1Gi}
+    storageSpec:               # keep metrics across restarts (k3s local-path disk)
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 5Gi
+    # Also pick up PodMonitors, ServiceMonitors and alert rules from other namespaces
+    # (e.g. buspulse), not only the ones created by this chart.
+    podMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+
+alertmanager:
+  alertmanagerSpec:
+    resources:
+      requests: {cpu: 10m, memory: 32Mi}
+      limits: {memory: 128Mi}
+
+grafana:
+  # Admin login comes from the Secret 'grafana-admin' (created by hand, see README),
+  # so the password is never stored in Git or in Helm's settings.
+  admin:
+    existingSecret: grafana-admin
+    userKey: admin-user
+    passwordKey: admin-password
+  persistence:                 # keep dashboards and settings across restarts
+    enabled: true
+    size: 1Gi
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits: {memory: 384Mi}
+  additionalDataSources:
+    - name: Loki
+      type: loki
+      access: proxy
+      url: http://loki.monitoring.svc.cluster.local:3100
