@@ -77,3 +77,28 @@ helm upgrade loki grafana/loki -n monitoring -f monitoring/loki-values.yaml
 helm uninstall alloy loki monitoring -n monitoring
 kubectl delete namespace monitoring    # also deletes the stored metrics, logs and the Grafana login
 ```
+
+## Collector metrics, alerts and dashboard
+
+The collectors report their own numbers at `:8000/metrics` (see `common/metrics.py`): snapshots
+stored (to Swift, to the buffer, skipped), when data last reached Swift, files waiting in the
+buffer, whether Swift uploads are failing, and failed rounds.
+
+| File | What it does |
+|---|---|
+| `buspulse-podmonitor.yaml` | Tells Prometheus to collect those numbers every 30 s |
+| `buspulse-alerts.yaml` | Alerts: **no new data in Swift for 5 min**, no successful round for 10 min, Swift uploads failing for 10 min, fewer than 3 collectors running |
+| `buspulse-dashboard.yaml` | Grafana dashboard **BusPulse / Data collection** (loaded automatically) |
+
+```bash
+kubectl apply -f monitoring/buspulse-podmonitor.yaml -f monitoring/buspulse-alerts.yaml -f monitoring/buspulse-dashboard.yaml
+```
+
+Check:
+- Grafana → Explore → Prometheus → `up{namespace="buspulse"}`: three series with value 1.
+- Dashboards → **BusPulse / Data collection**.
+- Alerting → Alert rules → `buspulse-collectors`: four rules, normally *Normal* (green).
+
+The chart's built-in rules also alert on crash-looping pods and failed jobs (e.g. the daily
+static timetable). Alerts are shown in Grafana and Alertmanager; nothing is sent by email or
+chat unless a receiver is configured in Alertmanager.

@@ -1,0 +1,16 @@
+# Tells Prometheus to collect the collectors' numbers (common/metrics.py) every 30 s
+# from the "metrics" port of every pod labelled part-of=buspulse-collectors.
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: buspulse-collectors
+  namespace: monitoring
+spec:
+  namespaceSelector:
+    matchNames: [buspulse]
+  selector:
+    matchLabels:
+      part-of: buspulse-collectors
+  podMetricsEndpoints:
+    - port: metrics
+      interval: 30s
