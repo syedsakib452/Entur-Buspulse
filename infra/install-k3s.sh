@@ -11,6 +11,13 @@ WORKERS=(k3s-worker1 k3s-worker2)
 MASTER_IP=$(openstack server show "$MASTER" -f value -c addresses | grep -oE '[0-9]+(\.[0-9]+){3}' | head -1)
 echo "Master IP: $MASTER_IP"
 
+echo "Syncing clocks with UiS's time server (public time servers are blocked)"
+for n in "$MASTER" "${WORKERS[@]}"; do
+  ssh "$n" 'sudo mkdir -p /etc/systemd/timesyncd.conf.d &&
+    printf "[Time]\nNTP=ntp.ux.uis.no\n" | sudo tee /etc/systemd/timesyncd.conf.d/uis.conf >/dev/null &&
+    sudo systemctl restart systemd-timesyncd'
+done
+
 echo "Installing k3s server on $MASTER"
 ssh "$MASTER" 'curl -sfL https://get.k3s.io | sh -s - server --write-kubeconfig-mode 644'
 TOKEN=$(ssh "$MASTER" 'sudo cat /var/lib/rancher/k3s/server/node-token')

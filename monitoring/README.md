@@ -30,17 +30,24 @@ kubectl create secret generic grafana-admin -n monitoring \
   --from-literal=admin-user=admin --from-literal=admin-password="$GPW"
 unset GPW
 
-# The three charts
-helm install monitoring prometheus-community/kube-prometheus-stack -n monitoring \
-  -f monitoring/prometheus-grafana-values.yaml
-helm install loki  grafana/loki  -n monitoring -f monitoring/loki-values.yaml
-helm install alloy grafana/alloy -n monitoring -f monitoring/alloy-values.yaml
+# Discord webhook for alerts (Discord: channel settings -> Integrations -> Webhooks -> Copy URL).
+# The URL works like a password, so it lives only in this Secret, never in Git.
+read -rsp "Discord webhook URL: " DWH; echo
+kubectl create secret generic discord-webhook -n monitoring --from-literal=url="$DWH"
+unset DWH
+
+# The three charts, with pinned versions so a reinstall gives the same result
+helm install monitoring prometheus-community/kube-prometheus-stack --version 92.17.0 \
+  -n monitoring -f monitoring/prometheus-grafana-values.yaml
+helm install loki  grafana/loki  --version 7.5.0  -n monitoring -f monitoring/loki-values.yaml
+helm install alloy grafana/alloy --version 1.15.0 -n monitoring -f monitoring/alloy-values.yaml
 
 kubectl get pods -n monitoring -w      # wait until everything is Running
-helm list -n monitoring                # write the chart versions down below
+helm list -n monitoring                # check the versions below
 ```
 
-Installed versions: _(fill in from `helm list -n monitoring`)_
+Installed versions (chart / app): kube-prometheus-stack 92.17.0 / v0.94.2,
+loki 7.5.0 / 3.6.16, alloy 1.15.0 / v1.21.3.
 
 ## Open Grafana
 
@@ -65,10 +72,14 @@ Then open http://localhost:3000 and log in as `admin` with the password from abo
 
 ## Change settings
 
-Edit a values file, then upgrade that chart, e.g.:
+Edit a values file, commit it, `git pull` on budpulse1, then upgrade that chart with the
+same version (GitHub Actions does not deploy this):
 
 ```bash
-helm upgrade loki grafana/loki -n monitoring -f monitoring/loki-values.yaml
+helm upgrade monitoring prometheus-community/kube-prometheus-stack --version 92.17.0 \
+  -n monitoring -f monitoring/prometheus-grafana-values.yaml
+helm upgrade loki  grafana/loki  --version 7.5.0  -n monitoring -f monitoring/loki-values.yaml
+helm upgrade alloy grafana/alloy --version 1.15.0 -n monitoring -f monitoring/alloy-values.yaml
 ```
 
 ## Remove
@@ -99,6 +110,21 @@ Check:
 - Dashboards → **BusPulse / Data collection**.
 - Alerting → Alert rules → `buspulse-collectors`: four rules, normally *Normal* (green).
 
-The chart's built-in rules also alert on crash-looping pods and failed jobs (e.g. the daily
-static timetable). Alerts are shown in Grafana and Alertmanager; nothing is sent by email or
-chat unless a receiver is configured in Alertmanager.
+The chart's built-in rules also alert on crash-looping pods, failed jobs (e.g. the daily
+static timetable) and node problems such as unsynchronised clocks.
+
+## Alerts to Discord
+
+Alertmanager posts every firing alert to our Discord channel, and again when it is resolved
+(settings in `prometheus-grafana-values.yaml`, webhook URL from the Secret `discord-webhook`).
+The chart's always-firing test alert (`Watchdog`) is not sent.
+
+Send a test alert (arrives in Discord after about 30 s, resolved after about 5 min):
+
+```bash
+kubectl exec -n monitoring alertmanager-monitoring-kube-prometheus-alertmanager-0 -c alertmanager -- \
+  amtool alert add BusPulseTest severity=warning feed=test --alertmanager.url=http://localhost:9093
+```
+
+Found this way: the VMs' clocks were not synchronised, because UiS blocks public time servers.
+`infra/install-k3s.sh` now points every VM to UiS's own server, `ntp.ux.uis.no`.
