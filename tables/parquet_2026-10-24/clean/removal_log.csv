@@ -1,0 +1,7 @@
+rule,rows_before,rows_after,removed
+keep chosen service dates,9494374,9494374,0
+drop rows with null key / stop_ref,9494374,9494374,0
+de-duplicate snapshots (keep latest per visit),9494374,90261,9404113
+exclude ferry lines (vehicle_mode or route_type),90261,90092,169
+"keep bus route types only (3, 700-799)",90092,90092,0
+keep stops that exist in GTFS,90092,90092,0
