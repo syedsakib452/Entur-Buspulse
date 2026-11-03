@@ -9,4 +9,5 @@ resources:
   - cronjob.yaml
 images:
   - name: ghcr.io/syedsakib452/entur-buspulse-tables
-    newTag: sha-4c864e4
+    newTag: sha-6a284e2
+
