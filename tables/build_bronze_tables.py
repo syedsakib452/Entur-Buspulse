@@ -78,12 +78,16 @@ SCHEMAS = {
 
 # --------------------------------------------------------------------- helpers
 def swift_connection():
-    """Same OS_* variables as the uploader (~/openstack.env)."""
+    """Same OS_* variables as openstack.env: a password login (VM) or an
+    application credential (Kubernetes Secret)."""
     env = os.environ
     return Connection(
         authurl=env["OS_AUTH_URL"], user=env.get("OS_USERNAME"), key=env.get("OS_PASSWORD"),
         auth_version="3",
         os_options={k: v for k, v in {
+            "auth_type": env.get("OS_AUTH_TYPE"),
+            "application_credential_id": env.get("OS_APPLICATION_CREDENTIAL_ID"),
+            "application_credential_secret": env.get("OS_APPLICATION_CREDENTIAL_SECRET"),
             "project_id": env.get("OS_PROJECT_ID"),
             "project_name": env.get("OS_PROJECT_NAME"),
             "user_domain_name": env.get("OS_USER_DOMAIN_NAME"),

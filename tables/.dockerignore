@@ -1,0 +1,5 @@
+parquet_*/
+silver/
+__pycache__/
+*.ipynb
+*.parquet
