@@ -84,6 +84,8 @@ def swift_connection():
     return Connection(
         authurl=env["OS_AUTH_URL"], user=env.get("OS_USERNAME"), key=env.get("OS_PASSWORD"),
         auth_version="3",
+        timeout=120,      # give up on a request after 2 min instead of waiting forever
+        retries=5,        # and try it again, up to 5 times
         os_options={k: v for k, v in {
             "auth_type": env.get("OS_AUTH_TYPE"),
             "application_credential_id": env.get("OS_APPLICATION_CREDENTIAL_ID"),
