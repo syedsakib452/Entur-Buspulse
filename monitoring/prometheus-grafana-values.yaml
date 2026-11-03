@@ -48,7 +48,7 @@ alertmanager:
       repeat_interval: 4h        # re-send every 4 h while it is still broken
       routes:
         - receiver: "null"       # always-firing "is alerting alive" test alerts: don't send
-          matchers: ['alertname =~ "Watchdog|InfoInhibitor"']
+          matchers: ['alertname =~ "Watchdog|InfoInhibitor|KubeAPIErrorBudgetBurn"']
     receivers:
       - name: "null"
       - name: discord

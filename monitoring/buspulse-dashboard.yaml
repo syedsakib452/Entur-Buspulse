@@ -72,7 +72,25 @@ data:
                   }
                 ]
               }
-            }
+            },
+            "overrides": [
+              {
+                "matcher": {"id": "byName", "options": "service_alerts"},
+                "properties": [
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {"color": "green", "value": null},
+                        {"color": "yellow", "value": 43200},
+                        {"color": "red", "value": 86400}
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
           },
           "options": {
             "colorMode": "background",
