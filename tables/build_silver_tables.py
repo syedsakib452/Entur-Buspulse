@@ -19,7 +19,6 @@ from pathlib import Path
 
 import pandas as pd
 import pyarrow.parquet as pq
-from swiftclient.exceptions import ClientException
 
 from build_bronze_tables import swift_connection
 
