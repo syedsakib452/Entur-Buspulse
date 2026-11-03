@@ -25,9 +25,7 @@ from build_bronze_tables import swift_connection
 
 BRONZE_CONTAINER = os.getenv("BRONZE_CONTAINER", "buspulse-bronze")
 SILVER_CONTAINER = os.getenv("SILVER_CONTAINER", "buspulse-silver")
-GTFS_LOOKBACK_DAYS = 7          # use an earlier timetable if the day has none
-
-# ------------------------------------------------------------- shared rules
+GTFS_LOOKBACK_DAYS = 7         
 TZ = "Europe/Oslo"              # Norway's time zone (also Stavanger)
 STALE_S = 300                   # vehicle position older than 5 min = stale
 MAX_ABS_DELAY_S = 3 * 3600      # delays over 3 h are treated as errors
