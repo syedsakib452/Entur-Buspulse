@@ -16,7 +16,7 @@ Security group `k3s-cluster`: SSH (22) and the Kubernetes API (6443) from the Ui
 Run from a machine on the UiS network (we use `budpulse1`) with:
 
 ```bash
-sudo apt install -y python3-openstackclient
+sudo apt install -y python3-openstackclient python3-swiftclient
 sudo snap install kubectl --classic
 set -a; source ~/openstack.env; set +a   # OpenStack login (OS_... lines), not in Git
 ```
@@ -40,14 +40,19 @@ Host k3s-*
 ```bash
 ./infra/create-vms.sh     # security group + 3 VMs (skips what already exists)
 # add the IPs to ~/.ssh/config, then:
-./infra/install-k3s.sh    # k3s on all nodes + kubectl on this machine
+./infra/install-k3s.sh    # clock sync, k3s on all nodes, kubectl on this machine
 ```
+
+`install-k3s.sh` points every VM's clock at UiS's time server `ntp.ux.uis.no`, because the
+UiS network blocks public time servers. Snapshot names come from the clock, so it must be right.
 
 ## Verify
 
 ```bash
 kubectl get nodes         # 3 nodes, all Ready
 ```
+
+Next: deploy the collectors (`k8s/README.md`).
 
 ## Remove
 

@@ -2,7 +2,7 @@
 #   ghcr.io/<owner>/entur-buspulse:<branch>   e.g. :main, :monitoring
 #   ghcr.io/<owner>/entur-buspulse:latest     newest main
 #   ghcr.io/<owner>/entur-buspulse:sha-<commit>
-# (build.yml is separate: it deploys to the VM with Docker Compose.)
+# (build.yml is a separate, quick compile check.)
 name: build-image
 
 on:

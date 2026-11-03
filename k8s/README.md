@@ -1,16 +1,19 @@
 # Collectors on Kubernetes
 
 The four collectors run in the k3s cluster (see `infra/`) in the namespace `buspulse`.
-They upload straight to Swift (`STORAGE_MODE=swift`). If an upload fails, the file waits in
-a fallback folder (`/buffer`, an `emptyDir` volume) and is retried every 30 s.
-While the buffer has files, new data goes straight to the buffer; once it is empty, direct uploads resume.
+They upload straight to Swift (`STORAGE_MODE=swift`), one try per snapshot with a time limit
+shorter than the collector's interval, so a slow Swift never delays the next fetch.
+If an upload fails, the file goes to a fallback folder (`/buffer`, an `emptyDir` volume) and
+new snapshots go there too. A background thread retries the buffer every 30 s, oldest first;
+its first successful upload switches the collector back to direct uploads.
+The buffer survives container restarts, but not deletion of the pod.
 
 | File | What it creates |
 |---|---|
 | `namespace.yaml` | Namespace `buspulse` |
 | `configmap.yaml` | Settings: storage mode, Swift container, buffer, logging |
 | `secret.example.yaml` | Template only. The real Secret is created from a file (below) |
-| `vehicle-positions.yaml`, `estimated-timetable.yaml`, `service-alerts.yaml` | One Deployment each: 1 pod, liveness probe, CPU/memory limits, non-root |
+| `vehicle-positions.yaml`, `estimated-timetable.yaml`, `service-alerts.yaml` | One Deployment each: 1 pod, liveness probe, CPU/memory limits, non-root, metrics on port 8000 |
 | `static-timetable.yaml` | CronJob, once a day at 03:00 UTC, retried on failure |
 | `kustomization.yaml` | Applies all of the above; sets the image tag in one place |
 
@@ -38,7 +41,8 @@ OS_APPLICATION_CREDENTIAL_ID=<id>
 OS_APPLICATION_CREDENTIAL_SECRET=<secret>
 ```
 
-**Swift container for the raw data** (if it does not exist yet):
+**Swift container for the raw data** (if it does not exist yet; `swift` is in
+`python3-swiftclient`):
 
 ```bash
 swift post buspulse-raw
@@ -98,7 +102,7 @@ kubectl drain k3s-worker1 --ignore-daemonsets --delete-emptydir-data   # pods mo
 kubectl uncordon k3s-worker1
 ```
 
-## Changing settings or the login
+## 4. Changing settings or the login
 
 Containers read the ConfigMap and the Secret only when they start. After changing either,
 restart the collectors, otherwise they keep using the old values:
@@ -107,7 +111,7 @@ restart the collectors, otherwise they keep using the old values:
 kubectl rollout restart deploy -n buspulse
 ```
 
-## 4. Deploying a new version
+## 5. Deploying a new version
 
 The image is pinned in `kustomization.yaml` (`newTag: sha-<commit>`), so a pod restart never
 picks up code that was not deliberately deployed, and pods can start from the cached image
@@ -117,13 +121,8 @@ even if ghcr.io is unreachable.
 2. Set `newTag` to that run's `sha-<first 7 characters of the commit>` tag and commit it.
 3. `git pull`, then `kubectl apply -k k8s/` (the pods are replaced with the new version).
 
-Save the logs first if you want to keep them (pods' logs are deleted with the pods):
-
-```bash
-for d in vehicle-positions estimated-timetable service-alerts; do
-  kubectl logs -n buspulse deploy/$d > ~/k8s-logs/$d-$(date -u +%Y%m%dT%H%M).log
-done
-```
+A deploy costs about one minute of data while the old pods stop and the new ones start.
+Logs of replaced pods stay searchable in Loki for 7 days (see `monitoring/`).
 
 ## Remove
 

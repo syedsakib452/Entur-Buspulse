@@ -1,47 +1,56 @@
 # Entur-Buspulse
-Medallion architecture on getting analyzing and delivering results from Entur Data Apis (public).
+
+Collects live bus data for Kolumbus (Entur open APIs, codespace `KOL`), stores it in a
+medallion architecture (bronze → silver → gold) on UiS OpenStack, and serves the results.
 
 ## Bronze collectors
 
-Three independent collectors for Kolumbus (codespace `KOL`), each in its own
-container with its own `ET-Client-Name`:
+Four collectors, each with its own `ET-Client-Name`. They save Entur's raw responses, untouched,
+gzipped, to the Swift container `buspulse-raw`:
 
 | Collector | Feed | Every | Saves |
 |---|---|---|---|
-| `vehicle_positions` | Vehicles GraphQL – live bus positions | 30 s | every response (`.json`) |
-| `estimated_timetable` | SIRI ET – arrivals/departures per stop | 60 s | every response (`.xml`) |
-| `service_alerts` | SIRI SX – disruptions | 60 s | only when alerts change (`.xml`) |
+| `vehicle_positions` | Vehicles GraphQL – live bus positions | 30 s | every response (`.json.gz`) |
+| `estimated_timetable` | SIRI ET – arrivals/departures per stop | 60 s | every response (`.xml.gz`) |
+| `service_alerts` | SIRI SX – disruptions | 60 s | only when alerts change (`.xml.gz`) |
+| `static_timetable` | GTFS – planned timetable | daily, 03:00 UTC | the zip (`.zip`) |
+
+Object names (UTC): `<feed>/date=YYYY-MM-DD/<feed>_YYYYMMDDTHHMMSSZ.<ext>`
+
+If Swift fails, data waits in a local buffer and is uploaded later, so nothing is lost
+(see `k8s/README.md`).
 
 ```
 collectors/   one script per feed (client name + interval at the top of each file)
-common/
-  config.py        shared settings + file naming convention
-  entur_client.py  the only code that calls Entur
-  logger.py        start/stop + error logging
+common/       settings, Entur client, storage (Swift + buffer), metrics, health check
+tests/        pytest: storage, buffer, retries, timing, metrics
 ```
 
-### Run
+## Running it
+
+The collectors run on a k3s cluster on UiS OpenStack. Set it up in this order:
+
+1. `infra/`: create the VMs and install k3s
+2. `k8s/`: deploy the collectors
+3. `monitoring/`: Prometheus, Grafana, Loki, alerts to Discord
+
+The image is built and tested by GitHub Actions (`build-image.yml`) and published as
+`ghcr.io/syedsakib452/entur-buspulse`.
+
+**Locally** (saves to `./data` instead of Swift):
 
 ```bash
-docker compose up -d --build
-```
-
-Locally without Docker:
-
-```bash
+docker compose up -d --build                     # all collectors
+# or without Docker:
 pip install -r requirements.txt
 DATA_DIR=./data LOG_DIR=./logs python -m collectors.vehicle_positions
 ```
 
-### Data (bronze = raw responses, untouched)
+**Tests:**
 
+```bash
+pip install -r requirements.txt pytest && pytest
 ```
-data/<feed>/date=YYYY-MM-DD/<feed>_YYYYMMDDTHHMMSSZ.<json|xml>     (UTC)
-```
 
-### Logs
-
-`logs/<feed>.log` contains only `started` / `stopped` lines and errors, so the
-time between a `stopped` and the next `started` is downtime. Two `started` lines
-in a row mean the collector was killed hard (crash, `kill -9`, power loss); the
-last data file before the second `started` shows when it stopped.
+`uploader/` (Go) moved data from the old VM setup to Swift. It is not needed on Kubernetes,
+where the collectors upload directly.

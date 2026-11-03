@@ -2,6 +2,9 @@
 
 Moves finished bronze data from the VM to Swift, once a night.
 
+> Used while the collectors ran on a VM with Docker Compose (until 2 Nov 2026). On Kubernetes
+> the collectors upload straight to Swift (see `k8s/`), so the uploader is no longer needed.
+
 For every `data/<feed>/date=YYYY-MM-DD/` folder **older than today (UTC)**:
 
 1. **Compress** every file that isn't compressed yet (`.xml` → `.xml.gz`, `.json` → `.json.gz`).
@@ -18,9 +21,10 @@ The program exits with code 1 if any file failed; those files stay on the VM and
 
 ## Setup on the VM (once)
 
-1. Add the `uploader` service from `compose-uploader-snippet.yaml` to `compose.yaml`.
-2. Make sure `~/openstack.env` exists (the `OS_...=value` lines, no `export`, no quotes).
-3. Build and try it without changing anything:
+The `uploader` service is in `compose.yaml` (profile `jobs`, so `docker compose up` does not start it).
+
+1. Make sure `~/openstack.env` exists (the `OS_...=value` lines, no `export`, no quotes).
+2. Build and try it without changing anything:
 
    ```bash
    cd ~/buspulse
@@ -28,13 +32,13 @@ The program exits with code 1 if any file failed; those files stay on the VM and
    docker compose run --rm -e DRY_RUN=true uploader
    ```
 
-4. Real run (by hand the first time):
+3. Real run (by hand the first time):
 
    ```bash
    docker compose run --rm uploader
    ```
 
-5. Every night at 02:00 UTC:
+4. Every night at 02:00 UTC:
 
    ```bash
    (crontab -l 2>/dev/null; echo "0 2 * * * cd $HOME/buspulse && docker compose run --rm uploader >> $HOME/uploader-cron.log 2>&1") | crontab -
@@ -51,11 +55,6 @@ The program exits with code 1 if any file failed; those files stay on the VM and
 | `RETRIES` | `3` | Attempts per file |
 | `DATA_DIR` / `LOG_DIR` | `/data` / `/logs` | Folders inside the container |
 | `OS_*` | | OpenStack login, from `openstack.env` |
-
-## Later: Kubernetes
-
-The same image (`ghcr.io/<owner>/entur-buspulse-uploader`, built by `build-uploader.yml`) runs as a
-CronJob with the same environment variables (`OS_*` from a Secret) and the collectors' data volume mounted at `/data`.
 
 ## Tests
 
