@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: spark-pipeline
+  namespace: buspulse-tables
+spec:
+  schedule: "10 4 * * *"            # 04:10 UTC: yesterday's raw files are complete
+  concurrencyPolicy: Forbid          # never two runs at once
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1                 # a rerun only redoes days without a _done marker
+      activeDeadlineSeconds: 172800   # 48 h, enough for the first backfill
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: spark
+              image: ghcr.io/syedsakib452/entur-buspulse-spark:latest
+              envFrom:
+                - configMapRef: { name: spark-pipeline-config }
+                - secretRef: { name: s3-credentials }
+              resources:
+                requests: { cpu: "1", memory: 2Gi }
+                limits: { cpu: "2", memory: 3Gi }
+              volumeMounts:
+                - { name: work, mountPath: /work }
+          volumes:
+            - name: work
+              emptyDir: { sizeLimit: 10Gi }   # Spark spill space, deleted with the pod
