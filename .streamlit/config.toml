@@ -1,0 +1,6 @@
+# Used when Streamlit is started from the repo root (streamlit run dashboard/app.py).
+[browser]
+gatherUsageStats = false     # no calls to Streamlit's servers; the dashboard works fully offline
+
+[theme]
+primaryColor = "#c8102e"
