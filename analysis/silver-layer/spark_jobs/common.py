@@ -252,6 +252,30 @@ def mark_done(spark, stage, day):
     else:
         fs, hp = _fs(spark, path(SILVER, "_done", stage, day))
         fs.create(hp, True).close()
+    if stage in ("clean", "stop_analysis") and silver_local_dir():
+        # local marker: tables/silver-layer/<day>/_done_<stage> means that stage's files are complete
+        marker = silver_local_dir() / str(day) / f"_done_{stage}"
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+
+
+def done_age_hours(spark, stage, day):
+    """Hours since <stage> of <day> was marked done, or None if it is not done."""
+    if swift_enabled():
+        from email.utils import parsedate_to_datetime
+        try:
+            headers = _swift().head_object(SILVER, f"_done/{stage}/{day}")
+        except ClientException as error:
+            if error.http_status == 404:
+                return None
+            raise
+        when = parsedate_to_datetime(headers["last-modified"])
+    else:
+        p = Path(root(SILVER), "_done", stage, day)
+        if not p.exists():
+            return None
+        when = datetime.fromtimestamp(p.stat().st_mtime, timezone.utc)
+    return (datetime.now(timezone.utc) - when).total_seconds() / 3600
 
 
 def is_done(spark, stage, day):
@@ -357,7 +381,8 @@ def gtfs_seconds(col):
 
 
 def write(df, bucket, table, key, value, files=None):
-    """Overwrite one partition, uploading it to Swift when Swift storage is enabled."""
+    """Overwrite one partition, uploading it to Swift when Swift storage is enabled.
+    Silver tables are also exported to SILVER_LOCAL_DIR/<date>/<table>.parquet when that is set."""
     parts = (table, f"{key}={value}")
     out = str(Path(root(bucket), *parts))
     if swift_enabled():
@@ -366,4 +391,31 @@ def write(df, bucket, table, key, value, files=None):
     (df.coalesce(files) if files else df).write.mode("overwrite").parquet(out)
     if swift_enabled():
         _upload_prefix(bucket, "/".join(parts), out)
+    if bucket == SILVER and key == "service_date" and silver_local_dir():
+        export_local(out, table, value)
     return out
+
+
+# ------------------------------------------------------------------ local silver copy
+def silver_local_dir():
+    """Folder for a local copy of the silver tables, e.g. <repo>/tables/silver-layer (unset = none).
+    Read at call time, so tests and the Docker container can set it."""
+    d = os.getenv("SILVER_LOCAL_DIR")
+    return Path(d) if d else None
+
+
+def export_local(partition_dir, table, day):
+    """One silver partition -> SILVER_LOCAL_DIR/<day>/<table>.parquet, a single file with a
+    service_date column: the layout build_gold.py reads (SILVER_DIR=tables/silver-layer/<day>).
+    Written to a temporary name first, so a reader never sees half a file."""
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+    t = pq.read_table(partition_dir)                     # ignores Spark's _SUCCESS / .crc files
+    if "service_date" not in t.column_names:
+        t = t.append_column("service_date", pa.array([str(day)] * t.num_rows, pa.string()))
+    dest = silver_local_dir() / str(day) / f"{table}.parquet"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    tmp = dest.with_name(dest.name + ".tmp")
+    pq.write_table(t, tmp, compression="zstd")
+    os.replace(tmp, dest)
+    print(f"  local copy: {dest} ({t.num_rows:,} rows)")

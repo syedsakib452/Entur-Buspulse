@@ -15,6 +15,10 @@ Reading too early: bronze of a day is built only once that UTC day ended SETTLE_
 every raw file has been uploaded; silver reads only bronze days that carry a done marker. Readers of
 silver (gold) should likewise use only days with <silver>/_done/clean/<day>.
 
+Silver delay: with SILVER_DELAY_HOURS=12, silver of day D starts only 12 hours after bronze of D+1
+(the last bronze day it needs) was marked done. SILVER_LOCAL_DIR=<repo>/tables/silver-layer also
+writes every silver table to <repo>/tables/silver-layer/<date>/<table>.parquet.
+
 Usage:  python -m spark_jobs.run_pipeline [--start 2026-10-20] [--end 2026-10-30] [--stages bronze clean]
         python -m spark_jobs.run_pipeline --start 2026-10-24 --end 2026-10-26 --redo   # rebuild after a fix
 """
@@ -25,7 +29,15 @@ import time
 import traceback
 from datetime import date, datetime, timedelta, timezone
 
-from spark_jobs import bronze, common, silver, stop_analysis
+import importlib
+
+from spark_jobs import common
+
+
+def _stage(module):
+    """Imports a stage only when it runs, so each layer's image needs only its own modules
+    (the bronze image has no silver code, the silver image no bronze code)."""
+    return importlib.import_module(f"spark_jobs.{module}").run
 
 STAGES = ["bronze", "clean", "stop_analysis"]
 
@@ -110,7 +122,7 @@ def main():
             if not common.has_files(spark, common.path(common.RAW, "estimated_timetable", f"date={d}")):
                 print(f"--- bronze {d}: no raw estimated_timetable files, skipped")
                 continue
-            step("bronze", d, bronze.run)
+            step("bronze", d, _stage("bronze"))
 
     for d in all_days:
         nxt = common.shift(d, 1)
@@ -120,11 +132,19 @@ def main():
             if not common.is_done(spark, "bronze", nxt):
                 print(f"--- clean {d}: waiting for bronze {nxt} (late trips end after midnight)")
                 continue
-            if not step("clean", d, silver.run):
+            delay = float(os.getenv("SILVER_DELAY_HOURS") or 0)
+            if delay:
+                # silver of D runs only SILVER_DELAY_HOURS after the last bronze it needs (D+1) finished
+                age = common.done_age_hours(spark, "bronze", nxt)
+                if age is None or age < delay:
+                    print(f"--- clean {d}: bronze {nxt} finished {age or 0:.1f} h ago, "
+                          f"silver waits until {delay:g} h")
+                    continue
+            if not step("clean", d, _stage("silver")):
                 continue
         if "stop_analysis" in a.stages and not skip("stop_analysis", d) \
                 and common.is_done(spark, "clean", d):
-            step("stop_analysis", d, stop_analysis.run)
+            step("stop_analysis", d, _stage("stop_analysis"))
 
     print(f"=== finished, failed: {failed or 'none'}", flush=True)
     spark.stop()

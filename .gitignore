@@ -8,3 +8,6 @@ silver/
 # Kubernetes secrets and test cache
 *.env
 .pytest_cache/
+
+# generated silver tables (made by the silver container, not pushed)
+tables/silver-layer/

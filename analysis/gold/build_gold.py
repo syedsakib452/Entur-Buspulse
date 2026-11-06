@@ -36,8 +36,8 @@ import datetime as dt
 import duckdb
 
 # ---------------- Directory Settings ----------------
-SILVER_DIR = Path("../../tables/parquet_2026-10-24/silver-layer-parquet")          # folder that holds the .parquet files
-GOLD_DIR = Path("../../tables/parquet_2026-10-24/gold-layer-parquet")       # cleaned outputs are written here
+SILVER_DIR = Path(os.getenv("SILVER_DIR", "../../tables/parquet_2026-10-24/silver-layer-parquet"))          # folder that holds the .parquet files
+GOLD_DIR = Path(os.getenv("GOLD_DIR", "../../tables/parquet_2026-10-24/gold-layer-parquet"))       # cleaned outputs are written here
 
 # ---------------- Analysis Configuration ----------------
 LOCAL_TZ = "Europe/Oslo"

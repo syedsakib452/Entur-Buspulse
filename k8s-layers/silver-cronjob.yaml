@@ -1,0 +1,37 @@
+# SILVER layer: bronze days marked done -> silver tables
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: silver-layer
+  namespace: buspulse-tables
+  labels: { app: buspulse-layers, layer: silver }
+spec:
+  schedule: "10 16 * * *"           # 16:10 UTC = 12 h after bronze (04:10); SILVER_DELAY_HOURS enforces it per day
+  concurrencyPolicy: Forbid          # never two silver runs at once
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1                 # a rerun only redoes days without a done marker
+      activeDeadlineSeconds: 172800
+      template:
+        metadata:
+          labels: { app: buspulse-layers, layer: silver }
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: silver
+              image: ghcr.io/syedsakib452/entur-buspulse-silver   # tag set in kustomization.yaml
+              imagePullPolicy: Always
+              envFrom:
+                - configMapRef: { name: layers-config }
+                - secretRef: { name: swift-credentials }
+              resources:
+                requests: { cpu: "1", memory: 2Gi }
+                limits: { cpu: "2", memory: 3Gi }
+              volumeMounts:
+                - { name: work, mountPath: /work }
+          volumes:
+            - name: work
+              emptyDir: { sizeLimit: 10Gi }   # scratch space, deleted with the pod
