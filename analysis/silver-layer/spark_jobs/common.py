@@ -16,6 +16,7 @@ from pathlib import Path
 import shutil
 import sys
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
 
 from pyspark.sql import SparkSession, functions as F
@@ -86,12 +87,28 @@ def _swift_list(bucket, prefix):
         raise
 
 
+# parallel downloads: each thread has its own Swift connection (_swift() is per thread)
+DOWNLOAD_THREADS = int(os.getenv("SWIFT_DOWNLOAD_THREADS", "8"))
+
+
+def _download(bucket, name, local_file, signature):
+    _, body = _swift().get_object(bucket, name, resp_chunk_size=1024 * 1024)
+    temp_file = local_file.with_name(local_file.name + ".swift-tmp")
+    with temp_file.open("wb") as stream:
+        for chunk in body:
+            stream.write(chunk)
+    temp_file.replace(local_file)
+    with _downloaded_lock:
+        _downloaded.add(signature)
+
+
 def _stage_prefix(bucket, prefix):
     local_root = SWIFT_CACHE / bucket
     target = local_root / prefix if prefix else local_root
     target.mkdir(parents=True, exist_ok=True)
     objects = _swift_list(bucket, prefix)
     live_names = set()
+    todo = []
     for obj in objects:
         name = obj.get("name")
         if not name or name.endswith("/"):
@@ -103,14 +120,15 @@ def _stage_prefix(bucket, prefix):
         with _downloaded_lock:
             if signature in _downloaded and local_file.exists():
                 continue
-        _, body = _swift().get_object(bucket, name, resp_chunk_size=1024 * 1024)
-        temp_file = local_file.with_name(local_file.name + ".swift-tmp")
-        with temp_file.open("wb") as stream:
-            for chunk in body:
-                stream.write(chunk)
-        temp_file.replace(local_file)
-        with _downloaded_lock:
-            _downloaded.add(signature)
+        todo.append((bucket, name, local_file, signature))
+    if len(todo) > 1 and DOWNLOAD_THREADS > 1:
+        # a day of raw data is thousands of small files: fetch several at once
+        with ThreadPoolExecutor(max_workers=DOWNLOAD_THREADS) as pool:
+            for future in [pool.submit(_download, *job) for job in todo]:
+                future.result()                   # re-raises the first download error
+    else:
+        for job in todo:
+            _download(*job)
     if target.is_dir():
         for local_file in target.rglob("*"):
             if local_file.is_file():
@@ -165,8 +183,9 @@ def ensure_container(bucket):
 
 def raw_feeds():
     _, entries = _swift().get_container(RAW, delimiter="/")
-    return sorted(item["subdirectory"].rstrip("/") for item in entries
-                  if item.get("subdirectory"))
+    # Swift calls a folder in a delimiter listing "subdir"
+    return sorted((item.get("subdir") or item.get("subdirectory")).rstrip("/") for item in entries
+                  if item.get("subdir") or item.get("subdirectory"))
 
 
 # ------------------------------------------------------------------ session

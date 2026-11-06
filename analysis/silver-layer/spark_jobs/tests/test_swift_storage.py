@@ -64,6 +64,29 @@ def test_swift_path_stages_objects_and_upload_replaces_prefix(tmp_path, monkeypa
     }
 
 
+def test_swift_downloads_many_files_in_parallel(tmp_path, monkeypatch):
+    swift = FakeSwift()
+    swift.objects["raw"] = {f"feed/date=2026-10-22/f{i:03d}.json.gz": bytes([i]) * 10 for i in range(50)}
+    monkeypatch.delenv("DATA_ROOT", raising=False)
+    monkeypatch.setattr(common, "SWIFT_CACHE", tmp_path)
+    monkeypatch.setattr(common, "swift_connection", lambda: swift)   # every worker thread gets the fake
+    monkeypatch.setattr(common, "DOWNLOAD_THREADS", 4)
+    common._downloaded.clear()
+
+    common.path("raw", "feed", "date=2026-10-22")
+    files = sorted((tmp_path / "raw/feed/date=2026-10-22").iterdir())
+    assert len(files) == 50 and files[7].read_bytes() == bytes([7]) * 10
+    assert not list(tmp_path.rglob("*.swift-tmp"))
+
+
+def test_raw_feeds_reads_swift_subdir_entries(monkeypatch):
+    class Listing:
+        def get_container(self, bucket, delimiter=None):
+            return {}, [{"subdir": "estimated_timetable/"}, {"subdir": "vehicle_positions/"}]
+    monkeypatch.setattr(common._swift_local, "connection", Listing(), raising=False)
+    assert common.raw_feeds() == ["estimated_timetable", "vehicle_positions"]
+
+
 def test_bronze_source_name_is_relative_to_swift_container():
     import gzip
     from spark_jobs import bronze

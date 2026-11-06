@@ -5,14 +5,13 @@ metadata:
   name: layers-config
   namespace: buspulse-tables
 data:
-  OS_AUTH_URL: "https://REPLACE-ME/v3"     # same value as in the collectors' configuration
   RAW_BUCKET: buspulse-raw
   BRONZE_BUCKET: buspulse-bronze
   SILVER_BUCKET: buspulse-silver
   GOLD_BUCKET: buspulse-gold
   # days to process; empty END_DATE = yesterday (bronze/silver) or today (gold). Done days are skipped.
-  START_DATE: "2026-10-20"
-  END_DATE: ""
+  START_DATE: "2026-10-30"
+  END_DATE: "2026-10-31"
   # a UTC day is built only this many hours after it ended (collectors finish uploading first)
   SETTLE_HOURS: "3"
   # silver of day D starts only this many hours after bronze of D+1 finished
