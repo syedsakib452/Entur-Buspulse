@@ -42,14 +42,19 @@ class Storage:
 
     def __init__(self):
         self.local = os.getenv("DATA_ROOT")
-        self.conn = None if self.local else self._swift()
+        self._conn = None if self.local else self._swift()
+
+    @property
+    def conn(self):
+        return _Reauth(self)
 
     @staticmethod
     def _swift():
         from swiftclient.client import Connection
         env = os.environ
         if not env.get("OS_AUTH_URL"):
-            raise RuntimeError("set OS_AUTH_URL and the OpenStack credentials, or DATA_ROOT for local data")
+            raise RuntimeError(
+                "set OS_AUTH_URL and the OpenStack credentials, or DATA_ROOT for local data")
         opts = {k: env.get(v) for k, v in {
             "auth_type": "OS_AUTH_TYPE", "application_credential_id": "OS_APPLICATION_CREDENTIAL_ID",
             "application_credential_secret": "OS_APPLICATION_CREDENTIAL_SECRET",
@@ -76,7 +81,8 @@ class Storage:
                     if p.is_file() and p.relative_to(base).as_posix().startswith(prefix)} if base.exists() else {}
         from swiftclient.exceptions import ClientException
         try:
-            _, objs = self.conn.get_container(bucket, prefix=prefix, full_listing=True)
+            _, objs = self.conn.get_container(
+                bucket, prefix=prefix, full_listing=True)
         except ClientException as e:
             if e.http_status == 404:
                 return {}
@@ -88,7 +94,8 @@ class Storage:
         if self.local:
             shutil.copyfile(Path(self.local, bucket, name), dest)
             return
-        _, body = self.conn.get_object(bucket, name, resp_chunk_size=1024 * 1024)
+        _, body = self.conn.get_object(
+            bucket, name, resp_chunk_size=1024 * 1024)
         with dest.open("wb") as f:
             for chunk in body:
                 f.write(chunk)
@@ -113,9 +120,11 @@ class Storage:
             return
         if src:
             with open(src, "rb") as f:
-                self.conn.put_object(bucket, name, contents=f, content_length=os.path.getsize(src))
+                self.conn.put_object(
+                    bucket, name, contents=f, content_length=os.path.getsize(src))
         else:
-            self.conn.put_object(bucket, name, contents=data, content_type="application/json")
+            self.conn.put_object(bucket, name, contents=data,
+                                 content_type="application/json")
 
     def delete(self, bucket, name):
         if self.local:
@@ -124,15 +133,46 @@ class Storage:
             self.conn.delete_object(bucket, name)
 
 
+class _Reauth:
+    """Calls a Swift method; on 401 (expired token) logs in again and retries once.
+    swiftclient does not renew tokens for application credentials by itself."""
+
+    def __init__(self, storage):
+        self.s = storage
+
+    def __getattr__(self, name):
+        from swiftclient.exceptions import ClientException
+
+        def call(*args, **kwargs):
+            try:
+                return getattr(self.s._conn, name)(*args, **kwargs)
+            except ClientException as e:
+                if e.http_status != 401:
+                    raise
+                print(
+                    f"  Swift token expired during {name}, logging in again", flush=True)
+                self.s._conn = self.s._swift()
+                body = kwargs.get("contents")
+                if hasattr(body, "seek"):
+                    # an upload is sent again from the start
+                    body.seek(0)
+                return getattr(self.s._conn, name)(*args, **kwargs)
+        return call
+
+
 # ------------------------------------------------------------------ job
 def ready_days(store, start, end):
     """Silver days with both stages finished, and their marker times (a rebuild changes them)."""
-    clean = {n.rsplit("/", 1)[-1]: t for n, t in store.list(SILVER, "_done/clean/").items()}
-    gps = {n.rsplit("/", 1)[-1]: t for n, t in store.list(SILVER, "_done/stop_analysis/").items()}
+    clean = {n.rsplit("/", 1)[-1]: t for n,
+             t in store.list(SILVER, "_done/clean/").items()}
+    gps = {n.rsplit("/", 1)[-1]: t for n,
+           t in store.list(SILVER, "_done/stop_analysis/").items()}
     days = sorted(d for d in clean.keys() & gps.keys() if start <= d <= end)
-    only_clean = sorted(d for d in clean.keys() - gps.keys() if start <= d <= end)
+    only_clean = sorted(d for d in clean.keys() -
+                        gps.keys() if start <= d <= end)
     if only_clean:
-        print(f"  silver days still waiting for stop_analysis (left out): {only_clean}")
+        print(
+            f"  silver days still waiting for stop_analysis (left out): {only_clean}")
     return {d: [clean[d], gps[d]] for d in days}
 
 
@@ -154,7 +194,8 @@ def stage_silver(store, days, silver_dir):
         src = (parts / table).as_posix() + "/*/*.parquet"
         con.execute(f"COPY (SELECT * FROM read_parquet('{src}', hive_partitioning = true, union_by_name = true)) "
                     f"TO '{out.as_posix()}' (FORMAT parquet, COMPRESSION zstd)")
-        rows = con.execute(f"SELECT COUNT(*) FROM read_parquet('{out.as_posix()}')").fetchone()[0]
+        rows = con.execute(
+            f"SELECT COUNT(*) FROM read_parquet('{out.as_posix()}')").fetchone()[0]
         print(f"  {table}: {n} files -> {rows:,} rows")
     con.close()
     shutil.rmtree(parts, ignore_errors=True)
@@ -167,8 +208,10 @@ def publish(store, gold_dir, days):
         store.upload(GOLD, f"builds/{build}/{p.name}", src=p)
     pointer = {"build": build, "prefix": f"builds/{build}/", "service_dates": days,
                "files": [p.name for p in files], "built_at_utc": datetime.now(timezone.utc).isoformat()}
-    store.upload(GOLD, "latest.json", data=json.dumps(pointer, indent=1).encode())   # switch readers last
-    print(f"  uploaded {len(files)} files to {GOLD}/builds/{build}/ and pointed latest.json at it")
+    store.upload(GOLD, "latest.json", data=json.dumps(
+        pointer, indent=1).encode())   # switch readers last
+    print(
+        f"  uploaded {len(files)} files to {GOLD}/builds/{build}/ and pointed latest.json at it")
     builds = sorted({n.split("/")[1] for n in store.list(GOLD, "builds/")})
     for old in builds[:-KEEP_BUILDS]:
         for n in store.list(GOLD, f"builds/{old}/"):
@@ -178,16 +221,19 @@ def publish(store, gold_dir, days):
 
 def main():
     today = date.today().isoformat()
-    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--start", default=os.getenv("START_DATE") or "2026-10-20")
     p.add_argument("--end", default=os.getenv("END_DATE") or today)
-    p.add_argument("--redo", action="store_true", default=os.getenv("REDO", "").lower() in ("1", "true", "yes"))
+    p.add_argument("--redo", action="store_true",
+                   default=os.getenv("REDO", "").lower() in ("1", "true", "yes"))
     a = p.parse_args()
 
     store = Storage()
     store.ensure(GOLD)
     days = ready_days(store, a.start, a.end)
-    print(f"=== gold {a.start} .. {a.end}: {len(days)} finished silver days {list(days)}", flush=True)
+    print(
+        f"=== gold {a.start} .. {a.end}: {len(days)} finished silver days {list(days)}", flush=True)
     if not days:
         print("=== nothing to build yet")
         return 0
@@ -203,9 +249,11 @@ def main():
     stage_silver(store, list(days), silver_dir)
 
     env = dict(os.environ, SILVER_DIR=str(silver_dir), GOLD_DIR=str(gold_dir))
-    result = subprocess.run([sys.executable, str(HERE / "build_gold.py")], cwd=HERE, env=env)
+    result = subprocess.run([sys.executable, str(
+        HERE / "build_gold.py")], cwd=HERE, env=env)
     if result.returncode != 0:
-        print(f"=== build_gold.py failed (exit {result.returncode}): nothing uploaded, previous gold stays live")
+        print(
+            f"=== build_gold.py failed (exit {result.returncode}): nothing uploaded, previous gold stays live")
         return 1
 
     publish(store, gold_dir, list(days))

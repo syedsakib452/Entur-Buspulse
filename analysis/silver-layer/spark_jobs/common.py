@@ -26,8 +26,10 @@ from swiftclient.exceptions import ClientException
 RAW = os.getenv("RAW_BUCKET", "buspulse-raw")
 BRONZE = os.getenv("BRONZE_BUCKET", "buspulse-bronze")
 SILVER = os.getenv("SILVER_BUCKET", "buspulse-silver")
-LOCAL_TZ = "Europe/Oslo"            # Norway's time zone (also Stavanger); agency_timezone in GTFS
-GTFS_SEARCH_DAYS = 7                # use a neighbouring day's timetable if a day has none
+# Norway's time zone (also Stavanger); agency_timezone in GTFS
+LOCAL_TZ = "Europe/Oslo"
+# use a neighbouring day's timetable if a day has none
+GTFS_SEARCH_DAYS = 7
 # a UTC day counts as complete (all its raw files uploaded) this long after it ends
 SETTLE_HOURS = float(os.getenv("SETTLE_HOURS", "3"))
 SWIFT_CACHE = Path(os.getenv("SWIFT_CACHE_DIR", "/tmp/buspulse-swift"))
@@ -71,9 +73,43 @@ def swift_connection():
     )
 
 
+class ReauthConnection:
+    """A Swift connection that logs in again when its token has expired.
+
+    Keystone tokens expire (after about an hour here). swiftclient only renews a token by itself
+    for username/password logins, not for application credentials, so a long job (a day of raw
+    files) got "401 Unauthorized" part-way. Here every call that gets a 401 opens a fresh
+    connection (new token) and is tried once more."""
+
+    def __init__(self, factory):
+        self._factory = factory
+        self._conn = factory()
+
+    def __getattr__(self, name):
+        method = getattr(self._conn, name)
+        if not callable(method):
+            return method
+
+        def call(*args, **kwargs):
+            try:
+                return getattr(self._conn, name)(*args, **kwargs)
+            except ClientException as error:
+                if error.http_status != 401:
+                    raise
+                print(
+                    f"  Swift token expired during {name}, logging in again", flush=True)
+                self._conn = self._factory()
+                body = kwargs.get("contents")
+                if hasattr(body, "seek"):
+                    # an upload is sent again from the start
+                    body.seek(0)
+                return getattr(self._conn, name)(*args, **kwargs)
+        return call
+
+
 def _swift():
     if not hasattr(_swift_local, "connection"):
-        _swift_local.connection = swift_connection()
+        _swift_local.connection = ReauthConnection(swift_connection)
     return _swift_local.connection
 
 
@@ -198,16 +234,20 @@ def spark_session(app):
          # Norway than in the cluster. Pinned to UTC, the only conversion is local_time() below.
          .config("spark.sql.session.timeZone", "UTC")
          .config("spark.driver.memory", os.getenv("SPARK_DRIVER_MEMORY", "1400m"))
-         .config("spark.local.dir", os.getenv("SPARK_LOCAL_DIR", "/tmp/spark"))      # spill space
+         # spill space
+         .config("spark.local.dir", os.getenv("SPARK_LOCAL_DIR", "/tmp/spark"))
          .config("spark.sql.session.timeZone", "UTC")
          .config("spark.sql.shuffle.partitions", os.getenv("SPARK_SHUFFLE_PARTITIONS", "16"))
          .config("spark.sql.files.maxPartitionBytes", "64m")
-         .config("spark.sql.sources.partitionColumnTypeInference.enabled", "false")   # date=... stays text
+         # date=... stays text
+         .config("spark.sql.sources.partitionColumnTypeInference.enabled", "false")
          .config("spark.sql.execution.arrow.pyspark.enabled", "true")
          .config("spark.sql.execution.arrow.maxRecordsPerBatch", "20000")
          .config("spark.sql.parquet.compression.codec", "zstd")
-         .config("spark.sql.legacy.parquet.nanosAsLong", "true")      # pandas-written ns timestamps
-         .config("spark.sql.ansi.enabled", "false")                   # bad values -> null, like errors="coerce"
+         # pandas-written ns timestamps
+         .config("spark.sql.legacy.parquet.nanosAsLong", "true")
+         # bad values -> null, like errors="coerce"
+         .config("spark.sql.ansi.enabled", "false")
          .config("spark.ui.enabled", "false")
          .config("spark.hadoop.mapreduce.fileoutputcommitter.algorithm.version", "2"))
     spark = b.getOrCreate()
@@ -354,7 +394,8 @@ def nearest_partition(spark, bucket, table, day, key="date", search=GTFS_SEARCH_
 def ts(col):
     """ISO 8601 text (with offset or Z, sometimes 9 decimals) -> UTC timestamp. Unparseable -> null.
     Spark keeps microseconds, so extra digits are cut first."""
-    c = F.regexp_replace(F.trim(F.col(col).cast("string")), r"(\.\d{6})\d+", "$1")
+    c = F.regexp_replace(F.trim(F.col(col).cast("string")),
+                         r"(\.\d{6})\d+", "$1")
     return F.when(c == "", None).otherwise(F.to_timestamp(c))
 
 
@@ -429,9 +470,11 @@ def export_local(partition_dir, table, day):
     Written to a temporary name first, so a reader never sees half a file."""
     import pyarrow as pa
     import pyarrow.parquet as pq
-    t = pq.read_table(partition_dir)                     # ignores Spark's _SUCCESS / .crc files
+    # ignores Spark's _SUCCESS / .crc files
+    t = pq.read_table(partition_dir)
     if "service_date" not in t.column_names:
-        t = t.append_column("service_date", pa.array([str(day)] * t.num_rows, pa.string()))
+        t = t.append_column("service_date", pa.array(
+            [str(day)] * t.num_rows, pa.string()))
     dest = silver_local_dir() / str(day) / f"{table}.parquet"
     dest.parent.mkdir(parents=True, exist_ok=True)
     tmp = dest.with_name(dest.name + ".tmp")
