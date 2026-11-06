@@ -40,15 +40,25 @@ def days(start, end):
 def preflight(spark):
     """Fails in the first minute, with a readable message, if storage cannot be reached."""
     try:
-        for bucket in (common.RAW, common.BRONZE, common.SILVER):
-            common.exists(spark, common.root(bucket) + "/")
-        fs, hp = common._fs(spark, common.root(common.RAW) + "/")
-        feeds = sorted(st.getPath().getName() for st in fs.listStatus(hp) if st.isDirectory())
-        print(f"=== storage ok: {common.root(common.RAW)} holds {feeds}", flush=True)
+        if common.swift_enabled():
+            common.ensure_container(common.BRONZE)
+            common.ensure_container(common.SILVER)
+            missing = [bucket for bucket in (common.RAW, common.BRONZE, common.SILVER)
+                       if not common.check_container(bucket)]
+            if missing:
+                raise RuntimeError(f"Swift containers do not exist or are inaccessible: {missing}")
+            feeds = common.raw_feeds()
+            print(f"=== Swift storage ok: {common.RAW} holds {feeds}", flush=True)
+        else:
+            for bucket in (common.RAW, common.BRONZE, common.SILVER):
+                common.exists(spark, common.root(bucket) + "/")
+            fs, hp = common._fs(spark, common.root(common.RAW) + "/")
+            feeds = sorted(st.getPath().getName() for st in fs.listStatus(hp) if st.isDirectory())
+            print(f"=== local storage ok: {common.root(common.RAW)} holds {feeds}", flush=True)
     except Exception as e:  # noqa: BLE001
-        print(f"=== cannot reach storage ({os.getenv('S3_ENDPOINT') or os.getenv('DATA_ROOT')}): {e}\n"
-              "    check S3_ENDPOINT in the ConfigMap, the s3-credentials Secret, and that the "
-              "buckets buspulse-raw, buspulse-bronze and buspulse-silver exist.", flush=True)
+        print(f"=== cannot reach storage: {e}\n"
+              "    check the OpenStack OS_* credentials and that the Swift containers "
+              "buspulse-raw, buspulse-bronze and buspulse-silver exist.", flush=True)
         spark.stop()
         sys.exit(2)
 
@@ -71,7 +81,9 @@ def main():
     def step(stage, day, fn):
         t0 = time.time()
         try:
-            fn(spark, day)
+            result = fn(spark, day)
+            if stage == "bronze" and result:
+                raise RuntimeError(f"{result} unreadable input files; day not marked done")
             common.mark_done(spark, stage, day)
             print(f"--- {stage} {day}: done in {(time.time() - t0) / 60:.1f} min", flush=True)
             return True

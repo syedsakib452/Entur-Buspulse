@@ -21,7 +21,7 @@ spec:
               image: ghcr.io/syedsakib452/entur-buspulse-spark:latest
               envFrom:
                 - configMapRef: { name: spark-pipeline-config }
-                - secretRef: { name: s3-credentials }
+                - secretRef: { name: swift-credentials }
               resources:
                 requests: { cpu: "1", memory: 2Gi }
                 limits: { cpu: "2", memory: 3Gi }

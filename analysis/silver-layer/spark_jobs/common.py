@@ -1,10 +1,9 @@
 """Shared settings for the Spark jobs: Spark session, storage paths, dates and helpers.
 
 Storage
-    In the cluster every container in Swift is read and written through its S3 API
-    (s3a://<container>/...). Spark then reads only the days and columns a job needs,
-    straight from object storage, and writes its output the same way: no local copies.
-    For tests, DATA_ROOT=/some/folder makes every "container" a local folder instead.
+    Swift containers are staged to a local cache with python-swiftclient. Spark reads and
+    writes local files; completed output files are uploaded to Swift. DATA_ROOT=/some/folder
+    uses local folders without Swift and is intended for tests.
 
 Memory
     Spark runs in local mode inside one pod. Large steps (de-duplicating millions of
@@ -13,9 +12,15 @@ Memory
     The settings below are sized for a pod with about 3 GB of memory.
 """
 import os
+from pathlib import Path
+import shutil
+import sys
+import threading
 from datetime import date, datetime, timedelta, timezone
 
 from pyspark.sql import SparkSession, functions as F
+from swiftclient.client import Connection
+from swiftclient.exceptions import ClientException
 
 RAW = os.getenv("RAW_BUCKET", "buspulse-raw")
 BRONZE = os.getenv("BRONZE_BUCKET", "buspulse-bronze")
@@ -24,10 +29,149 @@ LOCAL_TZ = "Europe/Oslo"            # Norway's time zone (also Stavanger); agenc
 GTFS_SEARCH_DAYS = 7                # use a neighbouring day's timetable if a day has none
 # a UTC day counts as complete (all its raw files uploaded) this long after it ends
 SETTLE_HOURS = float(os.getenv("SETTLE_HOURS", "3"))
+SWIFT_CACHE = Path(os.getenv("SWIFT_CACHE_DIR", "/tmp/buspulse-swift"))
+_swift_local = threading.local()
+_downloaded = set()
+_downloaded_lock = threading.Lock()
+
+
+def swift_enabled():
+    return not os.getenv("DATA_ROOT")
+
+
+def swift_connection():
+    """Create a Swift connection from the OpenStack environment used by the collectors."""
+    env = os.environ
+    if not env.get("OS_AUTH_URL"):
+        raise RuntimeError(
+            "Swift storage needs OS_AUTH_URL and OpenStack credentials. "
+            "Activate the credential-loaded environment or set DATA_ROOT for local data."
+        )
+    return Connection(
+        authurl=env["OS_AUTH_URL"],
+        user=env.get("OS_USERNAME"),
+        key=env.get("OS_PASSWORD"),
+        auth_version="3",
+        timeout=120,
+        retries=5,
+        os_options={k: v for k, v in {
+            "auth_type": env.get("OS_AUTH_TYPE"),
+            "application_credential_id": env.get("OS_APPLICATION_CREDENTIAL_ID"),
+            "application_credential_secret": env.get("OS_APPLICATION_CREDENTIAL_SECRET"),
+            "project_id": env.get("OS_PROJECT_ID"),
+            "project_name": env.get("OS_PROJECT_NAME"),
+            "user_domain_name": env.get("OS_USER_DOMAIN_NAME"),
+            "user_domain_id": env.get("OS_USER_DOMAIN_ID"),
+            "project_domain_name": env.get("OS_PROJECT_DOMAIN_NAME"),
+            "project_domain_id": env.get("OS_PROJECT_DOMAIN_ID"),
+            "region_name": env.get("OS_REGION_NAME"),
+            "interface": env.get("OS_INTERFACE"),
+        }.items() if v},
+    )
+
+
+def _swift():
+    if not hasattr(_swift_local, "connection"):
+        _swift_local.connection = swift_connection()
+    return _swift_local.connection
+
+
+def _swift_list(bucket, prefix):
+    try:
+        _, objects = _swift().get_container(bucket, prefix=prefix, full_listing=True)
+        return objects
+    except ClientException as error:
+        if error.http_status == 404:
+            return []
+        raise
+
+
+def _stage_prefix(bucket, prefix):
+    local_root = SWIFT_CACHE / bucket
+    target = local_root / prefix if prefix else local_root
+    target.mkdir(parents=True, exist_ok=True)
+    objects = _swift_list(bucket, prefix)
+    live_names = set()
+    for obj in objects:
+        name = obj.get("name")
+        if not name or name.endswith("/"):
+            continue
+        live_names.add(name)
+        local_file = local_root / name
+        local_file.parent.mkdir(parents=True, exist_ok=True)
+        signature = (bucket, name, obj.get("hash"), obj.get("bytes"))
+        with _downloaded_lock:
+            if signature in _downloaded and local_file.exists():
+                continue
+        _, body = _swift().get_object(bucket, name, resp_chunk_size=1024 * 1024)
+        temp_file = local_file.with_name(local_file.name + ".swift-tmp")
+        with temp_file.open("wb") as stream:
+            for chunk in body:
+                stream.write(chunk)
+        temp_file.replace(local_file)
+        with _downloaded_lock:
+            _downloaded.add(signature)
+    if target.is_dir():
+        for local_file in target.rglob("*"):
+            if local_file.is_file():
+                name = local_file.relative_to(local_root).as_posix()
+                if name not in live_names:
+                    local_file.unlink()
+    return str(target)
+
+
+def _upload_prefix(bucket, prefix, local_path):
+    base = Path(local_path)
+    files = sorted(path for path in base.rglob("*") if path.is_file())
+    uploaded = set()
+    for path in files:
+        name = f"{prefix.rstrip('/')}/{path.relative_to(base).as_posix()}".lstrip("/")
+        with path.open("rb") as stream:
+            _swift().put_object(
+                bucket, name, contents=stream, content_length=path.stat().st_size,
+                content_type="application/vnd.apache.parquet" if path.suffix == ".parquet"
+                else "application/octet-stream",
+            )
+        uploaded.add(name)
+    for obj in _swift_list(bucket, prefix.rstrip("/") + "/"):
+        name = obj.get("name")
+        if name and name not in uploaded:
+            _swift().delete_object(bucket, name)
+    with _downloaded_lock:
+        _downloaded.difference_update(
+            item for item in _downloaded if item[0] == bucket and item[1].startswith(prefix)
+        )
+
+
+def check_container(bucket):
+    try:
+        _swift().head_container(bucket)
+        return True
+    except ClientException as error:
+        if error.http_status == 404:
+            return False
+        raise
+
+
+def ensure_container(bucket):
+    try:
+        _swift().put_container(bucket)
+    except ClientException as error:
+        if error.http_status != 409:
+            raise
+        if not check_container(bucket):
+            raise error
+
+
+def raw_feeds():
+    _, entries = _swift().get_container(RAW, delimiter="/")
+    return sorted(item["subdirectory"].rstrip("/") for item in entries
+                  if item.get("subdirectory"))
 
 
 # ------------------------------------------------------------------ session
 def spark_session(app):
+    os.environ.setdefault("PYSPARK_PYTHON", sys.executable)
     b = (SparkSession.builder.appName(app)
          .master(os.getenv("SPARK_MASTER", "local[2]"))
          # Every timestamp is a UTC instant. Spark otherwise shows and converts timestamps in the
@@ -47,23 +191,6 @@ def spark_session(app):
          .config("spark.sql.ansi.enabled", "false")                   # bad values -> null, like errors="coerce"
          .config("spark.ui.enabled", "false")
          .config("spark.hadoop.mapreduce.fileoutputcommitter.algorithm.version", "2"))
-    endpoint = os.getenv("S3_ENDPOINT")
-    if endpoint and not os.getenv("DATA_ROOT"):
-        b = (b.config("spark.hadoop.fs.s3a.endpoint", endpoint)
-             .config("spark.hadoop.fs.s3a.endpoint.region", os.getenv("S3_REGION", "us-east-1"))
-             .config("spark.hadoop.fs.s3a.path.style.access", "true")
-             .config("spark.hadoop.fs.s3a.connection.ssl.enabled", str(endpoint.startswith("https")).lower())
-             .config("spark.hadoop.fs.s3a.access.key", os.environ["S3_ACCESS_KEY"])
-             .config("spark.hadoop.fs.s3a.secret.key", os.environ["S3_SECRET_KEY"])
-             .config("spark.hadoop.fs.s3a.aws.credentials.provider",
-                     "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider")
-             .config("spark.hadoop.fs.s3a.connection.timeout", "120000")       # ms: no request waits forever
-             .config("spark.hadoop.fs.s3a.connection.establish.timeout", "30000")
-             .config("spark.hadoop.fs.s3a.attempts.maximum", "10")
-             .config("spark.hadoop.fs.s3a.retry.limit", "10")
-             .config("spark.hadoop.fs.s3a.connection.maximum", "32")
-             .config("spark.hadoop.fs.s3a.fast.upload.buffer", "disk")
-             .config("spark.hadoop.fs.s3a.change.detection.mode", "none"))
     spark = b.getOrCreate()
     spark.sparkContext.setLogLevel(os.getenv("SPARK_LOG_LEVEL", "WARN"))
     return spark
@@ -71,13 +198,15 @@ def spark_session(app):
 
 # ------------------------------------------------------------------ paths
 def root(bucket):
-    """s3a://<bucket> in the cluster, <DATA_ROOT>/<bucket> in tests."""
+    """Local data root or the local staging cache for a Swift container."""
     local = os.getenv("DATA_ROOT")
-    return f"{local.rstrip('/')}/{bucket}" if local else f"s3a://{bucket}"
+    return str(Path(local) / bucket) if local else str(SWIFT_CACHE / bucket)
 
 
 def path(bucket, *parts):
-    return "/".join([root(bucket), *parts])
+    if swift_enabled():
+        return _stage_prefix(bucket, "/".join(parts))
+    return str(Path(root(bucket), *parts))
 
 
 def _fs(spark, p):
@@ -118,11 +247,22 @@ def list_files(spark, p, suffix=""):
 def mark_done(spark, stage, day):
     """Small marker object: <silver>/_done/<stage>/<day>. Written last, so it only exists
     when every output of that stage and day was written."""
-    fs, hp = _fs(spark, path(SILVER, "_done", stage, day))
-    fs.create(hp, True).close()
+    if swift_enabled():
+        _swift().put_object(SILVER, f"_done/{stage}/{day}", contents=b"")
+    else:
+        fs, hp = _fs(spark, path(SILVER, "_done", stage, day))
+        fs.create(hp, True).close()
 
 
 def is_done(spark, stage, day):
+    if swift_enabled():
+        try:
+            _swift().head_object(SILVER, f"_done/{stage}/{day}")
+            return True
+        except ClientException as error:
+            if error.http_status == 404:
+                return False
+            raise
     return exists(spark, path(SILVER, "_done", stage, day))
 
 
@@ -217,7 +357,13 @@ def gtfs_seconds(col):
 
 
 def write(df, bucket, table, key, value, files=None):
-    """Overwrite one partition: <bucket>/<table>/<key>=<value>/. Reruns replace exactly that day."""
-    out = path(bucket, table, f"{key}={value}")
+    """Overwrite one partition, uploading it to Swift when Swift storage is enabled."""
+    parts = (table, f"{key}={value}")
+    out = str(Path(root(bucket), *parts))
+    if swift_enabled():
+        shutil.rmtree(out, ignore_errors=True)
+        Path(out).mkdir(parents=True, exist_ok=True)
     (df.coalesce(files) if files else df).write.mode("overwrite").parquet(out)
+    if swift_enabled():
+        _upload_prefix(bucket, "/".join(parts), out)
     return out

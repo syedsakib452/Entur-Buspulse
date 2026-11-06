@@ -4,8 +4,7 @@ metadata:
   name: spark-pipeline-config
   namespace: buspulse-tables
 data:
-  # Swift's S3 API (step 1 of the README finds the right value)
-  S3_ENDPOINT: "https://REPLACE-ME"
+  OS_AUTH_URL: "https://REPLACE-ME/v3"
   RAW_BUCKET: buspulse-raw
   BRONZE_BUCKET: buspulse-bronze
   SILVER_BUCKET: buspulse-silver
@@ -22,3 +21,4 @@ data:
   SPARK_DRIVER_MEMORY: "1400m"
   SPARK_SHUFFLE_PARTITIONS: "16"
   SPARK_LOCAL_DIR: /work/spark
+  SWIFT_CACHE_DIR: /work/swift

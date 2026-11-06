@@ -18,6 +18,7 @@ import os
 import tempfile
 import zipfile
 
+from pyspark import StorageLevel
 from pyspark.sql import functions as F
 from pyspark.sql.types import (BooleanType, DoubleType, IntegerType, StringType, StructField,
                                StructType, TimestampType)
@@ -57,12 +58,19 @@ SCHEMAS = {
 
 
 def _object_name(uri):
-    """s3a://buspulse-raw/vehicle_positions/date=.../x.json.gz -> vehicle_positions/date=.../x.json.gz"""
-    return uri.split("://", 1)[-1].split("/", 1)[-1] if "://" in uri else uri
+    """Return a path relative to the raw container from a storage or local URI."""
+    if "://" in uri:
+        scheme, uri = uri.split("://", 1)
+        if scheme in ("s3a", "s3"):
+            return uri.split("/", 1)[-1]
+    parts = uri.replace("\\", "/").split("/")
+    if common.RAW in parts:
+        return "/".join(parts[parts.index(common.RAW) + 1:])
+    return uri
 
 
-def _rows(files, parser, columns, bad):
-    """Runs in a worker: one raw file at a time -> tuples in schema order."""
+def _rows(files, parser, columns):
+    """Runs in a worker and emits malformed-file details for the driver-side audit."""
     for f in files:
         name = _object_name(f.path)
         try:
@@ -70,9 +78,9 @@ def _rows(files, parser, columns, bad):
             payload = gzip.decompress(data) if name.endswith(".gz") else data
             base = {"snapshot_time": snapshot_time(name), "source_file": name}
             for row in parser(payload, base):
-                yield tuple(row.get(c) for c in columns)
-        except Exception:            # one broken file must not stop the day; counted, not hidden
-            bad.add(1)
+                yield tuple(row.get(c) for c in columns) + (None, None)
+        except Exception as error:    # one broken file must not stop the day; retain it for audit
+            yield (None,) * len(columns) + (name, str(error))
 
 
 def build_feed(spark, feed, day):
@@ -84,15 +92,24 @@ def build_feed(spark, feed, day):
         return 0
     schema = SCHEMAS[table]
     columns = schema.fieldNames()
-    bad = spark.sparkContext.accumulator(0)
     files = (spark.read.format("binaryFile").option("pathGlobFilter", "*.*")
              .load(src).select("path", "content"))
-    rdd = files.rdd.mapPartitions(lambda it: _rows(it, parser, columns, bad))
-    df = spark.createDataFrame(rdd, schema)
-    out = common.write(df, common.BRONZE, table, "date", day, files=4)
-    n = spark.read.parquet(out).count()
-    print(f"{feed}: {n_files} files -> {n:,} rows ({bad.value} unreadable files) -> {out}")
-    return bad.value
+    rdd = files.rdd.mapPartitions(lambda it: _rows(it, parser, columns))
+    audit_schema = StructType(
+        schema.fields + [StructField("_error_file", S), StructField("_error", S)]
+    )
+    df = spark.createDataFrame(rdd, audit_schema).persist(StorageLevel.DISK_ONLY)
+    errors = df.filter(F.col("_error_file").isNotNull()).select("_error_file", "_error").collect()
+    for error in errors:
+        print(f"ERROR {error['_error_file']}: {error['_error']}")
+    valid = df.filter(F.col("_error_file").isNull()).drop("_error_file", "_error")
+    try:
+        out = common.write(valid, common.BRONZE, table, "date", day, files=4)
+        n = spark.read.parquet(out).count()
+    finally:
+        df.unpersist()
+    print(f"{feed}: {n_files} files -> {n:,} rows ({len(errors)} unreadable files) -> {out}")
+    return len(errors)
 
 
 def build_gtfs(spark, day):
@@ -143,8 +160,12 @@ def main():
     p.add_argument("--feeds", nargs="+", choices=[*FEEDS, "static_timetable"])
     a = p.parse_args()
     spark = common.spark_session("buspulse-bronze")
-    run(spark, a.date, a.feeds)
+    failed = run(spark, a.date, a.feeds)
+    if failed:
+        spark.stop()
+        raise SystemExit(f"Bronze {a.date} had {failed} unreadable input files; day not marked done")
     common.mark_done(spark, "bronze", a.date)
+    spark.stop()
 
 
 if __name__ == "__main__":

@@ -1,7 +1,10 @@
 # Spark pipeline
 
 The Spark pipeline converts raw Entur data to bronze Parquet tables and then builds the
-silver datasets. Its code is kept with the corresponding layers:
+silver datasets. Swift objects are staged on local disk through `python-swiftclient`;
+Spark operates on those staged files, then writes completed Parquet outputs back to Swift.
+Set `SWIFT_CACHE_DIR` to a disk with enough room for the input partitions and Spark spill.
+Its code is kept with the corresponding layers:
 
 - `../bronze-layer/spark_jobs/`: bronze conversion and feed parsers
 - `../silver-layer/spark_jobs/`: shared storage helpers, silver jobs, pipeline runner, and tests
@@ -32,9 +35,21 @@ export DATA_ROOT="$PWD/data"
 python3 -m spark_jobs.run_pipeline --start YYYY-MM-DD --end YYYY-MM-DD
 ```
 
-For Swift/S3 storage, unset `DATA_ROOT` and set `S3_ENDPOINT`, `S3_ACCESS_KEY`, and
-`S3_SECRET_KEY` before starting the runner. Bucket names default to `buspulse-raw`,
-`buspulse-bronze`, and `buspulse-silver`.
+For Swift, unset `DATA_ROOT` and activate the environment containing your OpenStack
+`OS_*` credentials (including `OS_AUTH_URL`). The job uses the same credentials as
+`python-swiftclient`; no S3 endpoint or Java Swift connector is required. Bucket names
+default to `buspulse-raw`, `buspulse-bronze`, and `buspulse-silver`.
+
+To run Spark bronze for a range with up to four dates in parallel and write per-date
+logs plus failed-file audit CSVs:
+
+```sh
+python analysis/bronze-layer/run_bronze_range.py \
+  --start 2026-10-22 --end 2026-11-05 --workers 4 --spark
+```
+
+This Spark job writes the table/date partition layout used by the Spark silver readers.
+The standalone bronze builder writes a different, date-first layout.
 
 ## Build the container
 
@@ -49,8 +64,8 @@ stages, storage endpoint, and credentials through environment variables.
 
 ## Kubernetes
 
-Update the endpoint and date range in `k8s-spark/configmap.yaml`, build and publish the
-image, and configure `s3-credentials` as a Kubernetes Secret (do not commit credentials).
+Update the Keystone auth URL and date range in `k8s-spark/configmap.yaml`, build and publish the
+image, and configure `swift-credentials` as a Kubernetes Secret (do not commit credentials).
 The sample image is `ghcr.io/syedsakib452/entur-buspulse-spark:latest`; change the tag in
 `k8s-spark/kustomization.yaml` when publishing a versioned image. See
 [`k8s-spark/README.md`](./k8s-spark/README.md) for deployment notes.

@@ -1,7 +1,8 @@
 # spark-pipeline: raw -> bronze -> silver with PySpark
 
 Replaces the `bronze-silver` CronJob (`tables/`, swiftclient + pyarrow). One pod, Spark in local mode,
-reads and writes Swift through its S3 API.
+stages Swift objects to local disk with `python-swiftclient`, then uploads finished Parquet files
+back to Swift.
 
 | stage | input | output (Swift) | was |
 |---|---|---|---|
@@ -22,19 +23,23 @@ Buses only: ferry lines are removed in `clean` (by GTFS route_type and by vehicl
 Charts, the scipy KS test and the printed exploration cells. All numbers, thresholds and output columns are kept.
 
 ## Files
-- `configmap.yaml`: endpoint, buckets, dates, Spark memory
+- `configmap.yaml`: Keystone auth URL, buckets, dates, Spark memory
 - `cronjob.yaml`: 04:10 UTC daily, 2-3 GiB memory, 10 GiB spill disk
 - `kustomization.yaml`: image name and tag
-- `secret.example.yaml`: shape of the `s3-credentials` Secret (create it with kubectl, never commit keys)
+- `secret.example.yaml`: shape of the `swift-credentials` Secret (create it with kubectl, never commit keys)
 
 The Docker build instructions and the layer-separated source layout are in
-[`../README.md`](../README.md). Set the S3 endpoint and credentials before deployment;
+[`../README.md`](../README.md). Set the Keystone auth URL and OpenStack credentials before deployment;
 the example manifest intentionally contains placeholders.
 
 ## Troubleshooting
+The Spark driver stages Swift objects under `SWIFT_CACHE_DIR` before processing. Ensure the
+configured local disk has space for the raw or Parquet partitions being processed plus Spark
+spill files. Credentials are OpenStack `OS_*` variables in the `swift-credentials` Secret.
+
 | log / status | meaning |
 |---|---|
-| `cannot reach storage` | wrong `S3_ENDPOINT`, wrong keys, or a bucket missing |
+| `cannot reach storage` | wrong `OS_AUTH_URL` or OpenStack credentials, or a bucket missing |
 | `OOMKilled` in `kubectl describe pod` | lower `SPARK_DRIVER_MEMORY` to `1200m` or raise the memory limit |
 | `clean D: waiting for bronze D+1` | normal: a day is cleaned once the next day's raw files exist |
 | `FAILED` for one day, exit 1 | that day is retried on the next run; the traceback is above the line |
