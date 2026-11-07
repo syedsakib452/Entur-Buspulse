@@ -1,9 +1,6 @@
-# Silver layer as an always-on Docker container (for a VM, started by run_silver_tmux.sh).
-#   - reads bronze from Swift, writes silver to Swift (for gold) AND to <repo>/tables/silver-layer/<date>/
-#   - builds a day only 12 h after the bronze it needs was finished (SILVER_DELAY_HOURS)
-#   - checks every hour; restarts by itself after a crash or a reboot of the VM
-# OpenStack login: the OS_* variables are taken from the shell that starts compose
-# (run_silver_tmux.sh sources your openstack env file first). Nothing secret is stored here.
+# Silver layer container using local date-first tables:
+#   reads <repo>/tables/bronze/<date>/<table>.parquet
+#   writes <repo>/tables/silver/<date>/<table>.parquet
 name: buspulse-silver
 
 services:
@@ -15,41 +12,20 @@ services:
     entrypoint: ["tini", "--", "bash", "/app/run_silver_loop.sh"]
     restart: unless-stopped
     environment:
-      # Swift login, passed through from the shell
-      - OS_AUTH_URL
-      - OS_USERNAME
-      - OS_PASSWORD
-      - OS_PROJECT_ID
-      - OS_PROJECT_NAME
-      - OS_USER_DOMAIN_NAME
-      - OS_USER_DOMAIN_ID
-      - OS_PROJECT_DOMAIN_NAME
-      - OS_PROJECT_DOMAIN_ID
-      - OS_REGION_NAME
-      - OS_INTERFACE
-      - OS_AUTH_TYPE
-      - OS_APPLICATION_CREDENTIAL_ID
-      - OS_APPLICATION_CREDENTIAL_SECRET
-      # buckets and dates
-      - RAW_BUCKET=buspulse-raw
-      - BRONZE_BUCKET=buspulse-bronze
-      - SILVER_BUCKET=buspulse-silver
+      - TABLES_DIR=/data/tables
+      - DATA_ROOT=/work/runtime
+      - SILVER_LOCAL_DIR=/data/tables/silver
       - START_DATE=${START_DATE:-2026-10-20}
       - END_DATE=${END_DATE:-}
       - REDO=${REDO:-}
-      # the schedule: silver 12 h after bronze, checked every hour
-      - SILVER_DELAY_HOURS=${SILVER_DELAY_HOURS:-12}
       - CHECK_EVERY_MINUTES=${CHECK_EVERY_MINUTES:-60}
       - RUN_ONCE=${RUN_ONCE:-}
-      # local copy of the silver tables (the volume below = <repo>/tables/silver-layer)
-      - SILVER_LOCAL_DIR=/data/silver-layer
-      # Spark in local mode
       - SPARK_MASTER=local[2]
       - SPARK_DRIVER_MEMORY=1400m
       - SPARK_SHUFFLE_PARTITIONS=16
     volumes:
-      - ../../tables/silver-layer:/data/silver-layer
-      - silver-work:/work                 # Spark spill space and Swift cache
+      - ../../tables:/data/tables
+      - silver-work:/work
     mem_limit: 3g
     cpus: 2
     logging:

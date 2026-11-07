@@ -15,15 +15,16 @@ WORKDIR /app
 COPY analysis/silver-layer/spark_jobs/__init__.py \
      analysis/silver-layer/spark_jobs/common.py \
      analysis/silver-layer/spark_jobs/run_pipeline.py \
+     analysis/silver-layer/spark_jobs/run_silver_tables.py \
      analysis/silver-layer/spark_jobs/silver.py \
      analysis/silver-layer/spark_jobs/stop_analysis.py \
      analysis/silver-layer/spark_jobs/stop_geometry.py /app/spark_jobs/
 COPY analysis/silver-layer/run_silver_loop.sh /app/run_silver_loop.sh
+COPY analysis/silver-layer/entrypoint.sh /app/entrypoint.sh
 
 ENV PYTHONPATH=/app PYSPARK_PYTHON=python PYTHONUNBUFFERED=1 TZ=UTC \
     SPARK_LOCAL_DIR=/work/spark SWIFT_CACHE_DIR=/work/swift
 RUN useradd -u 1000 -m spark && mkdir -p /work && chown spark /work
 USER 1000
-# The stages are fixed in the image: this container only builds silver, from bronze days marked done.
-# Default: one pass (Kubernetes CronJob). Docker Compose uses run_silver_loop.sh instead (a pass every hour).
-ENTRYPOINT ["tini", "--", "python", "-m", "spark_jobs.run_pipeline", "--stages", "clean", "stop_analysis"]
+# TABLES_DIR selects local date-first tables; without it, Kubernetes retains the Swift runner.
+ENTRYPOINT ["tini", "--", "bash", "/app/entrypoint.sh"]

@@ -104,13 +104,20 @@ def build_left(spark, day, obs, lat0, lon0):
 
 def build_pings(spark, day, t_min, t_max, lat0, lon0):
     """De-duplicated GPS pings in the time window, with derived speeds (per vehicle, in pandas)."""
-    src = common.path(common.BRONZE, "vehicle_positions")
     days = [d for d in [common.shift(day, -1), day, common.shift(day, 1)]
-            if common.has_files(spark, f"{src}/date={d}", ".parquet")]
+            if common.has_files(
+                spark, common.path(common.BRONZE, "vehicle_positions", f"date={d}"), ".parquet"
+            )]
     if not days:
         raise RuntimeError(f"no bronze vehicle_positions around {day}")
-    vp = (spark.read.option("basePath", src).parquet(*[f"{src}/date={d}" for d in days])
-          .select("snapshot_time", "vehicle_id", "last_updated", "line_ref", "latitude", "longitude"))
+    if common.tables_dir():
+        vp = spark.read.parquet(*[
+            common.path(common.BRONZE, "vehicle_positions", f"date={d}") for d in days
+        ])
+    else:
+        src = common.path(common.BRONZE, "vehicle_positions")
+        vp = spark.read.option("basePath", src).parquet(*[f"{src}/date={d}" for d in days])
+    vp = vp.select("snapshot_time", "vehicle_id", "last_updated", "line_ref", "latitude", "longitude")
     vp = vp.withColumn("ts", F.coalesce(common.ts("last_updated"), F.col("snapshot_time")))
     vp = vp.where(F.col("vehicle_id").isNotNull() & F.col("line_ref").isNotNull()
                   & F.col("latitude").isNotNull() & F.col("longitude").isNotNull() & F.col("ts").isNotNull())

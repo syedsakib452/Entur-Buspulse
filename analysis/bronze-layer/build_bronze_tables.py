@@ -26,6 +26,7 @@ Tuning (env vars):
     PROCS=8            worker processes (default: min(cpu_count, 8))
     DL_THREADS=4       download threads inside each process
     FILES_PER_TASK=25  files handled per task
+    SWIFT_TIMEOUT=30   seconds before a hung Swift request is retried
     ROW_GROUP_ROWS=250000
 Total Swift connections = PROCS * DL_THREADS; lower them if Swift returns 400/429.
 """
@@ -65,6 +66,7 @@ RAW_CONTAINER = os.getenv("RAW_CONTAINER", "buspulse-raw")
 PROCS = int(os.getenv("PROCS", str(min(os.cpu_count() or 2, 8))))
 DL_THREADS = int(os.getenv("DL_THREADS", "4"))
 FILES_PER_TASK = int(os.getenv("FILES_PER_TASK", "25"))
+SWIFT_TIMEOUT = int(os.getenv("SWIFT_TIMEOUT", "30"))
 ROW_GROUP_ROWS = int(os.getenv("ROW_GROUP_ROWS", "250000"))
 EVERY = 1   # use only every Nth file per feed; set with --every
 # <repo>/tables/bronze-layer, independent of the working directory
@@ -112,8 +114,8 @@ def swift_connection():
     return Connection(
         authurl=env["OS_AUTH_URL"], user=env.get("OS_USERNAME"), key=env.get("OS_PASSWORD"),
         auth_version="3",
-        timeout=120,      # give up on a request after 2 min instead of waiting forever
-        retries=5,        # and try it again, up to 5 times
+        timeout=SWIFT_TIMEOUT,   # give up on a hung request and retry it (env SWIFT_TIMEOUT, seconds)
+        retries=5,               # and try it again, up to 5 times
         os_options={k: v for k, v in {
             "auth_type": env.get("OS_AUTH_TYPE"),
             "application_credential_id": env.get("OS_APPLICATION_CREDENTIAL_ID"),

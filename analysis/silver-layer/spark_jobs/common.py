@@ -42,6 +42,12 @@ def swift_enabled():
     return not os.getenv("DATA_ROOT")
 
 
+def tables_dir():
+    """Root containing date-first local bronze and silver tables, when configured."""
+    root = os.getenv("TABLES_DIR")
+    return Path(root) if root else None
+
+
 def swift_connection():
     """Create a Swift connection from the OpenStack environment used by the collectors."""
     env = os.environ
@@ -279,6 +285,17 @@ def root(bucket):
 
 
 def path(bucket, *parts):
+    tables = tables_dir()
+    if tables and bucket in (BRONZE, SILVER) and parts:
+        table = parts[0]
+        partition = next(
+            (part for part in parts[1:] if part.startswith(("date=", "service_date="))),
+            None,
+        )
+        if partition:
+            day = partition.split("=", 1)[1]
+            layer = "bronze" if bucket == BRONZE else "silver"
+            return str(tables / layer / day / f"{table}.parquet")
     if swift_enabled():
         return _stage_prefix(bucket, "/".join(parts))
     return str(Path(root(bucket), *parts))
@@ -300,6 +317,8 @@ def has_files(spark, p, suffix=""):
     fs, hp = _fs(spark, p)
     if not fs.exists(hp):
         return False
+    if fs.getFileStatus(hp).isFile():
+        return hp.getName().endswith(suffix)
     it = fs.listFiles(hp, False)
     while it.hasNext():
         if it.next().getPath().getName().endswith(suffix):
@@ -328,7 +347,7 @@ def mark_done(spark, stage, day):
         fs, hp = _fs(spark, path(SILVER, "_done", stage, day))
         fs.create(hp, True).close()
     if stage in ("clean", "stop_analysis") and silver_local_dir():
-        # local marker: tables/silver-layer/<day>/_done_<stage> means that stage's files are complete
+        # Local marker means that stage's files are complete.
         marker = silver_local_dir() / str(day) / f"_done_{stage}"
         marker.parent.mkdir(parents=True, exist_ok=True)
         marker.touch()
@@ -362,6 +381,9 @@ def is_done(spark, stage, day):
             if error.http_status == 404:
                 return False
             raise
+    if tables_dir():
+        marker = tables_dir() / "silver" / str(day) / f"_done_{stage}"
+        return marker.is_file()
     return exists(spark, path(SILVER, "_done", stage, day))
 
 
@@ -474,10 +496,12 @@ def write(df, bucket, table, key, value, files=None):
 
 # ------------------------------------------------------------------ local silver copy
 def silver_local_dir():
-    """Folder for a local copy of the silver tables, e.g. <repo>/tables/silver-layer (unset = none).
-    Read at call time, so tests and the Docker container can set it."""
+    """Folder for the date-first local silver tables, read at call time."""
     d = os.getenv("SILVER_LOCAL_DIR")
-    return Path(d) if d else None
+    if d:
+        return Path(d)
+    tables = tables_dir()
+    return tables / "silver" if tables else None
 
 
 def export_local(partition_dir, table, day):

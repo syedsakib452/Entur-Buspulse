@@ -9,3 +9,4 @@ __pycache__/
 uploader/
 tests/
 pytest.ini
+tables/

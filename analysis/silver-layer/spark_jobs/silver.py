@@ -36,6 +36,7 @@ Usage:  python -m spark_jobs.silver --date 2026-10-30 [--force]
 """
 import argparse
 from datetime import date
+from pathlib import Path
 
 import pandas as pd
 from pyspark.sql import Window, functions as F
@@ -49,6 +50,8 @@ TIME_COLS = ["aimed_arrival", "expected_arrival", "actual_arrival",
 ET_COLS = ["snapshot_time", "data_frame_ref", "journey_ref", "line_ref", "direction_ref", "vehicle_mode",
            "monitored", "journey_cancelled", "call_cancelled", "call_type", "stop_order", "stop_ref",
            *TIME_COLS, "arrival_status", "departure_status", "prediction_inaccurate"]
+BRONZE = Path(common.tables_dir() or "tables") / "bronze"
+GTFS_REQUIRED = ["routes", "stops", "trips", "stop_times"]
 
 DELAY_MIN_S, DELAY_MAX_S = -30 * 60, 3 * 3600         # outlier bounds: > 30 min early or > 3 h late
 ON_TIME_EARLY_S, ON_TIME_LATE_S = -60, 180            # on time = 60 s early ... 180 s late (inclusive)
@@ -64,9 +67,46 @@ WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", 
 
 
 # ------------------------------------------------------------------ timetable
+def _find_file(day_dir: Path, name: str):
+    for ext in (".parquet", ".csv", ".txt"):
+        for stem in (f"gtfs_{name}", name):
+            p = day_dir / f"{stem}{ext}"
+            if p.exists():
+                return p
+    return None
+
+
+def _gtfs_dir(day: str) -> Path:
+    """Latest local snapshot <= day that has the GTFS files; if none (first days), the earliest after."""
+    candidates = []
+    for d in BRONZE.iterdir():
+        try:
+            date.fromisoformat(d.name)
+        except ValueError:
+            continue
+        if d.is_dir() and all(_find_file(d, n) for n in GTFS_REQUIRED):
+            candidates.append(d.name)
+    if not candidates:
+        raise FileNotFoundError(f"no GTFS files found anywhere under {BRONZE}")
+    candidates.sort()
+    before = [c for c in candidates if c <= day]
+    return BRONZE / (before[-1] if before else candidates[0])
+
+
 def read_gtfs(spark, day):
-    def t(name):
-        return spark.read.parquet(common.nearest_partition(spark, common.BRONZE, f"gtfs_{name}", day))
+    d = _gtfs_dir(day)
+    print(f"gtfs for {day}: using snapshot {d.name}")
+
+    def t(name, required=True):
+        p = _find_file(d, name)
+        if p is None:
+            if required:
+                raise FileNotFoundError(f"gtfs {name} missing in {d}")
+            return None
+        uri = p.resolve().as_uri()                      # file:///... so Spark reads local disk
+        if p.suffix == ".parquet":
+            return spark.read.parquet(uri)
+        return spark.read.option("header", True).csv(uri)   # all strings: keeps "25:10:00" and "0012" intact
 
     name_map = F.create_map(*[x for k, v in ROUTE_TYPE_NAMES.items() for x in (F.lit(k), F.lit(v))])
     routes = (t("routes").dropDuplicates(["route_id"])
@@ -85,21 +125,31 @@ def read_gtfs(spark, day):
     st = st.select(*st_cols,
                    *[F.col(c) if c in st.columns else F.lit(None).cast("string").alias(c)
                      for c in ["pickup_type", "drop_off_type"]])
-    calendar = t("calendar").toPandas()                     # small: a few hundred rows
-    calendar_dates = t("calendar_dates").toPandas()
-    return routes, stops, trips, st, calendar, calendar_dates
 
+    cal = t("calendar", required=False)                  # small: a few hundred rows
+    cal_dates = t("calendar_dates", required=False)
+    calendar = cal.toPandas() if cal is not None else pd.DataFrame()
+    calendar_dates = cal_dates.toPandas() if cal_dates is not None else pd.DataFrame()
+    return routes, stops, trips, st, calendar, calendar_dates
 
 def active_service_ids(calendar, calendar_dates, service_date):
     """service_ids running on service_date: calendar range + weekday, plus added, minus removed."""
     d = pd.Timestamp(service_date)
     ds = d.strftime("%Y%m%d")
     wd = d.day_name().lower()
-    on = calendar[wd].astype(str).str.strip().eq("1")
-    base = calendar[(calendar["start_date"] <= ds) & (calendar["end_date"] >= ds) & on]["service_id"]
-    exc = calendar_dates[calendar_dates["date"] == ds]
-    typ = exc["exception_type"].astype(str).str.strip()
-    return (set(base) | set(exc.loc[typ == "1", "service_id"])) - set(exc.loc[typ == "2", "service_id"])
+    base = set()
+    if {"service_id", "start_date", "end_date", wd} <= set(calendar.columns):
+        on = calendar[wd].astype(str).str.strip().eq("1")
+        base = set(calendar[
+            (calendar["start_date"] <= ds) & (calendar["end_date"] >= ds) & on
+        ]["service_id"])
+    added, removed = set(), set()
+    if {"date", "exception_type", "service_id"} <= set(calendar_dates.columns):
+        exc = calendar_dates[calendar_dates["date"] == ds]
+        typ = exc["exception_type"].astype(str).str.strip()
+        added = set(exc.loc[typ == "1", "service_id"])
+        removed = set(exc.loc[typ == "2", "service_id"])
+    return (base | added) - removed
 
 
 def expected_calls(spark, day, routes, trips, st, calendar, calendar_dates):
@@ -141,7 +191,6 @@ def expected_calls(spark, day, routes, trips, st, calendar, calendar_dates):
 # ------------------------------------------------------------------ real-time
 def read_feed(spark, day):
     """Snapshot rows of service date `day` from the two bronze days that contain them."""
-    src = common.path(common.BRONZE, "stop_visits")
     days = [d for d in [day, common.shift(day, 1)]
             if common.has_files(spark, common.path(common.BRONZE, "stop_visits", f"date={d}"), ".parquet")]
     if day not in days:
@@ -149,7 +198,13 @@ def read_feed(spark, day):
     if len(days) < 2:
         print(f"  WARNING: no bronze stop_visits for {common.shift(day, 1)} yet: late trips of {day} "
               "may miss their final times")
-    raw = spark.read.option("basePath", src).parquet(*[f"{src}/date={d}" for d in days])
+    if common.tables_dir():
+        raw = spark.read.parquet(*[
+            common.path(common.BRONZE, "stop_visits", f"date={d}") for d in days
+        ])
+    else:
+        src = common.path(common.BRONZE, "stop_visits")
+        raw = spark.read.option("basePath", src).parquet(*[f"{src}/date={d}" for d in days])
     not_ferry = F.col("vehicle_mode").isNull() | (F.col("vehicle_mode") != "ferry")   # null-safe
     return raw, raw.where(not_ferry).select(*ET_COLS)
 
