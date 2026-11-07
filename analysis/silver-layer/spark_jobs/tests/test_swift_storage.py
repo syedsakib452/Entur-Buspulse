@@ -12,10 +12,12 @@ class FakeSwift:
         objects = self.objects.setdefault(bucket, {})
         selected = sorted(name for name in objects if name.startswith(prefix))
         if delimiter:
-            dirs = sorted({name.split("/", 1)[0] + "/" for name in objects if "/" in name})
+            dirs = sorted(
+                {name.split("/", 1)[0] + "/" for name in objects if "/" in name})
             return {}, [{"subdirectory": name} for name in dirs]
         return {}, [
-            {"name": name, "hash": hashlib.md5(objects[name]).hexdigest(), "bytes": len(objects[name])}
+            {"name": name, "hash": hashlib.md5(
+                objects[name]).hexdigest(), "bytes": len(objects[name])}
             for name in selected
         ]
 
@@ -40,7 +42,8 @@ def test_swift_path_stages_objects_and_upload_replaces_prefix(tmp_path, monkeypa
     swift = FakeSwift()
     monkeypatch.delenv("DATA_ROOT", raising=False)
     monkeypatch.setattr(common, "SWIFT_CACHE", tmp_path)
-    monkeypatch.setattr(common._swift_local, "connection", swift, raising=False)
+    monkeypatch.setattr(common._swift_local, "connection",
+                        swift, raising=False)
     common._downloaded.clear()
 
     input_path = common.path("raw", "feed", "date=2026-10-22")
@@ -62,6 +65,66 @@ def test_swift_path_stages_objects_and_upload_replaces_prefix(tmp_path, monkeypa
         "table/date=2026-10-22/part-0.parquet": b"parquet",
         "table/date=2026-10-22/_SUCCESS": b"",
     }
+
+
+def test_swift_downloads_many_files_in_parallel(tmp_path, monkeypatch):
+    swift = FakeSwift()
+    swift.objects["raw"] = {
+        f"feed/date=2026-10-22/f{i:03d}.json.gz": bytes([i]) * 10 for i in range(50)}
+    monkeypatch.delenv("DATA_ROOT", raising=False)
+    monkeypatch.setattr(common, "SWIFT_CACHE", tmp_path)
+    # every worker thread gets the fake
+    monkeypatch.setattr(common, "swift_connection", lambda: swift)
+    monkeypatch.setattr(common, "DOWNLOAD_THREADS", 4)
+    common._downloaded.clear()
+
+    common.path("raw", "feed", "date=2026-10-22")
+    files = sorted((tmp_path / "raw/feed/date=2026-10-22").iterdir())
+    assert len(files) == 50 and files[7].read_bytes() == bytes([7]) * 10
+    assert not list(tmp_path.rglob("*.swift-tmp"))
+
+
+def test_expired_token_logs_in_again():
+    from swiftclient.exceptions import ClientException
+    made = []
+
+    class Expiring:
+        def __init__(self):
+            self.n = len(made)
+            made.append(self)
+
+        def head_object(self, bucket, name):
+            if self.n == 0:                                   # the first connection's token has expired
+                raise ClientException("Object HEAD failed", http_status=401)
+            return {"last-modified": "x"}
+
+    conn = common.ReauthConnection(Expiring)
+    assert conn.head_object("b", "o") == {"last-modified": "x"}
+    # logged in once more, then succeeded
+    assert len(made) == 2
+
+
+def test_drop_cache_frees_one_day_only(tmp_path, monkeypatch):
+    monkeypatch.delenv("DATA_ROOT", raising=False)
+    monkeypatch.setattr(common, "SWIFT_CACHE", tmp_path)
+    for day in ("2026-10-22", "2026-10-23"):
+        f = tmp_path / f"raw/feed/date={day}/file.json.gz"
+        f.parent.mkdir(parents=True)
+        f.write_bytes(b"x")
+    common._downloaded.add(("raw", "feed/date=2026-10-22/file.json.gz", "h", 1))
+    common.drop_cache("raw", "date", "2026-10-22")
+    assert not (tmp_path / "raw/feed/date=2026-10-22").exists()
+    assert (tmp_path / "raw/feed/date=2026-10-23/file.json.gz").exists()
+    assert not any(s[1].startswith("feed/date=2026-10-22/") for s in common._downloaded)
+
+
+def test_raw_feeds_reads_swift_subdir_entries(monkeypatch):
+    class Listing:
+        def get_container(self, bucket, delimiter=None):
+            return {}, [{"subdir": "estimated_timetable/"}, {"subdir": "vehicle_positions/"}]
+    monkeypatch.setattr(common._swift_local, "connection",
+                        Listing(), raising=False)
+    assert common.raw_feeds() == ["estimated_timetable", "vehicle_positions"]
 
 
 def test_bronze_source_name_is_relative_to_swift_container():

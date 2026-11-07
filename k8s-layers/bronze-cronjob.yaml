@@ -1,0 +1,37 @@
+# BRONZE layer: raw files -> bronze tables, one UTC day at a time
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: bronze-layer
+  namespace: buspulse-tables
+  labels: { app: buspulse-layers, layer: bronze }
+spec:
+  schedule: "10 4 * * *"            # 04:10 UTC: yesterday's raw files are complete
+  concurrencyPolicy: Forbid          # never two bronze runs at once
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1                 # a rerun only redoes days without a done marker
+      activeDeadlineSeconds: 172800
+      template:
+        metadata:
+          labels: { app: buspulse-layers, layer: bronze }
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: bronze
+              image: ghcr.io/syedsakib452/entur-buspulse-bronze   # tag set in kustomization.yaml
+              imagePullPolicy: Always
+              envFrom:
+                - configMapRef: { name: layers-config }
+                - secretRef: { name: swift-credentials }
+              resources:
+                requests: { cpu: "1", memory: 2Gi }
+                limits: { cpu: "2", memory: 3Gi }
+              volumeMounts:
+                - { name: work, mountPath: /work }
+          volumes:
+            - name: work
+              emptyDir: { sizeLimit: 10Gi }   # scratch space, deleted with the pod

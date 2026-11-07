@@ -3,9 +3,9 @@ logs/
 __pycache__/
 *.pyc
 .venv/
-*.parquet
+tables/parquet_2026-10-24/bronze-layer-parquet/*.parquet
 silver/
-# Kubernetes secrets and test cache
 *.env
 .pytest_cache/
 tables/
+tables/silver-layer/

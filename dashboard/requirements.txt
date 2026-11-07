@@ -1,0 +1,9 @@
+# Tested with these versions (Python 3.13).
+streamlit>=1.67
+pydeck>=0.9.3
+duckdb>=1.4
+plotly>=7.1
+pandas>=2.2
+numpy>=2.0
+pyarrow>=20
+shapely>=2.0        # only for build_map.py

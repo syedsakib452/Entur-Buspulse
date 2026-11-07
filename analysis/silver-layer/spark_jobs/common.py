@@ -16,6 +16,7 @@ from pathlib import Path
 import shutil
 import sys
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
 
 from pyspark.sql import SparkSession, functions as F
@@ -25,8 +26,10 @@ from swiftclient.exceptions import ClientException
 RAW = os.getenv("RAW_BUCKET", "buspulse-raw")
 BRONZE = os.getenv("BRONZE_BUCKET", "buspulse-bronze")
 SILVER = os.getenv("SILVER_BUCKET", "buspulse-silver")
-LOCAL_TZ = "Europe/Oslo"            # Norway's time zone (also Stavanger); agency_timezone in GTFS
-GTFS_SEARCH_DAYS = 7                # use a neighbouring day's timetable if a day has none
+# Norway's time zone (also Stavanger); agency_timezone in GTFS
+LOCAL_TZ = "Europe/Oslo"
+# use a neighbouring day's timetable if a day has none
+GTFS_SEARCH_DAYS = 7
 # a UTC day counts as complete (all its raw files uploaded) this long after it ends
 SETTLE_HOURS = float(os.getenv("SETTLE_HOURS", "3"))
 SWIFT_CACHE = Path(os.getenv("SWIFT_CACHE_DIR", "/tmp/buspulse-swift"))
@@ -70,9 +73,43 @@ def swift_connection():
     )
 
 
+class ReauthConnection:
+    """A Swift connection that logs in again when its token has expired.
+
+    Keystone tokens expire (after about an hour here). swiftclient only renews a token by itself
+    for username/password logins, not for application credentials, so a long job (a day of raw
+    files) got "401 Unauthorized" part-way. Here every call that gets a 401 opens a fresh
+    connection (new token) and is tried once more."""
+
+    def __init__(self, factory):
+        self._factory = factory
+        self._conn = factory()
+
+    def __getattr__(self, name):
+        method = getattr(self._conn, name)
+        if not callable(method):
+            return method
+
+        def call(*args, **kwargs):
+            try:
+                return getattr(self._conn, name)(*args, **kwargs)
+            except ClientException as error:
+                if error.http_status != 401:
+                    raise
+                print(
+                    f"  Swift token expired during {name}, logging in again", flush=True)
+                self._conn = self._factory()
+                body = kwargs.get("contents")
+                if hasattr(body, "seek"):
+                    # an upload is sent again from the start
+                    body.seek(0)
+                return getattr(self._conn, name)(*args, **kwargs)
+        return call
+
+
 def _swift():
     if not hasattr(_swift_local, "connection"):
-        _swift_local.connection = swift_connection()
+        _swift_local.connection = ReauthConnection(swift_connection)
     return _swift_local.connection
 
 
@@ -86,12 +123,28 @@ def _swift_list(bucket, prefix):
         raise
 
 
+# parallel downloads: each thread has its own Swift connection (_swift() is per thread)
+DOWNLOAD_THREADS = int(os.getenv("SWIFT_DOWNLOAD_THREADS", "8"))
+
+
+def _download(bucket, name, local_file, signature):
+    _, body = _swift().get_object(bucket, name, resp_chunk_size=1024 * 1024)
+    temp_file = local_file.with_name(local_file.name + ".swift-tmp")
+    with temp_file.open("wb") as stream:
+        for chunk in body:
+            stream.write(chunk)
+    temp_file.replace(local_file)
+    with _downloaded_lock:
+        _downloaded.add(signature)
+
+
 def _stage_prefix(bucket, prefix):
     local_root = SWIFT_CACHE / bucket
     target = local_root / prefix if prefix else local_root
     target.mkdir(parents=True, exist_ok=True)
     objects = _swift_list(bucket, prefix)
     live_names = set()
+    todo = []
     for obj in objects:
         name = obj.get("name")
         if not name or name.endswith("/"):
@@ -103,14 +156,15 @@ def _stage_prefix(bucket, prefix):
         with _downloaded_lock:
             if signature in _downloaded and local_file.exists():
                 continue
-        _, body = _swift().get_object(bucket, name, resp_chunk_size=1024 * 1024)
-        temp_file = local_file.with_name(local_file.name + ".swift-tmp")
-        with temp_file.open("wb") as stream:
-            for chunk in body:
-                stream.write(chunk)
-        temp_file.replace(local_file)
-        with _downloaded_lock:
-            _downloaded.add(signature)
+        todo.append((bucket, name, local_file, signature))
+    if len(todo) > 1 and DOWNLOAD_THREADS > 1:
+        # a day of raw data is thousands of small files: fetch several at once
+        with ThreadPoolExecutor(max_workers=DOWNLOAD_THREADS) as pool:
+            for future in [pool.submit(_download, *job) for job in todo]:
+                future.result()                   # re-raises the first download error
+    else:
+        for job in todo:
+            _download(*job)
     if target.is_dir():
         for local_file in target.rglob("*"):
             if local_file.is_file():
@@ -143,6 +197,22 @@ def _upload_prefix(bucket, prefix, local_path):
         )
 
 
+def drop_cache(bucket, key, day):
+    """Delete the local Swift copies of one day (<cache>/<bucket>/<table>/<key>=<day>/) once a job
+    is finished with them, so a long backfill does not fill the pod's scratch disk.
+    The data in Swift is not touched; a later step that needs it downloads it again."""
+    if not swift_enabled():
+        return
+    base = SWIFT_CACHE / bucket
+    if not base.is_dir():
+        return
+    for folder in base.glob(f"*/{key}={day}"):
+        shutil.rmtree(folder, ignore_errors=True)
+    marker = f"/{key}={day}/"
+    with _downloaded_lock:
+        _downloaded.difference_update({s for s in _downloaded if s[0] == bucket and marker in "/" + s[1]})
+
+
 def check_container(bucket):
     try:
         _swift().head_container(bucket)
@@ -165,8 +235,9 @@ def ensure_container(bucket):
 
 def raw_feeds():
     _, entries = _swift().get_container(RAW, delimiter="/")
-    return sorted(item["subdirectory"].rstrip("/") for item in entries
-                  if item.get("subdirectory"))
+    # Swift calls a folder in a delimiter listing "subdir"
+    return sorted((item.get("subdir") or item.get("subdirectory")).rstrip("/") for item in entries
+                  if item.get("subdir") or item.get("subdirectory"))
 
 
 # ------------------------------------------------------------------ session
@@ -179,16 +250,20 @@ def spark_session(app):
          # Norway than in the cluster. Pinned to UTC, the only conversion is local_time() below.
          .config("spark.sql.session.timeZone", "UTC")
          .config("spark.driver.memory", os.getenv("SPARK_DRIVER_MEMORY", "1400m"))
-         .config("spark.local.dir", os.getenv("SPARK_LOCAL_DIR", "/tmp/spark"))      # spill space
+         # spill space
+         .config("spark.local.dir", os.getenv("SPARK_LOCAL_DIR", "/tmp/spark"))
          .config("spark.sql.session.timeZone", "UTC")
          .config("spark.sql.shuffle.partitions", os.getenv("SPARK_SHUFFLE_PARTITIONS", "16"))
          .config("spark.sql.files.maxPartitionBytes", "64m")
-         .config("spark.sql.sources.partitionColumnTypeInference.enabled", "false")   # date=... stays text
+         # date=... stays text
+         .config("spark.sql.sources.partitionColumnTypeInference.enabled", "false")
          .config("spark.sql.execution.arrow.pyspark.enabled", "true")
          .config("spark.sql.execution.arrow.maxRecordsPerBatch", "20000")
          .config("spark.sql.parquet.compression.codec", "zstd")
-         .config("spark.sql.legacy.parquet.nanosAsLong", "true")      # pandas-written ns timestamps
-         .config("spark.sql.ansi.enabled", "false")                   # bad values -> null, like errors="coerce"
+         # pandas-written ns timestamps
+         .config("spark.sql.legacy.parquet.nanosAsLong", "true")
+         # bad values -> null, like errors="coerce"
+         .config("spark.sql.ansi.enabled", "false")
          .config("spark.ui.enabled", "false")
          .config("spark.hadoop.mapreduce.fileoutputcommitter.algorithm.version", "2"))
     spark = b.getOrCreate()
@@ -252,6 +327,30 @@ def mark_done(spark, stage, day):
     else:
         fs, hp = _fs(spark, path(SILVER, "_done", stage, day))
         fs.create(hp, True).close()
+    if stage in ("clean", "stop_analysis") and silver_local_dir():
+        # local marker: tables/silver-layer/<day>/_done_<stage> means that stage's files are complete
+        marker = silver_local_dir() / str(day) / f"_done_{stage}"
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+
+
+def done_age_hours(spark, stage, day):
+    """Hours since <stage> of <day> was marked done, or None if it is not done."""
+    if swift_enabled():
+        from email.utils import parsedate_to_datetime
+        try:
+            headers = _swift().head_object(SILVER, f"_done/{stage}/{day}")
+        except ClientException as error:
+            if error.http_status == 404:
+                return None
+            raise
+        when = parsedate_to_datetime(headers["last-modified"])
+    else:
+        p = Path(root(SILVER), "_done", stage, day)
+        if not p.exists():
+            return None
+        when = datetime.fromtimestamp(p.stat().st_mtime, timezone.utc)
+    return (datetime.now(timezone.utc) - when).total_seconds() / 3600
 
 
 def is_done(spark, stage, day):
@@ -311,7 +410,8 @@ def nearest_partition(spark, bucket, table, day, key="date", search=GTFS_SEARCH_
 def ts(col):
     """ISO 8601 text (with offset or Z, sometimes 9 decimals) -> UTC timestamp. Unparseable -> null.
     Spark keeps microseconds, so extra digits are cut first."""
-    c = F.regexp_replace(F.trim(F.col(col).cast("string")), r"(\.\d{6})\d+", "$1")
+    c = F.regexp_replace(F.trim(F.col(col).cast("string")),
+                         r"(\.\d{6})\d+", "$1")
     return F.when(c == "", None).otherwise(F.to_timestamp(c))
 
 
@@ -357,7 +457,8 @@ def gtfs_seconds(col):
 
 
 def write(df, bucket, table, key, value, files=None):
-    """Overwrite one partition, uploading it to Swift when Swift storage is enabled."""
+    """Overwrite one partition, uploading it to Swift when Swift storage is enabled.
+    Silver tables are also exported to SILVER_LOCAL_DIR/<date>/<table>.parquet when that is set."""
     parts = (table, f"{key}={value}")
     out = str(Path(root(bucket), *parts))
     if swift_enabled():
@@ -366,4 +467,33 @@ def write(df, bucket, table, key, value, files=None):
     (df.coalesce(files) if files else df).write.mode("overwrite").parquet(out)
     if swift_enabled():
         _upload_prefix(bucket, "/".join(parts), out)
+    if bucket == SILVER and key == "service_date" and silver_local_dir():
+        export_local(out, table, value)
     return out
+
+
+# ------------------------------------------------------------------ local silver copy
+def silver_local_dir():
+    """Folder for a local copy of the silver tables, e.g. <repo>/tables/silver-layer (unset = none).
+    Read at call time, so tests and the Docker container can set it."""
+    d = os.getenv("SILVER_LOCAL_DIR")
+    return Path(d) if d else None
+
+
+def export_local(partition_dir, table, day):
+    """One silver partition -> SILVER_LOCAL_DIR/<day>/<table>.parquet, a single file with a
+    service_date column: the layout build_gold.py reads (SILVER_DIR=tables/silver-layer/<day>).
+    Written to a temporary name first, so a reader never sees half a file."""
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+    # ignores Spark's _SUCCESS / .crc files
+    t = pq.read_table(partition_dir)
+    if "service_date" not in t.column_names:
+        t = t.append_column("service_date", pa.array(
+            [str(day)] * t.num_rows, pa.string()))
+    dest = silver_local_dir() / str(day) / f"{table}.parquet"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    tmp = dest.with_name(dest.name + ".tmp")
+    pq.write_table(t, tmp, compression="zstd")
+    os.replace(tmp, dest)
+    print(f"  local copy: {dest} ({t.num_rows:,} rows)")

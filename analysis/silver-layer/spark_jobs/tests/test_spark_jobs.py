@@ -23,6 +23,7 @@ OSLO = ZoneInfo("Europe/Oslo")
 def run(tmp_path_factory):
     root = tmp_path_factory.mktemp("data")
     os.environ.update({"DATA_ROOT": str(root), "SPARK_LOCAL_DIR": str(root / "_spark"),
+                       "SILVER_LOCAL_DIR": str(root / "tables" / "silver-layer"),
                        "SPARK_SHUFFLE_PARTITIONS": "4"})
     os.environ.pop("S3_ENDPOINT", None)
     facts = fx.write_raw(root)
@@ -38,6 +39,7 @@ def run(tmp_path_factory):
     spark = common.spark_session("tests")
     yield {"root": root, "facts": facts, "exit": ex.value.code, "spark": spark}
     spark.stop()
+    os.environ.pop("SILVER_LOCAL_DIR", None)
 
 
 def table(r, bucket, name, key, day=DAY):
@@ -119,6 +121,26 @@ def test_stop_event_status(run):
     assert not s["trip_id"].str.startswith("F").any()
     log = table(run, "buspulse-silver", "removal_log", "service_date")
     assert (log["removed"] >= 0).all()
+
+
+def test_local_silver_copy(run):
+    """tables/silver-layer/<date>/<table>.parquet: one file per table, with service_date, plus markers."""
+    import pandas as pd
+    day_dir = run["root"] / "tables" / "silver-layer" / DAY
+    for t in ["clean_stop_visits", "stop_event_status", "expected_per_stop", "stop_headways",
+              "trip_segments", "stop_gps_status", "trip_vehicle", "per_stop_evidence", "time_lost_null"]:
+        assert (day_dir / f"{t}.parquet").is_file(), t
+    c = pd.read_parquet(day_dir / "clean_stop_visits.parquet")
+    assert len(c) == 30 and set(c["service_date"]) == {DAY}
+    assert (day_dir / "_done_clean").exists() and (day_dir / "_done_stop_analysis").exists()
+    assert not list(day_dir.glob("*.tmp"))
+
+
+def test_silver_delay_after_bronze(run):
+    from spark_jobs import common
+    age = common.done_age_hours(run["spark"], "bronze", NEXT)
+    assert age is not None and 0 <= age < 1               # bronze was just built in this test run
+    assert common.done_age_hours(run["spark"], "bronze", "2026-01-01") is None
 
 
 def test_stop_headways(run):

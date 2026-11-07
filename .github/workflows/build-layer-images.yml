@@ -1,0 +1,90 @@
+# Tests the bronze/silver/gold code, then builds one image per layer:
+#   ghcr.io/<owner>/entur-buspulse-bronze | -silver | -gold   (tags sha-<commit> and latest)
+# Each image runs only its own layer (see k8s-layers/).
+name: build-layer-images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "analysis/bronze-layer/**"
+      - "analysis/silver-layer/**"
+      - "analysis/gold/**"
+      - ".github/workflows/build-layer-images.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.11" }
+      - run: pip install -r analysis/silver-layer/requirements.txt -r analysis/gold/requirements.txt pytest
+      # the bronze and silver code form one package (spark_jobs) at run time; put it together for the tests
+      - name: Assemble spark_jobs
+        run: |
+          mkdir -p build/spark_jobs
+          cp -r analysis/silver-layer/spark_jobs/. build/spark_jobs/
+          cp analysis/bronze-layer/spark_jobs/*.py build/spark_jobs/
+      - name: Spark tests (bronze + silver on a simulated day)
+        working-directory: build
+        run: python -m pytest spark_jobs/tests -q
+      - name: Gold code compiles
+        run: python -m py_compile analysis/gold/run_gold.py analysis/gold/build_gold.py
+      # bronze -> silver -> gold on the simulated day, with local folders instead of Swift.
+      # Not blocking yet: build_gold.py's reconciliation checks were written for real data.
+      - name: Gold on the simulated day (informational)
+        continue-on-error: true
+        working-directory: build
+        run: |
+          python - <<'PY'
+          import os, subprocess, sys, tempfile
+          root = tempfile.mkdtemp()
+          os.environ.update(DATA_ROOT=root, SPARK_LOCAL_DIR=root + "/_spark", GOLD_WORK_DIR=root + "/_gold")
+          from spark_jobs.tests import fixtures as fx
+          fx.write_raw(root)
+          run = lambda *a: subprocess.run([sys.executable, *a], env=os.environ).returncode
+          assert run("-m", "spark_jobs.run_pipeline", "--start", fx.DAY, "--end", fx.NEXT) == 0
+          assert run("../analysis/gold/run_gold.py", "--start", fx.DAY, "--end", fx.NEXT) == 0
+          print(sorted(os.listdir(root + "/buspulse-gold")))
+          PY
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        layer: [bronze, silver, gold]
+        include:
+          - { layer: bronze, dockerfile: analysis/bronze-layer/Dockerfile }
+          - { layer: silver, dockerfile: analysis/silver-layer/Dockerfile }
+          - { layer: gold,   dockerfile: analysis/gold/Dockerfile }
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with: { registry: ghcr.io, username: "${{ github.actor }}", password: "${{ secrets.GITHUB_TOKEN }}" }
+      - id: name
+        run: |
+          echo "image=ghcr.io/${GITHUB_REPOSITORY,,}-${{ matrix.layer }}" >> "$GITHUB_OUTPUT"
+          echo "tag=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: |
+            ${{ steps.name.outputs.image }}:${{ steps.name.outputs.tag }}
+            ${{ steps.name.outputs.image }}:latest
+          cache-from: type=gha,scope=${{ matrix.layer }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.layer }}
+      - name: Summary
+        run: |
+          echo "${{ matrix.layer }} image: ${{ steps.name.outputs.image }}:${{ steps.name.outputs.tag }}" >> "$GITHUB_STEP_SUMMARY"
