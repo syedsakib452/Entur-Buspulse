@@ -8,3 +8,4 @@ silver/
 # Kubernetes secrets and test cache
 *.env
 .pytest_cache/
+tables/
