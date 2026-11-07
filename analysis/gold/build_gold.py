@@ -321,16 +321,22 @@ heat("gold_heat_route_stop_hour", "line_ref, route_short_name, stop_ref, stop_na
 ev_rel = read("per_stop_evidence", required=False)
 ev_join, ev_cols = "", ""
 if ev_rel:
+    # per_stop_evidence has one row per stop PER DAY: add the counts up over all days and
+    # recompute the share from the totals (taking one day's share would be wrong for the period)
     ev_join = f"""LEFT JOIN (SELECT CAST(stop_id AS VARCHAR) AS stop_ref, SUM(calls) AS evidence_calls,
                        SUM(stopped) AS evidence_stopped, SUM(passed) AS evidence_passed,
-                       ANY_VALUE(passed_share) AS passed_share, ANY_VALUE(conclusive) AS conclusive
+                       SUM(stopped) + SUM(passed) AS conclusive,
+                       ROUND(SUM(passed)::DOUBLE / NULLIF(SUM(stopped) + SUM(passed), 0), 3) AS passed_share,
+                       COUNT(*) AS evidence_days
                 FROM {ev_rel} GROUP BY 1) e ON agg.stop_ref = e.stop_ref"""
-    ev_cols = ", e.evidence_calls, e.evidence_stopped, e.evidence_passed, e.passed_share, e.conclusive"
+    ev_cols = ", e.evidence_calls, e.evidence_stopped, e.evidence_passed, e.passed_share, e.conclusive, e.evidence_days"
     m = scalar(f"SELECT COUNT(DISTINCT stop_ref) FROM sv WHERE stop_ref IN (SELECT CAST(stop_id AS VARCHAR) FROM {ev_rel})")
     info("per_stop_evidence.stop_id matches clean_stop_visits.stop_ref",
          f"{m:,} of {scalar('SELECT COUNT(DISTINCT stop_ref) FROM sv'):,} visited stops matched")
-    dup = scalar(f"SELECT COUNT(*) - COUNT(DISTINCT stop_id) FROM {ev_rel}")
-    info("per_stop_evidence duplicate stop_id rows", dup)
+    # one row per (service_date, stop) is expected; a duplicate within one day would be a silver problem
+    ev_key = "service_date, stop_id" if "service_date" in schema(ev_rel) else "stop_id"
+    dup = scalar(f"SELECT COUNT(*) - COUNT(DISTINCT ({ev_key})) FROM {ev_rel}")
+    check("per_stop_evidence has one row per stop and day", dup == 0, f"{dup} duplicate rows")
 emit("gold_stop_map", f"""
     SELECT agg.*,
            agg.sum_delay_s / NULLIF(agg.n_valid, 0)        AS avg_delay_s,
