@@ -60,6 +60,10 @@ def spark_session(app):
         .config("spark.sql.execution.arrow.maxRecordsPerBatch", "20000")
         .config("spark.sql.parquet.compression.codec", "zstd")
         .config("spark.sql.legacy.parquet.nanosAsLong", "true")
+        # Write timestamps as standard INT64 microseconds (UTC), not Spark's old INT96 default.
+        # INT96 comes back from pyarrow as nanoseconds without a time zone, and Spark then could
+        # not read the exported silver files again ("column: [visit_time], physicalType: INT64").
+        .config("spark.sql.parquet.outputTimestampType", "TIMESTAMP_MICROS")
         .config("spark.sql.ansi.enabled", "false")
         .config("spark.ui.enabled", "false")
         .config("spark.hadoop.mapreduce.fileoutputcommitter.algorithm.version", "2"))
@@ -226,9 +230,14 @@ def export_local(partition_dir, table, day):
         raise FileNotFoundError(f"No parquet part files were written to {source}")
 
     dataset = ds.dataset([str(p) for p in parquet_files], format="parquet")
-    add_service_date = "service_date" not in dataset.schema.names
-    output_schema = (dataset.schema.append(pa.field("service_date", pa.string()))
-                     if add_service_date else dataset.schema)
+    # Every timestamp as microseconds in UTC: the one form Spark, pandas and DuckDB all read back
+    # (older part files may hold INT96, which pyarrow turns into nanoseconds without a time zone).
+    utc_us = pa.timestamp("us", tz="UTC")
+    source_schema = pa.schema([f.with_type(utc_us) if pa.types.is_timestamp(f.type) else f
+                               for f in dataset.schema])
+    add_service_date = "service_date" not in source_schema.names
+    output_schema = (source_schema.append(pa.field("service_date", pa.string()))
+                     if add_service_date else source_schema)
     destination = silver_local_dir() / str(day) / f"{table}.parquet"
     destination.parent.mkdir(parents=True, exist_ok=True)
     temp = destination.with_name(destination.name + ".tmp")
@@ -237,10 +246,11 @@ def export_local(partition_dir, table, day):
         with pq.ParquetWriter(temp, output_schema, compression="zstd") as writer:
             scanner = dataset.scanner(batch_size=100_000, use_threads=True)
             for batch in scanner.to_batches():
+                table_part = pa.Table.from_batches([batch]).cast(source_schema, safe=False)  # ns -> us, UTC
                 if add_service_date:
-                    batch = batch.append_column(
+                    table_part = table_part.append_column(
                         "service_date", pa.array([str(day)] * batch.num_rows, type=pa.string()))
-                writer.write_table(pa.Table.from_batches([batch]), row_group_size=batch.num_rows)
+                writer.write_table(table_part, row_group_size=batch.num_rows)
                 row_count += batch.num_rows
         os.replace(temp, destination)
     except Exception:

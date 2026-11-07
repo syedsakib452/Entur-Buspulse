@@ -20,3 +20,30 @@ def test_open_ended_range_discovers_local_bronze_dates(tmp_path):
 def test_closed_range_includes_both_dates(tmp_path):
     assert _requested_days(tmp_path, "2026-11-01", "2026-11-03") == [
         "2026-11-01", "2026-11-02", "2026-11-03"]
+
+
+def test_exported_silver_file_is_readable_by_spark_again(tmp_path, monkeypatch):
+    """Regression: Spark read its own exported file back in stop_analysis and failed with
+    'column: [visit_time], physicalType: INT64, logicalType: timestamp' (INT96 -> nanoseconds)."""
+    import pytest
+    pytest.importorskip("pyspark")
+    import pyarrow.parquet as pq
+    from datetime import datetime, timezone
+    monkeypatch.setenv("SILVER_LOCAL_DIR", str(tmp_path / "silver-layer"))
+    monkeypatch.setenv("SPARK_LOCAL_DIR", str(tmp_path / "spark"))
+    spark = common.spark_session("export-test")
+    t = datetime(2026, 10, 25, 1, 30, tzinfo=timezone.utc)
+    df = spark.createDataFrame([("T1", t), ("T2", None)], "trip_id string, visit_time timestamp")
+    for kind in ("INT96", "TIMESTAMP_MICROS"):          # old part files and new ones
+        spark.conf.set("spark.sql.parquet.outputTimestampType", kind)
+        part_dir = tmp_path / kind
+        df.coalesce(1).write.mode("overwrite").parquet(str(part_dir))
+        common.export_local(part_dir, f"table_{kind}", "2026-10-24")
+        out = tmp_path / "silver-layer" / "2026-10-24" / f"table_{kind}.parquet"
+        field = pq.read_schema(out).field("visit_time").type
+        assert str(field) == "timestamp[us, tz=UTC]"
+        back = spark.read.parquet(str(out))
+        micros = back.selectExpr("max(unix_micros(visit_time))").first()[0]   # the read that used to fail
+        assert micros == int(t.timestamp() * 1_000_000)
+        assert {r.service_date for r in back.collect()} == {"2026-10-24"}
+    spark.conf.set("spark.sql.parquet.outputTimestampType", "TIMESTAMP_MICROS")
