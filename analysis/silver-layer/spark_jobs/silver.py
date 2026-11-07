@@ -54,8 +54,8 @@ BRONZE = Path(common.tables_dir() or "tables") / "bronze-layer"
 GTFS_REQUIRED = ["routes", "stops", "trips", "stop_times"]
 
 DELAY_MIN_S, DELAY_MAX_S = -30 * 60, 3 * 3600         # outlier bounds: > 30 min early or > 3 h late
-ON_TIME_EARLY_S, ON_TIME_LATE_S = -60, 180            # on time = 60 s early ... 180 s late (inclusive)
-EARLY_S, LATE_S = -60, 300                            # delay_class: early < -60 s, late > 300 s (as in gold)
+# Project thresholds, the same as in gold (analysis/gold/build_gold.py): change them in both places.
+EARLY_S, LATE_S = -60, 300                            # early < -60 s | on time -60 <= delay < 300 s | late >= 300 s
 BUNCH_RATIO, GAP_RATIO = 0.25, 2.0                    # headway < 0.25 x scheduled = bunched, > 2 x = gap
 SEGMENT_MAX_S = 3600                                  # a stop-to-stop run longer than 1 h is not plausible
 EARTH_M = 6_371_000.0
@@ -281,8 +281,8 @@ def clean_visits(spark, day, raw, et, routes, stops, log):
     d = F.col("delay_s")
     v4 = v4.withColumns({
         "delay_outlier": F.coalesce((d > DELAY_MAX_S) | (d < DELAY_MIN_S), F.lit(False)),
-        "on_time": F.coalesce(d.between(ON_TIME_EARLY_S, ON_TIME_LATE_S), F.lit(False)),
-        "delay_class": F.when(d.isNull(), None).when(d < EARLY_S, "early").when(d > LATE_S, "late").otherwise("on_time"),
+        "on_time": F.coalesce((d >= EARLY_S) & (d < LATE_S), F.lit(False)),
+        "delay_class": F.when(d.isNull(), None).when(d < EARLY_S, "early").when(d >= LATE_S, "late").otherwise("on_time"),
         "is_monitored": common.to_bool("monitored"),
         "no_prediction": ~F.col("is_actual") & F.col("expected_arrival").isNull() & F.col("expected_departure").isNull(),
         **common.local_fields(event_time),
