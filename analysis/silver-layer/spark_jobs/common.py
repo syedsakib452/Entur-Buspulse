@@ -197,6 +197,22 @@ def _upload_prefix(bucket, prefix, local_path):
         )
 
 
+def drop_cache(bucket, key, day):
+    """Delete the local Swift copies of one day (<cache>/<bucket>/<table>/<key>=<day>/) once a job
+    is finished with them, so a long backfill does not fill the pod's scratch disk.
+    The data in Swift is not touched; a later step that needs it downloads it again."""
+    if not swift_enabled():
+        return
+    base = SWIFT_CACHE / bucket
+    if not base.is_dir():
+        return
+    for folder in base.glob(f"*/{key}={day}"):
+        shutil.rmtree(folder, ignore_errors=True)
+    marker = f"/{key}={day}/"
+    with _downloaded_lock:
+        _downloaded.difference_update({s for s in _downloaded if s[0] == bucket and marker in "/" + s[1]})
+
+
 def check_container(bucket):
     try:
         _swift().head_container(bucket)

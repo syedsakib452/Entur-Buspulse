@@ -122,16 +122,21 @@ def main():
             if not common.has_files(spark, common.path(common.RAW, "estimated_timetable", f"date={d}")):
                 print(f"--- bronze {d}: no raw estimated_timetable files, skipped")
                 continue
-            step("bronze", d, _stage("bronze"))
+            try:
+                step("bronze", d, _stage("bronze"))
+            finally:
+                # free the scratch disk: a backfill of many days would otherwise fill it up
+                common.drop_cache(common.RAW, "date", d)
+                common.drop_cache(common.BRONZE, "date", d)
 
-    for d in all_days:
+    def silver_day(d):
         nxt = common.shift(d, 1)
         if "clean" in a.stages and not skip("clean", d):
             if not common.is_done(spark, "bronze", d):
-                continue
+                return
             if not common.is_done(spark, "bronze", nxt):
                 print(f"--- clean {d}: waiting for bronze {nxt} (late trips end after midnight)")
-                continue
+                return
             delay = float(os.getenv("SILVER_DELAY_HOURS") or 0)
             if delay:
                 # silver of D runs only SILVER_DELAY_HOURS after the last bronze it needs (D+1) finished
@@ -139,12 +144,21 @@ def main():
                 if age is None or age < delay:
                     print(f"--- clean {d}: bronze {nxt} finished {age or 0:.1f} h ago, "
                           f"silver waits until {delay:g} h")
-                    continue
+                    return
             if not step("clean", d, _stage("silver")):
-                continue
+                return
         if "stop_analysis" in a.stages and not skip("stop_analysis", d) \
                 and common.is_done(spark, "clean", d):
             step("stop_analysis", d, _stage("stop_analysis"))
+
+    if "clean" in a.stages or "stop_analysis" in a.stages:
+        for d in all_days:
+            try:
+                silver_day(d)
+            finally:
+                # bronze up to D-1 is not needed any more (day D+1 reads D .. D+2)
+                common.drop_cache(common.BRONZE, "date", common.shift(d, -1))
+                common.drop_cache(common.SILVER, "service_date", d)
 
     print(f"=== finished, failed: {failed or 'none'}", flush=True)
     spark.stop()

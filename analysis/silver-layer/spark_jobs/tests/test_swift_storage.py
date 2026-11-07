@@ -104,6 +104,20 @@ def test_expired_token_logs_in_again():
     assert len(made) == 2
 
 
+def test_drop_cache_frees_one_day_only(tmp_path, monkeypatch):
+    monkeypatch.delenv("DATA_ROOT", raising=False)
+    monkeypatch.setattr(common, "SWIFT_CACHE", tmp_path)
+    for day in ("2026-10-22", "2026-10-23"):
+        f = tmp_path / f"raw/feed/date={day}/file.json.gz"
+        f.parent.mkdir(parents=True)
+        f.write_bytes(b"x")
+    common._downloaded.add(("raw", "feed/date=2026-10-22/file.json.gz", "h", 1))
+    common.drop_cache("raw", "date", "2026-10-22")
+    assert not (tmp_path / "raw/feed/date=2026-10-22").exists()
+    assert (tmp_path / "raw/feed/date=2026-10-23/file.json.gz").exists()
+    assert not any(s[1].startswith("feed/date=2026-10-22/") for s in common._downloaded)
+
+
 def test_raw_feeds_reads_swift_subdir_entries(monkeypatch):
     class Listing:
         def get_container(self, bucket, delimiter=None):
