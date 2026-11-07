@@ -27,6 +27,10 @@
 # - **Busy roads (from silver trip_segments):** `gold_road_segment_hour`, `gold_busy_roads`
 # - **Heatmaps for bunching and speed:** `gold_heat_bunching_route_hour`, `gold_heat_bunching_weekday_hour`,
 #   `gold_heat_speed_weekday_hour`, `gold_heat_speed_route_hour` (delay heatmaps: the `gold_heat_*` tables above)
+# - **Filterable by day, ISO week, weekday, hour, line, direction and stop (sums: filter, then divide):**
+#   `gold_delay_hour` (delays), `gold_headway_hour` (bunching), `gold_speed_hour` (speed per road segment;
+#   average speed = sum_distance_m / sum_run_s * 3.6). `dim_date` also has iso_week / iso_year.
+# - **Per trip:** `gold_trip_metrics` (delays, distance, average speed, how often the bus arrived bunched)
 # - **Rules:** `gold_thresholds` (every threshold used, with its meaning)
 # - **Dashboard KPIs:** `gold_segment_hour` (road-segment run time and speed by date and hour), `gold_trip_summary` (one row per trip: start/end delay, delay gained, run time)
 # - **Evidence / fleet / coverage:** `gold_stop_evidence`, `gold_time_lost_reference`, `gold_fleet_activity`, `gold_stop_coverage`, `gold_event_status`
@@ -270,7 +274,8 @@ emit("dim_stop", """
 
 emit("dim_date", f"""
     SELECT service_date, isodow(service_date) - 1 AS weekday, strftime(service_date, '%A') AS weekday_name,
-           isodow(service_date) >= 6 AS is_weekend
+           isodow(service_date) >= 6 AS is_weekend,
+           weekofyear(service_date) AS iso_week, isoyear(service_date) AS iso_year
     FROM (SELECT DISTINCT service_date FROM sv WHERE service_date IS NOT NULL) ORDER BY service_date""")
 
 emit_rows("dim_hour_band", "local_hour INTEGER, hour_band VARCHAR", sorted(BAND_OF_HOUR.items()))
@@ -299,6 +304,14 @@ emit("gold_visits_cube", f"""
 emit("gold_stop_cube", f"""
     SELECT service_date, hour_band, line_ref, stop_ref, {MEASURES}
     FROM sv GROUP BY ALL""")
+
+# filterable by day, week, weekday, hour, line, direction and stop (sums: filter, then divide)
+emit("gold_delay_hour", f"""
+    SELECT d.*, l.route_short_name FROM (
+      SELECT service_date, weekofyear(service_date) AS iso_week, weekday, local_hour, hour_band,
+             line_ref, direction_ref, stop_ref, {MEASURES}
+      FROM sv GROUP BY ALL) d
+    LEFT JOIN dim_line l USING (line_ref)""")
 
 emit("gold_stop_order_delay", f"""
     SELECT service_date, hour_band, line_ref, direction_ref, stop_order,
@@ -566,11 +579,12 @@ if hw_rel:
     WITH a AS (
       SELECT TRY_CAST(service_date AS DATE) AS service_date, {label(hs,'line_ref')} AS line_ref,
              {label(hs,'direction_ref')} AS direction_ref, {label(hs,'stop_id')} AS stop_ref,
+             {label(hs,'trip_id')} AS trip_id,
              {num(hs,'headway_s')} AS h, {num(hs,'scheduled_headway_s')} AS sched,
              {to_local(ts(hs,'visit_time'))} AS visit_local
       FROM {hw_rel})
     SELECT * EXCLUDE (visit_local), COALESCE(hour(visit_local), -1) AS local_hour,
-           isodow(service_date) - 1 AS weekday
+           isodow(service_date) - 1 AS weekday, weekofyear(service_date) AS iso_week
     FROM a WHERE h > 0 AND sched BETWEEN {HEADWAY_MIN_S} AND {HEADWAY_MAX_S}""")
     con.execute(f"CREATE OR REPLACE TEMP TABLE hw2 AS SELECT *, {HOUR_BAND_SQL} AS hour_band FROM hw")
     n_hw_pairs = scalar("SELECT COUNT(*) FROM hw2")
@@ -584,8 +598,10 @@ if hw_rel:
            sum_headway_sq / (2 * sum_headway_s) - sum_sched_headway_sq / (2 * sum_sched_headway_s) AS excess_wait_s,
            n_bunched::DOUBLE / n_headways AS pct_bunched, n_large_gap::DOUBLE / n_headways AS pct_large_gap"""
     emit("gold_headway_hour", f"""
-        SELECT service_date, weekday, local_hour, hour_band, line_ref, direction_ref, stop_ref, {HW_SUMS}
-        FROM hw2 GROUP BY ALL""")
+        SELECT h.*, l.route_short_name FROM (
+          SELECT service_date, iso_week, weekday, local_hour, hour_band, line_ref, direction_ref, stop_ref, {HW_SUMS}
+          FROM hw2 GROUP BY ALL) h
+        LEFT JOIN dim_line l USING (line_ref)""")
     emit("gold_headway_route", f"""
         SELECT r.*, l.route_short_name FROM (
           SELECT *, {HW_RATIOS} FROM (
@@ -622,13 +638,14 @@ if seg_rel:
       SELECT TRY_CAST(service_date AS DATE) AS service_date,
              {label(gs,'from_stop_id')} AS from_stop_ref, {label(gs,'to_stop_id')} AS to_stop_ref,
              {label(gs,'route_short_name')} AS route_short_name, {label(gs,'route_id')} AS line_ref,
+             {label(gs,'trip_id')} AS trip_id, {label(gs,'direction_ref')} AS direction_ref,
              {num(gs,'observed_elapsed_s')} AS run_s, {num(gs,'scheduled_running_time_s')} AS sched_s,
              {num(gs,'segment_distance_m')} AS dist_m, {num(gs,'average_speed_kmh')} AS kmh,
              {boolean(gs,'is_valid')} AS is_valid, {to_local(ts(gs,'to_visit_time'))} AS arrive_local
       FROM {seg_rel})
     SELECT * EXCLUDE (arrive_local), COALESCE(hour(arrive_local), -1) AS local_hour,
            CASE WHEN isodow(service_date) >= 6 THEN 'weekend' ELSE 'weekday' END AS day_type,
-           isodow(service_date) - 1 AS weekday
+           isodow(service_date) - 1 AS weekday, weekofyear(service_date) AS iso_week
     FROM a
     WHERE is_valid AND run_s > 0 AND run_s <= {SEG_MAX_S} AND dist_m >= {ROAD_MIN_M}
       AND kmh > 0 AND kmh <= {ROAD_MAX_KMH}""")
@@ -698,8 +715,51 @@ if seg_rel:
                          FROM gold_busy_roads WHERE rank_hours_lost <= 5 ORDER BY rank_hours_lost""").fetchall()
     for row in top:
         info("busiest road segment (vehicle-hours lost, travel time index)", f"{row[0]} -> {row[1]} [{row[2]}]: {row[3]} h, {row[4]}")
+
+    # speed per day x hour x line x road segment, as sums: after any filter,
+    # average speed = sum_distance_m / sum_run_s * 3.6 (distance-weighted), time lost = sum_excess_s
+    emit("gold_speed_hour", f"""
+        WITH ff AS (SELECT from_stop_ref, to_stop_ref, quantile_cont(kmh, {FREE_FLOW_Q}) AS free_flow_kmh
+                    FROM road2 GROUP BY ALL)
+        SELECT service_date, iso_week, weekday, day_type, local_hour, hour_band,
+               line_ref, ANY_VALUE(route_short_name) AS route_short_name, direction_ref, from_stop_ref, to_stop_ref,
+               COUNT(*) AS n_runs, SUM(dist_m) AS sum_distance_m, SUM(run_s) AS sum_run_s, SUM(sched_s) AS sum_sched_s,
+               SUM(greatest(run_s - dist_m / (ff.free_flow_kmh / 3.6), 0)) AS sum_excess_s,
+               SUM(dist_m) / NULLIF(SUM(run_s), 0) * 3.6 AS avg_kmh
+        FROM road2 JOIN ff USING (from_stop_ref, to_stop_ref)
+        GROUP BY service_date, iso_week, weekday, day_type, local_hour, hour_band,
+                 line_ref, direction_ref, from_stop_ref, to_stop_ref""")
+
+    # all valid stop-to-stop runs of a trip (no busy-road filters), for trip distance and speed
+    con.execute(f"""
+    CREATE OR REPLACE TEMP TABLE trip_runs AS
+    SELECT TRY_CAST(service_date AS DATE) AS service_date, {label(gs,'trip_id')} AS trip_id,
+           COUNT(*) AS n_segments, SUM({num(gs,'segment_distance_m')}) AS distance_m,
+           SUM({num(gs,'observed_elapsed_s')}) AS segments_run_s, SUM({num(gs,'scheduled_running_time_s')}) AS segments_sched_s
+    FROM {seg_rel}
+    WHERE {boolean(gs,'is_valid')} AND {num(gs,'observed_elapsed_s')} > 0 AND {num(gs,'observed_elapsed_s')} <= {SEG_MAX_S}
+    GROUP BY ALL""")
 else:
     info("trip_segments not in silver", "busy-road tables skipped")
+# one row per observed trip: delays (gold_trip_summary) + distance and speed (trip_segments)
+# + how often this bus arrived bunched behind the previous one (stop_headways)
+trip_parts = ["t.*", "weekofyear(t.service_date) AS iso_week"]
+trip_joins = ""
+if seg_rel:
+    trip_parts += ["r.n_segments", "r.distance_m", "r.segments_run_s", "r.segments_sched_s",
+                   "r.distance_m / NULLIF(r.segments_run_s, 0) * 3.6 AS avg_kmh"]
+    trip_joins += " LEFT JOIN trip_runs r ON r.service_date = t.service_date AND r.trip_id = t.journey_ref"
+if hw_rel:
+    con.execute(f"""CREATE OR REPLACE TEMP TABLE trip_hw AS
+        SELECT service_date, trip_id, COUNT(*) AS n_headways,
+               SUM((h < {BUNCH_RATIO} * sched)::INT) AS n_bunched, SUM((h > {GAP_RATIO} * sched)::INT) AS n_large_gap
+        FROM hw2 GROUP BY ALL""")
+    trip_parts += ["COALESCE(b.n_headways, 0) AS n_headways", "COALESCE(b.n_bunched, 0) AS n_bunched",
+                   "COALESCE(b.n_large_gap, 0) AS n_large_gap",
+                   "b.n_bunched::DOUBLE / NULLIF(b.n_headways, 0) AS pct_bunched"]
+    trip_joins += " LEFT JOIN trip_hw b ON b.service_date = t.service_date AND b.trip_id = t.journey_ref"
+emit("gold_trip_metrics", f"SELECT {', '.join(trip_parts)} FROM gold_trip_summary t{trip_joins}")
+
 emit_rows("gold_thresholds", "rule VARCHAR, value DOUBLE, meaning VARCHAR", [(r, float(v), m) for r, v, m in THRESHOLDS])
 
 # %%
@@ -747,11 +807,18 @@ if n_hw_pairs is not None:
 if n_road_runs is not None:
     check("gold_road_segment_hour holds every usable segment run", scalar("SELECT SUM(n_runs) FROM gold_road_segment_hour") == n_road_runs, f"{n_road_runs:,}")
     check("gold_busy_roads holds every usable segment run", scalar("SELECT SUM(n_runs) FROM gold_busy_roads") == n_road_runs)
+    check("gold_speed_hour holds every usable segment run",
+          scalar("SELECT SUM(n_runs) FROM gold_speed_hour") == n_road_runs)
     check("gold_heat_speed_weekday_hour holds every usable segment run",
           scalar("SELECT SUM(n_runs) FROM gold_heat_speed_weekday_hour") == n_road_runs)
     check("gold_heat_speed_route_hour holds every usable segment run",
           scalar("SELECT SUM(n_runs) FROM gold_heat_speed_route_hour") == n_road_runs)
     check("busy roads: free-flow speed >= median speed", scalar("SELECT COUNT(*) FROM gold_busy_roads WHERE free_flow_kmh < median_kmh - 1e-9") == 0)
+check("gold_delay_hour holds every call", scalar("SELECT SUM(n_calls) FROM gold_delay_hour") == n_sv)
+check("gold_delay_hour valid = visits cube valid",
+      scalar("SELECT SUM(n_valid) FROM gold_delay_hour") == scalar("SELECT SUM(n_valid) FROM gold_visits_cube"))
+check("gold_trip_metrics has one row per observed trip",
+      scalar("SELECT COUNT(*) FROM gold_trip_metrics") == scalar("SELECT COUNT(*) FROM gold_trip_summary"))
 info("calls with unknown local_hour (bad/missing visit_time)", scalar("SELECT COUNT(*) FROM sv WHERE local_hour = -1"))
 info("stops without coordinates in gold_stop_map", scalar("SELECT COUNT(*) FROM gold_stop_map WHERE stop_lat IS NULL OR stop_lon IS NULL"))
 
