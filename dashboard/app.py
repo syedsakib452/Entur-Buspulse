@@ -184,6 +184,19 @@ def ramp(values, stops):
     return np.column_stack([np.interp(v, xs, cols[:, i]) for i in range(3)]).astype(int).tolist()
 
 
+def road_heat_layer(seg, weight_col, radius=35):
+    """Heatmap along the roads: each segment's weight is spread evenly over the points of its path,
+    so long segments do not count more than short ones and the heat follows the streets."""
+    pts = seg[["path", weight_col]].dropna()
+    pts = pts[pts[weight_col] > 0]
+    if pts.empty:
+        return None
+    rows = [(x, y, w / len(path)) for path, w in zip(pts["path"], pts[weight_col]) for x, y in path]
+    heat = pd.DataFrame(rows, columns=["lon", "lat", "w"])
+    return pdk.Layer("HeatmapLayer", data=heat, get_position=["lon", "lat"], get_weight="w",
+                     radius_pixels=radius, intensity=1.2, threshold=0.03, opacity=0.8, aggregation="SUM")
+
+
 def legend(title, stops, unit):
     grad = ", ".join(f"rgb{tuple(c)} {100 * i / (len(stops) - 1):.0f}%" for i, (_, c) in enumerate(stops))
     ticks = "".join(f"<span>{v:g}{unit}</span>" for v, _ in stops)
@@ -282,13 +295,15 @@ with tabs[1]:
         st.warning(f"No road map in `{MAP_DIR}`. Build it once with `python dashboard/build_map.py --gtfs <gtfs folder>`.")
     else:
         c1, c2, c3 = st.columns([2, 2, 1.3])
-        metric = c1.selectbox("Colour roads by", ["Speed (km/h)", "Delay gained per bus (s)", "Buses (passes)", "Off"],
-                              help="Computed per stop-to-stop road segment for the selected filters")
+        metric = c1.selectbox("Colour roads by", ["Speed (km/h)", "Delay gained per bus (s)", "Buses (passes)",
+                                                  "Heatmap: where buses lose time", "Heatmap: where most buses drive", "Off"],
+                              help="Computed per stop-to-stop road segment for the selected filters. The heatmaps show "
+                                   "hot spots: total bus-hours lost against the timetable, or the number of buses.")
         points = c2.selectbox("Stops", ["Mean delay at stop", "Share on time at stop", "Lateness hot spots (heatmap)", "Off"])
         base = c3.selectbox("Background", ["Bus roads only (offline)", "Street map (online)", "Dark street map (online)"],
                             help="The street maps are loaded by your browser from CARTO; the bus road network is our own static file")
         layers = [pdk.Layer("PathLayer", data=geo[["path"]], get_path="path", get_color=[150, 150, 150, 110],
-                            width_units="pixels", get_width=1.2, pickable=False)]
+                            get_width=8, width_min_pixels=1, width_max_pixels=2, pickable=False)]
         seg_tab = None
         if metric != "Off" and HAS["gold_segment_hour"]:
             Ws, Ps = where(alias="s")
@@ -304,7 +319,13 @@ with tabs[1]:
                 seg["tip"] = [f"<b>{nm}</b><br/>routes {r}<br/>{int(n):,} buses ·{l:,.0f} m<br/>speed {s:.0f} km/h · "
                               f"{g:+.0f} s vs timetable per bus" for nm, r, n, l, s, g in
                               zip(seg.name, seg.routes, seg.n, seg.length_m, seg.speed, seg.gain)]
-                if metric.startswith("Speed"):
+                if metric.startswith("Heatmap"):
+                    seg["lost_h"] = (seg.act - seg.aim).clip(lower=0) / 3600       # bus-hours behind the timetable
+                    hl = road_heat_layer(seg, "lost_h" if "lose" in metric else "n")
+                    if hl is not None:
+                        layers.append(hl)
+                    seg_tab = seg
+                elif metric.startswith("Speed"):
                     seg["color"], stops_, unit = ramp(seg.speed, SPEED_STOPS), SPEED_STOPS, " km/h"
                 elif metric.startswith("Delay gained"):
                     seg["color"], stops_, unit = ramp(seg.gain, GAIN_STOPS), GAIN_STOPS, " s"
@@ -312,11 +333,12 @@ with tabs[1]:
                     lo, hi = np.log10(min_n), np.log10(max(seg.n.max(), min_n * 10))
                     vstops = [(round(10 ** (lo + i * (hi - lo) / 4)), c) for i, (_, c) in enumerate(SPEED_STOPS[::-1])]
                     seg["color"], stops_, unit = ramp(seg.n, vstops), vstops, ""
-                seg["width"] = 1.5 + 1.2 * np.log10(seg.n)
-                layers.append(pdk.Layer("PathLayer", data=seg[["path", "color", "width", "tip"]], get_path="path",
-                                        get_color="color", get_width="width", width_units="pixels", width_min_pixels=1.5,
-                                        cap_rounded=True, joint_rounded=True, pickable=True, auto_highlight=True))
-                seg_tab = seg
+                if not metric.startswith("Heatmap"):
+                    seg["width"] = 6 + 8 * np.log10(seg.n)          # metres, limited to 1.5..10 px below
+                    layers.append(pdk.Layer("PathLayer", data=seg[["path", "color", "width", "tip"]], get_path="path",
+                                            get_color="color", get_width="width", width_min_pixels=1.5, width_max_pixels=10,
+                                            cap_rounded=True, joint_rounded=True, pickable=True, auto_highlight=True))
+                    seg_tab = seg
         stop_df = q(f"""SELECT stop_ref, ANY_VALUE(stop_name) stop_name, AVG(stop_lat) lat, AVG(stop_lon) lon, COUNT(*) n,
                                AVG(delay_s) mean_delay, AVG({ON_TIME}::INT) * 100 otp,
                                SUM((delay_s >= {int(late_s)})::INT) n_late
@@ -332,10 +354,10 @@ with tabs[1]:
                     stop_df["color"], s_stops, s_unit = ramp(stop_df.mean_delay, DELAY_STOPS), DELAY_STOPS, " s"
                 else:
                     stop_df["color"], s_stops, s_unit = ramp(stop_df.otp, OTP_STOPS), OTP_STOPS, "%"
-                stop_df["r"] = 2.5 + 1.8 * np.log10(stop_df.n)
+                stop_df["r"] = 15 + 12 * np.log10(stop_df.n)    # metres, limited to 2..12 px below
                 layers.append(pdk.Layer("ScatterplotLayer", data=stop_df[["lon", "lat", "color", "r", "tip"]],
                                         get_position=["lon", "lat"], get_fill_color="color", get_radius="r",
-                                        radius_units="pixels", stroked=True, get_line_color=[40, 40, 40], line_width_min_pixels=0.5,
+                                        radius_min_pixels=2, radius_max_pixels=12, stroked=True, get_line_color=[40, 40, 40], line_width_min_pixels=0.5,
                                         pickable=True))
         view = dict(layers=layers, initial_view_state=pdk.ViewState(**STAVANGER), tooltip={"html": "{tip}", "style": {"fontSize": "12px"}})
         if base.startswith("Bus"):
@@ -345,7 +367,10 @@ with tabs[1]:
         st.pydeck_chart(deck, height=640)
         lc = st.columns(2)
         with lc[0]:
-            if seg_tab is not None:
+            if seg_tab is not None and metric.startswith("Heatmap"):
+                st.caption("Heatmap: brighter = more " + ("bus-hours lost against the timetable" if "lose" in metric
+                           else "buses") + " on the roads there (summed over the selection). Zoom in for street level.")
+            elif seg_tab is not None:
                 legend(metric, stops_, unit)
         with lc[1]:
             if points != "Off" and not points.startswith("Lateness") and not stop_df.empty:
@@ -555,7 +580,8 @@ with tabs[7]:
         st.info("gold_speed_hour / gold_busy_roads are missing: run the current analysis/gold/run_gold.py.")
     else:
         c1, c2, c3 = st.columns([2, 3, 1.3])
-        colour = c1.selectbox("Colour segments by", ["Slowdown (travel time index)", "Speed (km/h)", "Bus-hours lost"],
+        colour = c1.selectbox("Colour segments by", ["Slowdown (travel time index)", "Speed (km/h)", "Bus-hours lost",
+                                                     "Heatmap: bus-hours lost"],
                               help="Travel time index = free-flow speed / actual speed; 1.0 = no slowdown")
         stop_list = q("SELECT stop_ref, stop_name FROM dim_stop ORDER BY stop_name") if HAS["dim_stop"] else pd.DataFrame()
         stop_pick = c2.selectbox("Only segments starting or ending at stop", ["(all stops)"] + stop_list.stop_ref.tolist(),
@@ -603,7 +629,7 @@ with tabs[7]:
                 hi = max(float(seg.lost_h.quantile(0.98)), 1.0)
                 stops_ = [(round(hi * f, 1), col) for f, (_, col) in zip([0, .25, .5, .75, 1], TTI_STOPS)]
                 seg["color"], unit = ramp(seg.lost_h, stops_), " h"
-            seg["width"] = 1.5 + 1.3 * np.log10(seg.n)
+            seg["width"] = 6 + 8 * np.log10(seg.n)              # metres, limited to 1.5..10 px below
             seg["tip"] = [f"<b>{a} → {b}</b><br/>routes {r}<br/>{int(n):,} runs · {k:.1f} km/h (free flow {ff:.1f})<br/>"
                           f"slowdown {t:.2f}× · {l:.1f} bus-hours lost · {v:+.0f} s vs timetable per bus"
                           for a, b, r, n, k, ff, t, l, v in zip(seg.from_stop_name, seg.to_stop_name, seg.routes, seg.n,
@@ -611,16 +637,25 @@ with tabs[7]:
             layers = []
             if geo is not None:
                 layers.append(pdk.Layer("PathLayer", data=geo[["path"]], get_path="path", get_color=[150, 150, 150, 90],
-                                        width_units="pixels", get_width=1, pickable=False))
-            order = seg.sort_values("tti" if colour.startswith("Slowdown") else "lost_h", na_position="first")
-            layers.append(pdk.Layer("PathLayer", data=order[["path", "color", "width", "tip"]], get_path="path",
-                                    get_color="color", get_width="width", width_units="pixels", width_min_pixels=1.5,
-                                    cap_rounded=True, joint_rounded=True, pickable=True, auto_highlight=True))
+                                        get_width=8, width_min_pixels=1, width_max_pixels=2, pickable=False))
+            if colour.startswith("Heatmap"):
+                hl = road_heat_layer(seg, "lost_h")
+                if hl is not None:
+                    layers.append(hl)
+            else:
+                order = seg.sort_values("tti" if colour.startswith("Slowdown") else "lost_h", na_position="first")
+                layers.append(pdk.Layer("PathLayer", data=order[["path", "color", "width", "tip"]], get_path="path",
+                                        get_color="color", get_width="width", width_min_pixels=1.5, width_max_pixels=10,
+                                        cap_rounded=True, joint_rounded=True, pickable=True, auto_highlight=True))
             view = dict(layers=layers, initial_view_state=pdk.ViewState(**STAVANGER),
                         tooltip={"html": "{tip}", "style": {"fontSize": "12px"}})
             deck = pdk.Deck(map_provider=None, **view) if base_map.startswith("Bus") else pdk.Deck(map_provider="carto", map_style="light", **view)
             st.pydeck_chart(deck, height=620)
-            legend(colour, stops_, unit)
+            if colour.startswith("Heatmap"):
+                st.caption("Heatmap: brighter = more bus-hours lost against free-flow driving on the roads there "
+                           "(summed over the selection). Zoom in for street level.")
+            else:
+                legend(colour, stops_, unit)
             st.caption("A run time includes the dwell at the next stop (Kolumbus reports one time per stop), so segments "
                        "ending at big hubs or terminals partly measure waiting at the stop, not traffic.")
             st.subheader("Segments losing the most time (selection)")
