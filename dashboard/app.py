@@ -22,7 +22,10 @@ import streamlit as st
 
 HERE = Path(__file__).resolve().parent
 ap = argparse.ArgumentParser()
-ap.add_argument("--gold", default=os.environ.get("BUSPULSE_GOLD_DIR", str(HERE.parent / "tables/parquet_2026-10-24/gold-layer-parquet")))
+_default_gold = HERE.parent / "tables" / "gold-layer"
+if not _default_gold.exists():
+    _default_gold = HERE.parent / "tables/parquet_2026-10-24/gold-layer-parquet"
+ap.add_argument("--gold", default=os.environ.get("BUSPULSE_GOLD_DIR", str(_default_gold)))
 ap.add_argument("--map", default=os.environ.get("BUSPULSE_MAP_DIR", str(HERE / "map")))
 ARGS, _ = ap.parse_known_args(sys.argv[1:])
 GOLD_DIR, MAP_DIR = Path(ARGS.gold), Path(ARGS.map)
@@ -82,7 +85,11 @@ if "fact_stop_visits" not in TABLES:
              "`streamlit run dashboard/app.py -- --gold <folder with the gold parquet files>`.")
     st.stop()
 HAS = {t: t in TABLES for t in ["gold_segment_hour", "gold_trip_summary", "gold_headway", "map_seg", "dim_line",
-                                "gold_data_quality", "gold_meta"]}
+                                "gold_data_quality", "gold_meta", "gold_speed_hour", "gold_busy_roads",
+                                "gold_headway_hour", "gold_trip_metrics", "gold_thresholds", "dim_stop"]}
+RULES = (q("SELECT rule, value FROM gold_thresholds").set_index("rule")["value"].to_dict()
+         if HAS["gold_thresholds"] else {})
+BUNCH, GAP = RULES.get("bunch_ratio", 0.5), RULES.get("gap_ratio", 1.5)
 
 
 # ------------------------------------------------------------------ sidebar filters
@@ -93,10 +100,16 @@ if dates.empty:
     st.stop()
 dates["label"] = [f"{d} ({WEEKDAYS[int(w)][:3] if 0 <= w < 7 else '?'}): {n:,} visits" for d, n, w in zip(dates.d, dates.n, dates.wd)]
 full = dates[dates.n >= 0.2 * dates.n.max()]      # leftovers of neighbouring days have only a few hundred visits
+dates["week"] = pd.to_datetime(dates.d).dt.isocalendar().week.astype(int)
 
 st.sidebar.title("🚌 BusPulse")
 st.sidebar.caption("Kolumbus buses · Stavanger region")
-sel_dates = st.sidebar.multiselect("Service dates", dates.d.tolist(), default=full.d.tolist(),
+weeks_all = sorted(dates.week.unique())
+sel_weeks = st.sidebar.multiselect("Weeks (ISO)", weeks_all, default=weeks_all,
+                                   help="Narrows the list of service dates below to these calendar weeks")
+date_opts = dates[dates.week.isin(sel_weeks)]
+sel_dates = st.sidebar.multiselect("Service dates", date_opts.d.tolist(),
+                                   default=[d for d in full.d if d in set(date_opts.d)],
                                    format_func=dict(zip(dates.d, dates.label)).get,
                                    help="Dates with very few visits are fragments of the neighbouring day "
                                         "(trips after midnight) and are not selected by default.")
@@ -116,7 +129,7 @@ sel_dir = st.sidebar.selectbox("Direction", ["all"] + dirs)
 
 with st.sidebar.expander("Definitions", expanded=False):
     early_s, late_s = st.slider("On time = between (seconds)", -300, 900, (-60, 300), step=30,
-                                help="Gold rule: 60 s early to 5 min late. The silver flag `on_time` uses -60 to +180 s.")
+                                help="Project rule (gold and silver): 60 s early to under 5 min late.")
     min_n = st.slider("Hide cells / segments with fewer observations than", 1, 50, 10)
 st.sidebar.caption(f"On time: {early_s} s to {late_s} s · min. {min_n} observations")
 
@@ -193,7 +206,8 @@ def fmt_s(x):
 st.title("Bus punctuality and speed · Stavanger region")
 st.caption(f"{', '.join(sel_dates)} · {hours[0]:02d}:00–{hours[1]:02d}:59 · "
            f"{'all routes' if not sel_routes else str(len(sel_routes)) + ' route(s)'} · direction {sel_dir}")
-tabs = st.tabs(["Overview", "Road map", "Routes", "Stops", "Time patterns", "Reliability", "Data"])
+tabs = st.tabs(["Overview", "Road map", "Routes", "Stops", "Time patterns", "Reliability", "Data",
+                "Busy roads", "Bunching & speed heatmaps", "Trips"])
 
 # ============ Overview
 with tabs[0]:
@@ -486,7 +500,7 @@ with tabs[5]:
                           SUM(n_large_gap) * 100.0 / SUM(n_pairs) gap, {ewt} AS ewt
                    FROM gold_headway WHERE {W} GROUP BY 1 ORDER BY 1""", P)
         st.caption("Pairs of consecutive buses of the same route at the same stop, scheduled 2 to 60 minutes apart. "
-                   "**Bunched**: arrived less than half the scheduled gap apart. **Large gap**: more than 1.5 × the scheduled gap. "
+                   f"**Bunched**: arrived less than {BUNCH:g} × the scheduled gap apart. **Large gap**: more than {GAP:g} × the scheduled gap. "
                    + ("**Excess waiting time**: extra seconds an average passenger arriving at random waits because buses are irregular."
                       if has_sq else "Excess waiting time needs the updated gold notebook (sums of squared headways)."))
         if hw.empty:
@@ -531,3 +545,181 @@ with tabs[6]:
         with st.expander("Build metadata"):
             st.dataframe(q("SELECT * FROM gold_meta"), hide_index=True, width="stretch")
     st.caption(f"Gold folder: `{GOLD_DIR}` · road map: `{MAP_DIR}` · tables: {', '.join(sorted(TABLES))}")
+
+
+# ============ Busy roads (gold_speed_hour: sums per day x hour x line x road segment; gold_busy_roads: whole period)
+TTI_STOPS = [(1.0, (26, 152, 80)), (1.2, (145, 207, 96)), (1.4, (254, 224, 139)), (1.7, (252, 141, 89)), (2.0, (215, 48, 39))]
+
+with tabs[7]:
+    if not (HAS["gold_speed_hour"] and HAS["gold_busy_roads"]):
+        st.info("gold_speed_hour / gold_busy_roads are missing: run the current analysis/gold/run_gold.py.")
+    else:
+        c1, c2, c3 = st.columns([2, 3, 1.3])
+        colour = c1.selectbox("Colour segments by", ["Slowdown (travel time index)", "Speed (km/h)", "Bus-hours lost"],
+                              help="Travel time index = free-flow speed / actual speed; 1.0 = no slowdown")
+        stop_list = q("SELECT stop_ref, stop_name FROM dim_stop ORDER BY stop_name") if HAS["dim_stop"] else pd.DataFrame()
+        stop_pick = c2.selectbox("Only segments starting or ending at stop", ["(all stops)"] + stop_list.stop_ref.tolist(),
+                                 format_func=lambda x: x if x.startswith("(") else
+                                 f"{stop_list.set_index('stop_ref').stop_name.get(x, x)} ({x.split(':')[-1]})")
+        base_map = c3.selectbox("Background ", ["Bus roads only (offline)", "Street map (online)"])
+        Ws, Ps = where(alias="s")
+        stop_sql, stop_par = ("", []) if stop_pick.startswith("(") else (" AND (s.from_stop_ref = ? OR s.to_stop_ref = ?)", [stop_pick, stop_pick])
+        seg = q(f"""SELECT s.from_stop_ref, s.to_stop_ref, SUM(n_runs) n, SUM(sum_distance_m) dist, SUM(sum_run_s) run_s,
+                           SUM(sum_sched_s) sched_s, SUM(sum_excess_s) excess_s,
+                           STRING_AGG(DISTINCT route_short_name, ', ') routes
+                    FROM gold_speed_hour s WHERE {Ws}{stop_sql}
+                    GROUP BY 1, 2 HAVING SUM(n_runs) >= ?""", [*Ps, *stop_par, min_n])
+        if seg.empty:
+            st.info("No road segments match these filters.")
+        else:
+            br = q("""SELECT from_stop_ref, to_stop_ref, from_stop_name, to_stop_name, free_flow_kmh,
+                             from_lat, from_lon, to_lat, to_lon FROM gold_busy_roads""")
+            seg = seg.merge(br, on=["from_stop_ref", "to_stop_ref"], how="left")
+            seg["kmh"] = seg.dist / seg.run_s * 3.6
+            seg["tti"] = seg.free_flow_kmh / seg.kmh
+            seg["lost_h"] = seg.excess_s / 3600
+            seg["vs_tt"] = (seg.run_s - seg.sched_s) / seg.n
+            c = st.columns(4)
+            c[0].metric("Road segments", f"{len(seg):,}")
+            c[1].metric("Bus runs", f"{int(seg.n.sum()):,}")
+            c[2].metric("Average speed", f"{seg.dist.sum() / seg.run_s.sum() * 3.6:.1f} km/h",
+                        help="Distance-weighted, stop to stop, including time at the stop")
+            c[3].metric("Bus-hours lost vs free flow", f"{seg.lost_h.sum():,.0f} h",
+                        help="Sum over all runs of the time beyond driving each segment at its free-flow speed")
+
+            geo = road_geometry()
+            if geo is not None:
+                seg = seg.merge(geo[["from_stop_ref", "to_stop_ref", "path"]], on=["from_stop_ref", "to_stop_ref"], how="left")
+            else:
+                seg["path"] = None
+            straight = [[[a, b], [c_, d]] for a, b, c_, d in zip(seg.from_lon, seg.from_lat, seg.to_lon, seg.to_lat)]
+            seg["path"] = [p_ if isinstance(p_, list) else s_ for p_, s_ in zip(seg["path"], straight)]
+            seg = seg[seg.from_lat.notna() & seg.to_lat.notna()]
+            if colour.startswith("Slowdown"):
+                seg["color"], stops_, unit = ramp(seg.tti.fillna(1), TTI_STOPS), TTI_STOPS, "×"
+            elif colour.startswith("Speed"):
+                seg["color"], stops_, unit = ramp(seg.kmh, SPEED_STOPS), SPEED_STOPS, " km/h"
+            else:
+                hi = max(float(seg.lost_h.quantile(0.98)), 1.0)
+                stops_ = [(round(hi * f, 1), col) for f, (_, col) in zip([0, .25, .5, .75, 1], TTI_STOPS)]
+                seg["color"], unit = ramp(seg.lost_h, stops_), " h"
+            seg["width"] = 1.5 + 1.3 * np.log10(seg.n)
+            seg["tip"] = [f"<b>{a} → {b}</b><br/>routes {r}<br/>{int(n):,} runs · {k:.1f} km/h (free flow {ff:.1f})<br/>"
+                          f"slowdown {t:.2f}× · {l:.1f} bus-hours lost · {v:+.0f} s vs timetable per bus"
+                          for a, b, r, n, k, ff, t, l, v in zip(seg.from_stop_name, seg.to_stop_name, seg.routes, seg.n,
+                                                                 seg.kmh, seg.free_flow_kmh, seg.tti, seg.lost_h, seg.vs_tt)]
+            layers = []
+            if geo is not None:
+                layers.append(pdk.Layer("PathLayer", data=geo[["path"]], get_path="path", get_color=[150, 150, 150, 90],
+                                        width_units="pixels", get_width=1, pickable=False))
+            order = seg.sort_values("tti" if colour.startswith("Slowdown") else "lost_h", na_position="first")
+            layers.append(pdk.Layer("PathLayer", data=order[["path", "color", "width", "tip"]], get_path="path",
+                                    get_color="color", get_width="width", width_units="pixels", width_min_pixels=1.5,
+                                    cap_rounded=True, joint_rounded=True, pickable=True, auto_highlight=True))
+            view = dict(layers=layers, initial_view_state=pdk.ViewState(**STAVANGER),
+                        tooltip={"html": "{tip}", "style": {"fontSize": "12px"}})
+            deck = pdk.Deck(map_provider=None, **view) if base_map.startswith("Bus") else pdk.Deck(map_provider="carto", map_style="light", **view)
+            st.pydeck_chart(deck, height=620)
+            legend(colour, stops_, unit)
+            st.caption("A run time includes the dwell at the next stop (Kolumbus reports one time per stop), so segments "
+                       "ending at big hubs or terminals partly measure waiting at the stop, not traffic.")
+            st.subheader("Segments losing the most time (selection)")
+            show = seg.sort_values("lost_h", ascending=False).head(25)
+            st.dataframe(show[["from_stop_name", "to_stop_name", "routes", "n", "kmh", "free_flow_kmh", "tti", "vs_tt", "lost_h"]],
+                         hide_index=True, width="stretch",
+                         column_config={"n": "runs", "kmh": st.column_config.NumberColumn("km/h", format="%.1f"),
+                                        "free_flow_kmh": st.column_config.NumberColumn("free flow km/h", format="%.1f"),
+                                        "tti": st.column_config.NumberColumn("slowdown ×", format="%.2f"),
+                                        "vs_tt": st.column_config.NumberColumn("vs timetable (s/bus)", format="%+.0f"),
+                                        "lost_h": st.column_config.NumberColumn("bus-hours lost", format="%.1f")})
+            with st.expander("Whole-period ranking (gold_busy_roads, all dates and hours)"):
+                st.dataframe(q("""SELECT rank_hours_lost, from_stop_name, to_stop_name, lines, n_runs, free_flow_kmh, peak_kmh,
+                                         midday_kmh, night_kmh, travel_time_index, vehicle_hours_lost
+                                  FROM gold_busy_roads WHERE ranked ORDER BY rank_hours_lost LIMIT 50"""),
+                             hide_index=True, width="stretch")
+
+# ============ Bunching & speed heatmaps (gold_headway_hour / gold_speed_hour, filtered by the sidebar)
+with tabs[8]:
+    st.caption("Delay heatmaps are on the Routes, Stops and Time patterns pages. Here: how regular and how fast buses are.")
+    if HAS["gold_headway_hour"]:
+        st.subheader("Bunching")
+        st.caption(f"Bunched: a bus arrives less than {BUNCH:g} × the scheduled gap after the previous bus of the same "
+                   f"route at the same stop. Large gap: more than {GAP:g} ×.")
+        bw = q(f"""SELECT weekday, local_hour, SUM(n_headways) n, SUM(n_bunched) * 100.0 / SUM(n_headways) bunched,
+                          SUM(n_large_gap) * 100.0 / SUM(n_headways) gap
+                   FROM gold_headway_hour WHERE {W} GROUP BY 1, 2 HAVING SUM(n_headways) >= ?""", [*P, min_n])
+        if not bw.empty:
+            bw["weekday"] = bw.weekday.map(lambda w: WEEKDAYS[int(w)])
+            st.plotly_chart(heatmap(bw, "local_hour", "weekday", "bunched", "% bunched: weekday × hour", "%",
+                                    DELAY_SCALE, zmin=0, fmt=".1f", y_order=WEEKDAYS), width="stretch")
+        br_ = q(f"""SELECT route_short_name AS route, local_hour, SUM(n_headways) n,
+                           SUM(n_bunched) * 100.0 / SUM(n_headways) bunched
+                    FROM gold_headway_hour WHERE {W} GROUP BY 1, 2 HAVING SUM(n_headways) >= ?""", [*P, min_n])
+        if not br_.empty:
+            top_r = br_.groupby("route").n.sum().nlargest(25).index.tolist()
+            st.plotly_chart(heatmap(br_[br_.route.isin(top_r)], "local_hour", "route", "bunched",
+                                    "% bunched: route × hour (25 busiest routes)", "%", DELAY_SCALE, zmin=0, fmt=".0f",
+                                    y_order=top_r), width="stretch")
+        bs = q(f"""SELECT h.stop_ref, ANY_VALUE(d.stop_name) stop_name, local_hour, SUM(n_headways) n,
+                          SUM(n_bunched) * 100.0 / SUM(n_headways) bunched
+                   FROM gold_headway_hour h LEFT JOIN dim_stop d USING (stop_ref)
+                   WHERE {where(alias='h')[0]} GROUP BY 1, 3 HAVING SUM(n_headways) >= ?""", [*where(alias="h")[1], min_n])
+        if not bs.empty:
+            top_s = bs.groupby("stop_ref").n.sum().nlargest(25).index.tolist()
+            bs["stop"] = bs.stop_name.fillna(bs.stop_ref) + " (" + bs.stop_ref.str.split(":").str[-1] + ")"
+            order_s = bs.drop_duplicates("stop_ref").set_index("stop_ref").loc[top_s, "stop"].tolist()
+            st.plotly_chart(heatmap(bs[bs.stop_ref.isin(top_s)], "local_hour", "stop", "bunched",
+                                    "% bunched: stop × hour (25 busiest stops)", "%", DELAY_SCALE, zmin=0, fmt=".0f",
+                                    y_order=order_s), width="stretch")
+    if HAS["gold_speed_hour"]:
+        st.subheader("Speed")
+        st.caption("Average stop-to-stop speed, distance-weighted, including time at the stop.")
+        sw = q(f"""SELECT weekday, local_hour, SUM(n_runs) n, SUM(sum_distance_m) / SUM(sum_run_s) * 3.6 kmh
+                   FROM gold_speed_hour WHERE {W} GROUP BY 1, 2 HAVING SUM(n_runs) >= ?""", [*P, min_n])
+        if not sw.empty:
+            sw["weekday"] = sw.weekday.map(lambda w: WEEKDAYS[int(w)])
+            st.plotly_chart(heatmap(sw, "local_hour", "weekday", "kmh", "Average speed (km/h): weekday × hour", "km/h",
+                                    OTP_SCALE, fmt=".0f", y_order=WEEKDAYS), width="stretch")
+        sr = q(f"""SELECT route_short_name AS route, local_hour, SUM(n_runs) n, SUM(sum_distance_m) / SUM(sum_run_s) * 3.6 kmh
+                   FROM gold_speed_hour WHERE {W} GROUP BY 1, 2 HAVING SUM(n_runs) >= ?""", [*P, min_n])
+        if not sr.empty:
+            top_r = sr.groupby("route").n.sum().nlargest(25).index.tolist()
+            st.plotly_chart(heatmap(sr[sr.route.isin(top_r)], "local_hour", "route", "kmh",
+                                    "Average speed (km/h): route × hour (25 busiest routes)", "km/h", OTP_SCALE, fmt=".0f",
+                                    y_order=top_r), width="stretch")
+        sd = q(f"""SELECT CAST(service_date AS VARCHAR) AS date, local_hour, SUM(n_runs) n,
+                          SUM(sum_distance_m) / SUM(sum_run_s) * 3.6 kmh
+                   FROM gold_speed_hour WHERE {W} GROUP BY 1, 2 HAVING SUM(n_runs) >= ?""", [*P, min_n])
+        if not sd.empty:
+            st.plotly_chart(heatmap(sd, "local_hour", "date", "kmh", "Average speed (km/h): date × hour", "km/h",
+                                    OTP_SCALE, fmt=".0f"), width="stretch")
+
+# ============ Trips (gold_trip_metrics: one row per observed trip)
+with tabs[9]:
+    if not HAS["gold_trip_metrics"]:
+        st.info("gold_trip_metrics is missing: run the current analysis/gold/run_gold.py.")
+    else:
+        Wt, Pt = where("start_hour")
+        tm = q(f"""SELECT * FROM gold_trip_metrics WHERE n_stops >= 2 AND {Wt}""", Pt)
+        if tm.empty:
+            st.info("No trips match these filters.")
+        else:
+            c = st.columns(4)
+            c[0].metric("Trips", f"{len(tm):,}")
+            if "avg_kmh" in tm:
+                c[1].metric("Median trip speed", f"{tm.avg_kmh.median():.1f} km/h")
+            c[2].metric("Median delay gained per trip", fmt_s(tm.delay_gained_s.median()))
+            if "n_bunched" in tm:
+                c[3].metric("Trips bunched at least once", f"{(tm.n_bunched > 0).mean():.1%}")
+            if "avg_kmh" in tm:
+                sample = tm.dropna(subset=["avg_kmh"]).sample(min(len(tm), 5000), random_state=0)
+                fig = px.scatter(sample, x="avg_kmh", y="delay_gained_s", color="route_short_name", opacity=0.5,
+                                 labels=dict(avg_kmh="trip speed (km/h)", delay_gained_s="delay gained along the trip (s)",
+                                             route_short_name="route"),
+                                 title="Slower trips gain more delay (up to 5,000 trips shown)")
+                fig.update_layout(height=420, showlegend=False)
+                st.plotly_chart(fig, width="stretch")
+            st.subheader("Trips that gained the most delay")
+            cols = [c_ for c_ in ["service_date", "route_short_name", "direction_ref", "start_hour", "n_stops", "start_delay_s",
+                                  "end_delay_s", "delay_gained_s", "avg_kmh", "n_bunched", "n_headways"] if c_ in tm]
+            st.dataframe(tm.sort_values("delay_gained_s", ascending=False).head(50)[cols], hide_index=True, width="stretch")

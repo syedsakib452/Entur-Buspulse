@@ -5,11 +5,11 @@ road-level heatmaps on the Stavanger bus network.
 
 ```bash
 pip install -r dashboard/requirements.txt
-streamlit run dashboard/app.py -- --gold tables/parquet_2026-10-24/gold-layer-parquet
+streamlit run dashboard/app.py -- --gold tables/gold-layer
 ```
 
-This starts the app at http://localhost:8501. `--gold` is the folder `analysis/gold/build_gold.ipynb`
-writes to (that path is also the default). `--map` defaults to `dashboard/map`.
+This starts the app at http://localhost:8501. `--gold` is the folder `analysis/gold/run_gold.py`
+writes to (`tables/gold-layer`, also the default). `--map` defaults to `dashboard/map`.
 
 ## Pages
 
@@ -22,8 +22,11 @@ writes to (that path is also the default). `--map` defaults to `dashboard/map`.
 | Time patterns | Date × hour heatmaps, 15-minute delay profile, weekday × hour (when the data covers more than one weekday) |
 | Reliability | Bunching, large gaps and excess waiting time, by hour and by route |
 | Data | Visits per service date, the gold build checks and metadata |
+| Busy roads | Road segments coloured by slowdown (travel time index), speed or bus-hours lost vs free flow, for the selected dates / hours / routes, optionally only around one stop; top segments; whole-period ranking (`gold_speed_hour`, `gold_busy_roads`) |
+| Bunching & speed heatmaps | % bunched by weekday × hour, route × hour, stop × hour; average speed by weekday × hour, route × hour, date × hour (`gold_headway_hour`, `gold_speed_hour`) |
+| Trips | One row per trip: speed vs delay gained, trips bunched at least once, the trips that gained most delay (`gold_trip_metrics`) |
 
-The sidebar filters everything: service dates, hours, route types, routes, direction, the on-time window and
+The sidebar filters everything: ISO weeks, service dates, hours, route types, routes, direction, the on-time window and
 the minimum number of observations for a cell or segment to be shown.
 
 ## The road map: a static file built from GTFS
