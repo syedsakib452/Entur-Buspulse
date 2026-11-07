@@ -50,7 +50,7 @@ TIME_COLS = ["aimed_arrival", "expected_arrival", "actual_arrival",
 ET_COLS = ["snapshot_time", "data_frame_ref", "journey_ref", "line_ref", "direction_ref", "vehicle_mode",
            "monitored", "journey_cancelled", "call_cancelled", "call_type", "stop_order", "stop_ref",
            *TIME_COLS, "arrival_status", "departure_status", "prediction_inaccurate"]
-BRONZE = Path(common.tables_dir() or "tables") / "bronze"
+BRONZE = Path(common.tables_dir() or "tables") / "bronze-layer"
 GTFS_REQUIRED = ["routes", "stops", "trips", "stop_times"]
 
 DELAY_MIN_S, DELAY_MAX_S = -30 * 60, 3 * 3600         # outlier bounds: > 30 min early or > 3 h late

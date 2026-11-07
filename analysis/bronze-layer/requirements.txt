@@ -1,7 +1,5 @@
-# Python packages for the Spark layer images (Python 3.11)
-pyspark==3.5.3
-pandas==2.2.3
+# Swift raw-file download + Arrow Parquet writer (Python 3.11)
 pyarrow==17.0.0
-numpy==1.26.4
 python-swiftclient==4.7.0
-python-keystoneclient==5.5.0   # swiftclient needs it for Keystone v3 / application credentials
+python-keystoneclient==5.5.0
+orjson==3.10.12

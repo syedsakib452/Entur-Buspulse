@@ -7,7 +7,7 @@ Audit   <repo>/tables/bronze-layer/_audit/YYYY-MM-DD/<feed>_files.csv   (one row
 Values are copied as they are (timestamps stay as the original text);
 cleaning happens later, in silver. Every row gets snapshot_time (from the
 file name) and source_file, so it can be traced back to its raw file.
-Running it again for the same day overwrites matching output objects.
+Running it again for the same day atomically replaces matching local output files.
 
 Speed: each worker PROCESS downloads (several threads) + decompresses + parses
 a small batch of files and returns an Arrow table. The main process only appends
@@ -54,7 +54,6 @@ import pyarrow as pa
 import pyarrow.csv as pacsv
 import pyarrow.parquet as pq
 from swiftclient.client import Connection
-from swiftclient.exceptions import ClientException
 
 try:                      # optional, much faster JSON parsing
     import orjson
@@ -111,6 +110,8 @@ def swift_connection():
     """Same OS_* variables as openstack.env: a password login (VM) or an
     application credential (Kubernetes Secret)."""
     env = os.environ
+    if not env.get("OS_AUTH_URL"):
+        raise RuntimeError("OS_AUTH_URL is missing; load your OpenStack credentials before running Bronze")
     return Connection(
         authurl=env["OS_AUTH_URL"], user=env.get("OS_USERNAME"), key=env.get("OS_PASSWORD"),
         auth_version="3",
@@ -304,10 +305,9 @@ def download(conn, name, attempts=3):
     return gzip.decompress(data) if name.endswith(".gz") else data
 
 
-def upload(conn, local_path, object_name, content_type=None):
-    """Save a finished file under OUT_DIR (name kept so callers stay the same).
-    Copies to a .tmp file and renames, so a crash never leaves a half-written table."""
-    dest = OUT_DIR / object_name
+def save_local(local_path, relative_path):
+    """Publish a finished Parquet file under OUT_DIR using an atomic local rename."""
+    dest = OUT_DIR / relative_path
     dest.parent.mkdir(parents=True, exist_ok=True)
     tmp = dest.with_name(dest.name + ".tmp")
     shutil.copyfile(local_path, tmp)
@@ -454,17 +454,17 @@ def build_realtime(conn, feed, day, workdir, max_files):
 
     if writer.count == 0 and failed:
         # do not overwrite yesterday's good output with an empty file
-        print(f"    SKIPPED upload of {table}: no rows written and {failed} files failed",
+        print(f"    SKIPPED local output for {table}: no rows written and {failed} files failed",
               flush=True)
     else:
-        upload(conn, out, f"{day}/{table}.parquet")
+        save_local(out, f"{day}/{table}.parquet")
     out.unlink()
     write_audit(conn, day, feed, audit)
     return failed
 
 
 def gtfs_member(blob, member, name, day, workdir):
-    """Convert one GTFS .txt to Parquet and upload it (runs in a thread)."""
+    """Convert one GTFS .txt to Parquet and save it locally (runs in a thread)."""
     with zipfile.ZipFile(io.BytesIO(blob)) as zf:
         data = zf.read(member)
     columns = data.decode("utf-8-sig").split("\n", 1)[0].strip().split(",")
@@ -479,7 +479,7 @@ def gtfs_member(blob, member, name, day, workdir):
     table = "gtfs_" + member[:-4]
     out = workdir / f"{table}.parquet"
     pq.write_table(tbl, out, compression="zstd")
-    upload(thread_conn(), out, f"{day}/{table}.parquet")
+    save_local(out, f"{day}/{table}.parquet")
     out.unlink()
     return table, tbl.num_rows
 

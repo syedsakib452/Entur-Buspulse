@@ -1,0 +1,8 @@
+# Local OpenStack credentials
+.env
+
+# Python/test/build artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.log

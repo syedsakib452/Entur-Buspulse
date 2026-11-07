@@ -1,0 +1,80 @@
+name: buspulse-analysis
+
+# Build/run one layer at a time. No depends_on: the three jobs are intentionally independent.
+services:
+  bronze:
+    profiles: [bronze]
+    build:
+      context: .
+      dockerfile: bronze-layer/Dockerfile
+    image: buspulse-bronze:local
+    environment:
+      OUT_DIR: /tables/bronze-layer
+      OS_AUTH_URL: ${OS_AUTH_URL:-}
+      OS_AUTH_TYPE: ${OS_AUTH_TYPE:-}
+      OS_USERNAME: ${OS_USERNAME:-}
+      OS_PASSWORD: ${OS_PASSWORD:-}
+      OS_APPLICATION_CREDENTIAL_ID: ${OS_APPLICATION_CREDENTIAL_ID:-}
+      OS_APPLICATION_CREDENTIAL_SECRET: ${OS_APPLICATION_CREDENTIAL_SECRET:-}
+      OS_PROJECT_ID: ${OS_PROJECT_ID:-}
+      OS_PROJECT_NAME: ${OS_PROJECT_NAME:-}
+      OS_USER_DOMAIN_NAME: ${OS_USER_DOMAIN_NAME:-}
+      OS_USER_DOMAIN_ID: ${OS_USER_DOMAIN_ID:-}
+      OS_PROJECT_DOMAIN_NAME: ${OS_PROJECT_DOMAIN_NAME:-}
+      OS_PROJECT_DOMAIN_ID: ${OS_PROJECT_DOMAIN_ID:-}
+      OS_REGION_NAME: ${OS_REGION_NAME:-}
+      OS_INTERFACE: ${OS_INTERFACE:-}
+      RAW_CONTAINER: ${RAW_CONTAINER:-buspulse-raw}
+      PROCS: ${BRONZE_PROCS:-4}
+      DL_THREADS: ${BRONZE_DL_THREADS:-3}
+    volumes:
+      - ../tables:/tables
+      - bronze-work:/work
+    init: true
+
+  silver:
+    profiles: [silver]
+    build:
+      context: .
+      dockerfile: silver-layer/Dockerfile
+    image: buspulse-silver:local
+    environment:
+      TABLES_DIR: /tables
+      SILVER_LOCAL_DIR: /tables/silver-layer
+      DATA_ROOT: /work/runtime
+      SPARK_LOCAL_DIR: /work/spark
+      SPARK_MASTER: ${SPARK_MASTER:-local[2]}
+      SPARK_DRIVER_MEMORY: ${SPARK_DRIVER_MEMORY:-1400m}
+      SPARK_SHUFFLE_PARTITIONS: ${SPARK_SHUFFLE_PARTITIONS:-16}
+      START_DATE: ${START_DATE:-2026-10-20}
+      END_DATE: ${END_DATE:-}
+      REDO: ${REDO:-}
+    volumes:
+      - ../tables:/tables
+      - silver-work:/work
+    mem_limit: 3g
+    cpus: 2
+    init: true
+
+  gold:
+    profiles: [gold]
+    build:
+      context: .
+      dockerfile: gold/Dockerfile
+    image: buspulse-gold:local
+    environment:
+      SILVER_DIR: /tables/silver-layer
+      GOLD_DIR: /tables/gold-layer
+      GOLD_WORK_DIR: /work/gold
+      START_DATE: ${START_DATE:-}
+      END_DATE: ${END_DATE:-}
+      REDO: ${REDO:-}
+    volumes:
+      - ../tables:/tables
+      - gold-work:/work
+    init: true
+
+volumes:
+  bronze-work:
+  silver-work:
+  gold-work:

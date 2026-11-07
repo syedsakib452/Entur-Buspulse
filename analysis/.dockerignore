@@ -1,0 +1,11 @@
+# Runtime data lives beside analysis/ and is mounted at runtime; it is never a build input.
+.env
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+archive/
+notebooks/
+scripts/
+README.md
+REPORT.md
+.gitignore

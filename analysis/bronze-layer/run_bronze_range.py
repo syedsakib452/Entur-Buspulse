@@ -19,9 +19,6 @@ FEED_START = re.compile(r"^([a-z_]+): (\d+) files(?: \([^)]*\))?(?: ->.*)?$")
 FEED_SUMMARY = re.compile(
     r"^\s+([\d,]+) rows from ([\d,]+) files \((\d+) failed\)(?:,|$)"
 )
-SPARK_FEED_SUMMARY = re.compile(
-    r"^([a-z_]+): ([\d,]+) files -> [\d,]+ rows \((\d+) unreadable files\)"
-)
 FILE_ERROR = re.compile(r"^\s+ERROR (.+?): (.*)$")
 OUTPUT_LOCK = threading.Lock()
 
@@ -36,16 +33,11 @@ def date_range(start, end):
         current += timedelta(days=1)
 
 
-def run_day(day, log_dir, spark):
+def run_day(day, log_dir):
     log_path = log_dir / f"{day}.log"
     env = os.environ.copy()
-    if spark:
-        paths = (str(HERE), str(HERE.parent / "silver-layer"))
-        env["PYTHONPATH"] = os.pathsep.join(paths + ((env["PYTHONPATH"],) if env.get("PYTHONPATH") else ()))
-        env.setdefault("SPARK_LOCAL_DIR", f"/tmp/buspulse-spark/{day}")
-        command = [sys.executable, "-u", "-m", "spark_jobs.bronze", "--date", day]
-    else:
-        command = [sys.executable, "-u", str(HERE / "build_bronze_tables.py"), "--date", day]
+    command = [sys.executable, "-u", str(HERE / "build_bronze_tables.py"),
+               "--date", day, "--strict"]
     feed_counts = {}
     errors = []
     current_feed = ""
@@ -88,14 +80,6 @@ def run_day(day, log_dir, spark):
                 feed_counts[current_feed]["failed"] = int(match.group(3))
                 continue
 
-            match = SPARK_FEED_SUMMARY.match(line.rstrip("\n"))
-            if match:
-                feed = match.group(1)
-                feed_counts.setdefault(feed, {"listed": int(match.group(2).replace(",", ""))})
-                feed_counts[feed]["processed"] = (
-                    feed_counts[feed]["listed"] - int(match.group(3))
-                )
-                feed_counts[feed]["failed"] = int(match.group(3))
 
         return_code = process.wait()
 
@@ -133,10 +117,6 @@ def main():
     parser.add_argument("--end", required=True, help="last UTC date, YYYY-MM-DD")
     parser.add_argument("--workers", type=int, default=4, help="maximum dates running at once")
     parser.add_argument(
-        "--spark", action="store_true",
-        help="run spark_jobs.bronze instead of the standalone Swift bronze script",
-    )
-    parser.add_argument(
         "--log-dir", default=str(Path.home() / "buspulse-bronze-audit"),
         help="directory for per-day logs and audit CSV files",
     )
@@ -155,11 +135,11 @@ def main():
     print(
         f"Running {len(days)} dates ({days[0]} through {days[-1]}) "
         f"with at most {args.workers} in parallel "
-        f"({'Spark bronze' if args.spark else 'standalone bronze'}). Logs/audit: {log_dir}",
+        f"(standalone Bronze). Logs/audit: {log_dir}",
         flush=True,
     )
     with ThreadPoolExecutor(max_workers=args.workers) as pool:
-        futures = {pool.submit(run_day, day, log_dir, args.spark): day for day in days}
+        futures = {pool.submit(run_day, day, log_dir): day for day in days}
         for future in as_completed(futures):
             result = future.result()
             results.append(result)

@@ -1,5 +1,4 @@
-# SILVER layer image: finished bronze days -> silver tables (cleaning + GPS stop analysis). Nothing else.
-# Build from the repo root:  docker build -f analysis/silver-layer/Dockerfile -t buspulse-silver .
+# Local Bronze Parquet -> cleaned/deduplicated Silver Parquet. Spark runs in local mode.
 FROM python:3.11-slim-bookworm
 
 RUN apt-get update \
@@ -7,24 +6,22 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 
-COPY analysis/silver-layer/requirements.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir -r /tmp/requirements.txt
-
 WORKDIR /app
-# shared helpers + the day-by-day runner, then only the silver code (no bronze, no tests)
-COPY analysis/silver-layer/spark_jobs/__init__.py \
-     analysis/silver-layer/spark_jobs/common.py \
-     analysis/silver-layer/spark_jobs/run_pipeline.py \
-     analysis/silver-layer/spark_jobs/run_silver_tables.py \
-     analysis/silver-layer/spark_jobs/silver.py \
-     analysis/silver-layer/spark_jobs/stop_analysis.py \
-     analysis/silver-layer/spark_jobs/stop_geometry.py /app/spark_jobs/
-COPY analysis/silver-layer/run_silver_loop.sh /app/run_silver_loop.sh
-COPY analysis/silver-layer/entrypoint.sh /app/entrypoint.sh
+COPY silver-layer/requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
+
+RUN mkdir -p /app/spark_jobs
+COPY silver-layer/spark_jobs/__init__.py \
+     silver-layer/spark_jobs/common.py \
+     silver-layer/spark_jobs/run_silver_tables.py \
+     silver-layer/spark_jobs/silver.py \
+     silver-layer/spark_jobs/stop_analysis.py \
+     silver-layer/spark_jobs/stop_geometry.py /app/spark_jobs/
 
 ENV PYTHONPATH=/app PYSPARK_PYTHON=python PYTHONUNBUFFERED=1 TZ=UTC \
-    SPARK_LOCAL_DIR=/work/spark SWIFT_CACHE_DIR=/work/swift
-RUN useradd -u 1000 -m spark && mkdir -p /work && chown spark /work
-USER 1000
-# TABLES_DIR selects local date-first tables; without it, Kubernetes retains the Swift runner.
-ENTRYPOINT ["tini", "--", "bash", "/app/entrypoint.sh"]
+    TABLES_DIR=/data/tables SILVER_LOCAL_DIR=/data/tables/silver-layer \
+    DATA_ROOT=/work/runtime SPARK_LOCAL_DIR=/work/spark \
+    SPARK_MASTER=local[2] SPARK_DRIVER_MEMORY=1400m SPARK_SHUFFLE_PARTITIONS=16
+RUN useradd -u 1000 -m spark && mkdir -p /work /data/tables && chown -R spark:spark /work /data
+USER spark
+ENTRYPOINT ["tini", "--", "python", "-m", "spark_jobs.run_silver_tables"]

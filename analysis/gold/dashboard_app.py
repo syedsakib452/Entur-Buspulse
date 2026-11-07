@@ -4,6 +4,7 @@ Run:  streamlit run dashboard_app.py
 DB :  set GOLD_DB to your gold.duckdb (default below is relative to where you start streamlit).
 """
 import os
+from pathlib import Path
 from datetime import date
 
 import duckdb
@@ -13,7 +14,8 @@ import plotly.graph_objects as go
 import pydeck as pdk
 import streamlit as st
 
-DB_PATH = os.environ.get("GOLD_DB", "../../tables/parquet_2026-10-24/gold-layer-parquet/gold.duckdb")
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DB_PATH = os.environ.get("GOLD_DB", str(PROJECT_ROOT / "tables" / "gold-layer" / "gold.duckdb"))
 MAX_SEG_M = 3000            # drop stop-to-stop jumps longer than this (data gaps look like fake roads)
 MAP_HEIGHT = 640
 
