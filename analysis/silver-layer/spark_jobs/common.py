@@ -246,6 +246,8 @@ def export_local(partition_dir, table, day):
         with pq.ParquetWriter(temp, output_schema, compression="zstd") as writer:
             scanner = dataset.scanner(batch_size=100_000, use_threads=True)
             for batch in scanner.to_batches():
+                if batch.num_rows == 0:
+                    continue          # Spark can write empty part files; a 0-row group is not allowed
                 table_part = pa.Table.from_batches([batch]).cast(source_schema, safe=False)  # ns -> us, UTC
                 if add_service_date:
                     table_part = table_part.append_column(
