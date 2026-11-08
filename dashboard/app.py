@@ -211,6 +211,25 @@ GAIN_STOPS = [(-30, (69, 117, 180)), (0, (240, 240, 240)), (15, (254, 224, 139))
 OTP_STOPS = [(50, (215, 48, 39)), (65, (252, 141, 89)), (75, (254, 224, 139)), (85, (145, 207, 96)), (95, (26, 152, 80))]
 
 
+NUM = st.column_config.NumberColumn
+COLUMNS = {   # readable headers + formats for the tables of the new pages
+    "service_date": st.column_config.DateColumn("Date", format="ddd D MMM YYYY"),
+    "route_short_name": "Route", "lines": "Routes", "routes": "Routes",
+    "direction_ref": "Direction", "start_hour": NUM("Start hour", format="%02d:00"),
+    "n_stops": NUM("Stops", format="%d"), "start_delay_s": NUM("Delay at start (s)", format="%.0f"),
+    "end_delay_s": NUM("Delay at end (s)", format="%.0f"), "delay_gained_s": NUM("Delay gained (s)", format="%+.0f"),
+    "avg_kmh": NUM("Avg. speed (km/h)", format="%.1f"), "n_bunched": NUM("Times bunched", format="%d"),
+    "n_headways": NUM("Headways judged", format="%d"),
+    "from_stop_name": "From stop", "to_stop_name": "To stop", "rank_hours_lost": NUM("Rank", format="%d"),
+    "n_runs": NUM("Runs", format="%d"), "n": NUM("Runs", format="%d"),
+    "free_flow_kmh": NUM("Free-flow speed (km/h)", format="%.1f"), "peak_kmh": NUM("Peak speed (km/h)", format="%.1f"),
+    "midday_kmh": NUM("Midday speed (km/h)", format="%.1f"), "night_kmh": NUM("Night speed (km/h)", format="%.1f"),
+    "travel_time_index": NUM("Slowdown (×)", format="%.2f"), "vehicle_hours_lost": NUM("Bus-hours lost", format="%.1f"),
+    "kmh": NUM("Avg. speed (km/h)", format="%.1f"), "tti": NUM("Slowdown (×)", format="%.2f"),
+    "vs_tt": NUM("Vs. timetable (s per bus)", format="%+.0f"), "lost_h": NUM("Bus-hours lost", format="%.1f"),
+}
+
+
 def fmt_s(x):
     return "–" if x is None or pd.isna(x) else f"{x / 60:.1f} min" if abs(x) >= 120 else f"{x:.0f} s"
 
@@ -565,10 +584,12 @@ with tabs[6]:
     st.caption("A service date with only a few hundred visits is the part of a neighbouring day's trips that ran after midnight.")
     if HAS["gold_data_quality"]:
         st.subheader("Gold build checks")
-        st.dataframe(q("SELECT * FROM gold_data_quality"), hide_index=True, width="stretch")
+        st.dataframe(q("SELECT * FROM gold_data_quality"), hide_index=True, width="stretch",
+                     column_config={"kind": "Type", "label": "Check", "ok": "Passed", "detail": "Detail"})
     if HAS["gold_meta"]:
         with st.expander("Build metadata"):
-            st.dataframe(q("SELECT * FROM gold_meta"), hide_index=True, width="stretch")
+            st.dataframe(q("SELECT * FROM gold_meta"), hide_index=True, width="stretch",
+                         column_config={"key": "Setting", "value": "Value"})
     st.caption(f"Gold folder: `{GOLD_DIR}` · road map: `{MAP_DIR}` · tables: {', '.join(sorted(TABLES))}")
 
 
@@ -661,17 +682,12 @@ with tabs[7]:
             st.subheader("Segments losing the most time (selection)")
             show = seg.sort_values("lost_h", ascending=False).head(25)
             st.dataframe(show[["from_stop_name", "to_stop_name", "routes", "n", "kmh", "free_flow_kmh", "tti", "vs_tt", "lost_h"]],
-                         hide_index=True, width="stretch",
-                         column_config={"n": "runs", "kmh": st.column_config.NumberColumn("km/h", format="%.1f"),
-                                        "free_flow_kmh": st.column_config.NumberColumn("free flow km/h", format="%.1f"),
-                                        "tti": st.column_config.NumberColumn("slowdown ×", format="%.2f"),
-                                        "vs_tt": st.column_config.NumberColumn("vs timetable (s/bus)", format="%+.0f"),
-                                        "lost_h": st.column_config.NumberColumn("bus-hours lost", format="%.1f")})
+                         hide_index=True, width="stretch", column_config=COLUMNS)
             with st.expander("Whole-period ranking (gold_busy_roads, all dates and hours)"):
                 st.dataframe(q("""SELECT rank_hours_lost, from_stop_name, to_stop_name, lines, n_runs, free_flow_kmh, peak_kmh,
                                          midday_kmh, night_kmh, travel_time_index, vehicle_hours_lost
                                   FROM gold_busy_roads WHERE ranked ORDER BY rank_hours_lost LIMIT 50"""),
-                             hide_index=True, width="stretch")
+                             hide_index=True, width="stretch", column_config=COLUMNS)
 
 # ============ Bunching & speed heatmaps (gold_headway_hour / gold_speed_hour, filtered by the sidebar)
 with tabs[8]:
@@ -757,4 +773,6 @@ with tabs[9]:
             st.subheader("Trips that gained the most delay")
             cols = [c_ for c_ in ["service_date", "route_short_name", "direction_ref", "start_hour", "n_stops", "start_delay_s",
                                   "end_delay_s", "delay_gained_s", "avg_kmh", "n_bunched", "n_headways"] if c_ in tm]
-            st.dataframe(tm.sort_values("delay_gained_s", ascending=False).head(50)[cols], hide_index=True, width="stretch")
+            top_trips = tm.sort_values("delay_gained_s", ascending=False).head(50)[cols].copy()
+            top_trips["service_date"] = pd.to_datetime(top_trips["service_date"]).dt.date     # date only, no 00:00:00
+            st.dataframe(top_trips, hide_index=True, width="stretch", column_config=COLUMNS)
