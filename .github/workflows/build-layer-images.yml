@@ -1,6 +1,6 @@
-# Tests the bronze/silver/gold code, then builds one image per layer:
+# Tests the code, then builds one image per layer:
 #   ghcr.io/<owner>/entur-buspulse-bronze | -silver | -gold   (tags sha-<commit> and latest)
-# Each image runs only its own layer (see k8s-layers/).
+# The VM pulls these with analysis/scripts/run-pipeline.sh.
 name: build-layer-images
 
 on:
@@ -17,6 +17,10 @@ permissions:
   contents: read
   packages: write
 
+concurrency:
+  group: build-layer-images
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -26,42 +30,23 @@ jobs:
         with: { distribution: temurin, java-version: "17" }
       - uses: actions/setup-python@v6
         with: { python-version: "3.11" }
-      - run: pip install -r analysis/silver-layer/requirements.txt -r analysis/gold/requirements.txt pytest
-      # the bronze and silver code form one package (spark_jobs) at run time; put it together for the tests
-      - name: Assemble spark_jobs
+      - run: pip install -r analysis/silver-layer/requirements.txt -r analysis/bronze-layer/requirements.txt -r analysis/gold/requirements.txt pytest
+      - name: Silver tests
+        run: PYTHONPATH=analysis/silver-layer python -m pytest analysis/silver-layer/spark_jobs/tests -q
+      - name: All entrypoints compile
         run: |
-          mkdir -p build/spark_jobs
-          cp -r analysis/silver-layer/spark_jobs/. build/spark_jobs/
-          cp analysis/bronze-layer/spark_jobs/*.py build/spark_jobs/
-      - name: Spark tests (bronze + silver on a simulated day)
-        working-directory: build
-        run: python -m pytest spark_jobs/tests -q
-      - name: Gold code compiles
-        run: python -m py_compile analysis/gold/run_gold.py analysis/gold/build_gold.py
-      # bronze -> silver -> gold on the simulated day, with local folders instead of Swift.
-      # Not blocking yet: build_gold.py's reconciliation checks were written for real data.
-      - name: Gold on the simulated day (informational)
-        continue-on-error: true
-        working-directory: build
-        run: |
-          python - <<'PY'
-          import os, subprocess, sys, tempfile
-          root = tempfile.mkdtemp()
-          os.environ.update(DATA_ROOT=root, SPARK_LOCAL_DIR=root + "/_spark", GOLD_WORK_DIR=root + "/_gold")
-          from spark_jobs.tests import fixtures as fx
-          fx.write_raw(root)
-          run = lambda *a: subprocess.run([sys.executable, *a], env=os.environ).returncode
-          assert run("-m", "spark_jobs.run_pipeline", "--start", fx.DAY, "--end", fx.NEXT) == 0
-          assert run("../analysis/gold/run_gold.py", "--start", fx.DAY, "--end", fx.NEXT) == 0
-          print(sorted(os.listdir(root + "/buspulse-gold")))
-          PY
+          python -m py_compile \
+            analysis/bronze-layer/build_bronze_tables.py \
+            analysis/bronze-layer/run_bronze_range.py \
+            analysis/gold/run_gold.py \
+            analysis/gold/build_gold.py
 
   build:
     needs: test
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        layer: [bronze, silver, gold]
         include:
           - { layer: bronze, dockerfile: analysis/bronze-layer/Dockerfile }
           - { layer: silver, dockerfile: analysis/silver-layer/Dockerfile }
@@ -73,11 +58,11 @@ jobs:
         with: { registry: ghcr.io, username: "${{ github.actor }}", password: "${{ secrets.GITHUB_TOKEN }}" }
       - id: name
         run: |
-          echo "image=ghcr.io/${GITHUB_REPOSITORY,,}-${{ matrix.layer }}" >> "$GITHUB_OUTPUT"
+          echo "image=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/entur-buspulse-${{ matrix.layer }}" >> "$GITHUB_OUTPUT"
           echo "tag=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
       - uses: docker/build-push-action@v6
         with:
-          context: .
+          context: analysis          # the Dockerfiles COPY bronze-layer/..., silver-layer/..., gold/...
           file: ${{ matrix.dockerfile }}
           push: true
           tags: |

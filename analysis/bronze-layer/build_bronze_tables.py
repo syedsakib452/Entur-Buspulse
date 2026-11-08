@@ -69,7 +69,9 @@ SWIFT_TIMEOUT = int(os.getenv("SWIFT_TIMEOUT", "30"))
 ROW_GROUP_ROWS = int(os.getenv("ROW_GROUP_ROWS", "250000"))
 EVERY = 1   # use only every Nth file per feed; set with --every
 # <repo>/tables/bronze-layer, independent of the working directory
-OUT_DIR = Path(os.getenv("OUT_DIR", str(Path(__file__).resolve().parents[2] / "tables" / "bronze-layer")))
+# parents[2] does not exist when the file sits at /app (Docker), so only compute it when OUT_DIR is unset
+OUT_DIR = Path(os.environ["OUT_DIR"]) if os.getenv("OUT_DIR") else (
+    Path(__file__).resolve().parents[2] / "tables" / "bronze-layer")
 AUDIT_FIELDS = ["file", "status", "stage", "rows", "bytes", "seconds", "error", "note"]
 FEEDS = ["vehicle_positions", "service_alerts",
          "estimated_timetable", "static_timetable"]
