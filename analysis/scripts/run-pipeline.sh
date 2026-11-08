@@ -13,7 +13,7 @@
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-OWNER="${OWNER:-irtaza0420bm}"; OWNER="${OWNER,,}"          # GHCR names must be lowercase
+OWNER="${OWNER:-syedsakib452}"; OWNER="${OWNER,,}"          # GHCR names must be lowercase
 SINCE="${SINCE:-2026-10-20}"
 TABLES="${TABLES:-$REPO/tables}"
 CORES="$(nproc)"

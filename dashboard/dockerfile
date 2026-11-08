@@ -19,5 +19,5 @@ CMD ["streamlit", "run", "dashboard/app.py", \
      "--server.port=8501", \
      "--server.headless=true", \
      "--", \
-     "--gold", "/data/gold", \
-     "--map", "/data/map"]
+     "--gold", "tables/gold-layer", \
+     "--map", "/dashboard/map"]
