@@ -1,12 +1,13 @@
 """Run the Swift bronze builder over a date range with bounded parallelism.
 
-Example:
+Examples:
     python run_bronze_range.py --start 2026-10-22 --end 2026-11-05 --workers 4
+    python run_bronze_range.py --catch-up --since 2026-10-20     # every missing day up to yesterday (UTC)
 """
 import argparse
 import csv
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 import os
 from pathlib import Path
 import re
@@ -31,6 +32,26 @@ def date_range(start, end):
     while current <= last:
         yield current.isoformat()
         current += timedelta(days=1)
+
+
+def default_out_dir():
+    value = os.getenv("OUT_DIR")
+    return Path(value) if value else HERE.parent / "tables" / "bronze-layer"
+
+
+def is_complete(out_dir, day):
+    """A day is done if bronze wrote _SUCCESS, or all 3 realtime tables already exist."""
+    folder = out_dir / day
+    return (folder / "_SUCCESS").exists() or all(
+        (folder / f"{table}.parquet").exists()
+        for table in ("vehicle_positions", "service_alerts", "stop_visits")
+    )
+
+
+def missing_days(out_dir, since, until):
+    if date.fromisoformat(since) > date.fromisoformat(until):
+        return []
+    return [day for day in date_range(since, until) if not is_complete(out_dir, day)]
 
 
 def run_day(day, log_dir):
@@ -113,8 +134,14 @@ def write_audit(results, log_dir):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--start", required=True, help="first UTC date, YYYY-MM-DD")
-    parser.add_argument("--end", required=True, help="last UTC date, YYYY-MM-DD")
+    parser.add_argument("--start", help="first UTC date, YYYY-MM-DD")
+    parser.add_argument("--end", help="last UTC date, YYYY-MM-DD")
+    parser.add_argument("--catch-up", action="store_true",
+                        help="process every day from --since up to yesterday (UTC) that is not complete yet")
+    parser.add_argument("--since", default=os.getenv("BRONZE_SINCE"),
+                        help="oldest day to fetch in --catch-up mode, YYYY-MM-DD")
+    parser.add_argument("--out-dir", default=str(default_out_dir()),
+                        help="where bronze tables are written (default: $OUT_DIR)")
     parser.add_argument("--workers", type=int, default=4, help="maximum dates running at once")
     parser.add_argument(
         "--log-dir", default=str(Path.home() / "buspulse-bronze-audit"),
@@ -124,10 +151,29 @@ def main():
     if args.workers < 1:
         parser.error("--workers must be at least 1")
 
-    try:
-        days = list(date_range(args.start, args.end))
-    except ValueError as error:
-        parser.error(str(error))
+    out_dir = Path(args.out_dir).expanduser()
+    os.environ["OUT_DIR"] = str(out_dir)   # build_bronze_tables.py (child process) reads this
+
+    # ---- decide which days to run
+    if args.catch_up:
+        if not args.since:
+            parser.error("--catch-up needs --since (or the BRONZE_SINCE env var)")
+        try:
+            date.fromisoformat(args.since)
+        except ValueError:
+            parser.error("--since must be YYYY-MM-DD")
+        yesterday = (datetime.now(timezone.utc).date() - timedelta(days=1)).isoformat()
+        days = missing_days(out_dir, args.since, yesterday)
+        if not days:
+            print(f"Nothing to do: all days {args.since}..{yesterday} are complete.", flush=True)
+            return 0
+    else:
+        if not (args.start and args.end):
+            parser.error("give --start and --end, or use --catch-up")
+        try:
+            days = list(date_range(args.start, args.end))
+        except ValueError as error:
+            parser.error(str(error))
 
     log_dir = Path(args.log_dir).expanduser()
     log_dir.mkdir(parents=True, exist_ok=True)
@@ -138,6 +184,8 @@ def main():
         f"(standalone Bronze). Logs/audit: {log_dir}",
         flush=True,
     )
+
+    # ---- run them
     with ThreadPoolExecutor(max_workers=args.workers) as pool:
         futures = {pool.submit(run_day, day, log_dir): day for day in days}
         for future in as_completed(futures):
@@ -149,6 +197,13 @@ def main():
                 f"failed files={failures}, log={result['log']}",
                 flush=True,
             )
+
+    # ---- mark fully successful days so the next run skips them
+    for result in results:
+        if result["return_code"] == 0:
+            day_dir = out_dir / result["date"]
+            day_dir.mkdir(parents=True, exist_ok=True)
+            (day_dir / "_SUCCESS").write_text(datetime.now(timezone.utc).isoformat() + "\n")
 
     write_audit(results, log_dir)
     failed_files = sum(
