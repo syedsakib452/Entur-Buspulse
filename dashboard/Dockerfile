@@ -7,10 +7,10 @@ ENV STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
 WORKDIR /app
 
 COPY dashboard/requirements.txt /app/requirements.txt
-
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY dashboard/ /app/dashboard/
+COPY tables/gold-layer/ /app/tables/gold-layer/
 
 EXPOSE 8501
 
@@ -20,4 +20,4 @@ CMD ["streamlit", "run", "dashboard/app.py", \
      "--server.headless=true", \
      "--", \
      "--gold", "tables/gold-layer", \
-     "--map", "/dashboard/map"]
+     "--map", "dashboard/map"]
