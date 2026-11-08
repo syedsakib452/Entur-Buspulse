@@ -164,7 +164,7 @@ def heatmap(df, x, y, z, title, zlabel, scale, zmin=None, zmax=None, fmt=".0f", 
     if y_order is not None:
         pv = pv.reindex([r for r in y_order if r in pv.index])
     fig = px.imshow(pv, aspect="auto", color_continuous_scale=scale, zmin=zmin, zmax=zmax,
-                    labels=dict(color=zlabel, x=x.replace("_", " "), y=""), text_auto=fmt if pv.size <= 700 else False)
+                    labels=dict(color=zlabel, x={"local_hour": "Hour (local time)", "local_time_bin": "Time of day"}.get(x, x.replace("_", " ").capitalize()), y=""), text_auto=fmt if pv.size <= 700 else False)
     fig.update_layout(title=title, height=height or max(260, 22 * len(pv) + 120), margin=dict(l=10, r=10, t=50, b=10),
                       coloraxis_colorbar=dict(title=zlabel))
     fig.update_xaxes(type="category")
@@ -219,9 +219,9 @@ COLUMNS = {   # readable headers + formats for the tables of the new pages
     "n_stops": NUM("Stops", format="%d"), "start_delay_s": NUM("Delay at start (s)", format="%.0f"),
     "end_delay_s": NUM("Delay at end (s)", format="%.0f"), "delay_gained_s": NUM("Delay gained (s)", format="%+.0f"),
     "avg_kmh": NUM("Avg. speed (km/h)", format="%.1f"), "n_bunched": NUM("Times bunched", format="%d"),
-    "n_headways": NUM("Headways judged", format="%d"),
+    "n_headways": NUM("Headways judged", format="localized"),
     "from_stop_name": "From stop", "to_stop_name": "To stop", "rank_hours_lost": NUM("Rank", format="%d"),
-    "n_runs": NUM("Runs", format="%d"), "n": NUM("Runs", format="%d"),
+    "n_runs": NUM("Runs", format="localized"), "n": NUM("Runs", format="localized"),
     "free_flow_kmh": NUM("Free-flow speed (km/h)", format="%.1f"), "peak_kmh": NUM("Peak speed (km/h)", format="%.1f"),
     "midday_kmh": NUM("Midday speed (km/h)", format="%.1f"), "night_kmh": NUM("Night speed (km/h)", format="%.1f"),
     "travel_time_index": NUM("Slowdown (×)", format="%.2f"), "vehicle_hours_lost": NUM("Bus-hours lost", format="%.1f"),
@@ -288,24 +288,27 @@ with tabs[0]:
         fig.add_bar(x=hr.local_hour, y=hr.n, name="stop visits", marker_color="#d9d9d9", yaxis="y2")
         fig.add_scatter(x=hr.local_hour, y=hr.mean_delay / 60, name="mean delay (min)", line=dict(color="#d73027", width=3))
         fig.add_scatter(x=hr.local_hour, y=hr.p90 / 60, name="90th percentile (min)", line=dict(color="#fc8d59", dash="dot"))
-        fig.update_layout(title="Delay through the day", xaxis=dict(title="hour", dtick=1),
-                          yaxis=dict(title="minutes late"), yaxis2=dict(overlaying="y", side="right", showgrid=False, title="visits"),
+        fig.update_layout(title="Delay through the day", xaxis=dict(title="Hour (local time)", dtick=1),
+                          yaxis=dict(title="Minutes late"), yaxis2=dict(overlaying="y", side="right", showgrid=False, title="Stop visits"),
                           legend=dict(orientation="h", y=-0.2), height=380, margin=dict(t=50, b=10))
         left.plotly_chart(fig, width="stretch")
         fig = px.bar(hr, x="local_hour", y="otp", color="otp", color_continuous_scale=OTP_SCALE, range_color=(50, 100),
-                     labels=dict(local_hour="hour", otp="% on time"), title="Share on time by hour")
+                     labels=dict(local_hour="Hour (local time)", otp="% on time"), title="Share on time by hour")
         fig.update_layout(height=380, coloraxis_showscale=False, margin=dict(t=50, b=10), xaxis_dtick=2)
         right.plotly_chart(fig, width="stretch")
 
         dist = q(f"""SELECT LEAST(GREATEST(FLOOR(delay_s / 30) * 30, -300), 1200) AS bin, COUNT(*) n
                      FROM fact_stop_visits WHERE valid AND {W} GROUP BY 1 ORDER BY 1""", P)
-        dist["class"] = np.where(dist.bin < early_s, "early", np.where(dist.bin >= late_s, "late", "on time"))
-        fig = px.bar(dist, x=dist.bin / 60, y="n", color="class",
-                     color_discrete_map={"early": "#4575b4", "on time": "#1a9850", "late": "#d73027"},
-                     labels=dict(x="delay (minutes, 30 s bins; ends collect everything beyond -5 / +20 min)", n="stop visits"),
-                     title="How late are buses?")
+        dist["Delay category"] = np.where(dist.bin < early_s, "Early", np.where(dist.bin >= late_s, "Late", "On time"))
+        dist["Delay (minutes)"] = dist.bin / 60
+        fig = px.bar(dist, x="Delay (minutes)", y="n", color="Delay category",
+                     color_discrete_map={"Early": "#4575b4", "On time": "#1a9850", "Late": "#d73027"},
+                     category_orders={"Delay category": ["Early", "On time", "Late"]},
+                     labels=dict(n="Stop visits"), title="How late are buses?")
         fig.update_layout(height=320, bargap=0.05, margin=dict(t=50, b=10))
         st.plotly_chart(fig, width="stretch")
+        st.caption("Bars are 30-second steps. The first and last bar collect everything more than 5 minutes early "
+                   "or more than 20 minutes late.")
 
 # ============ Road map
 with tabs[1]:
@@ -401,10 +404,11 @@ with tabs[1]:
             st.subheader("Slowest road segments")
             slow = seg_tab.sort_values("speed").head(15)
             st.dataframe(slow[["name", "routes", "n", "length_m", "speed", "gain"]], hide_index=True, width="stretch",
-                         column_config={"name": "segment", "n": st.column_config.NumberColumn("buses", format="%d"),
-                                        "length_m": st.column_config.NumberColumn("length (m)", format="%.0f"),
-                                        "speed": st.column_config.NumberColumn("km/h", format="%.1f"),
-                                        "gain": st.column_config.NumberColumn("s vs timetable / bus", format="%+.0f")})
+                         column_config={"name": "Road segment", "routes": "Routes",
+                                        "n": st.column_config.NumberColumn("Buses", format="localized"),
+                                        "length_m": st.column_config.NumberColumn("Length (m)", format="%.0f"),
+                                        "speed": st.column_config.NumberColumn("Avg. speed (km/h)", format="%.1f"),
+                                        "gain": st.column_config.NumberColumn("Vs. timetable (s per bus)", format="%+.0f")})
 
 # ============ Routes
 with tabs[2]:
@@ -427,14 +431,15 @@ with tabs[2]:
             rt = rt.merge(ts, on="line_ref", how="left")
         rt = rt.sort_values("visits", ascending=False)
         st.subheader("Routes")
-        cfg = {"line_ref": None, "route": "route", "visits": st.column_config.NumberColumn("stop visits", format="%d"),
+        cfg = {"line_ref": None, "route": "Route",
+               "visits": st.column_config.NumberColumn("Stop visits", format="localized"), "trips": st.column_config.NumberColumn("Trips", format="localized"),
                "otp": st.column_config.ProgressColumn("% on time", min_value=0, max_value=100, format="%.0f%%"),
-               "mean_delay": st.column_config.NumberColumn("mean delay (s)", format="%.0f"),
-               "p90": st.column_config.NumberColumn("90th pct (s)", format="%.0f"),
-               "speed": st.column_config.NumberColumn("km/h", format="%.1f"),
-               "lost_h": st.column_config.NumberColumn("bus-hours lost", format="%.1f"),
-               "term_otp": st.column_config.ProgressColumn("% not late at end", min_value=0, max_value=100, format="%.0f%%"),
-               "gained": st.column_config.NumberColumn("median delay gained / trip (s)", format="%+.0f")}
+               "mean_delay": st.column_config.NumberColumn("Mean delay (s)", format="%.0f"),
+               "p90": st.column_config.NumberColumn("90th percentile delay (s)", format="%.0f"),
+               "speed": st.column_config.NumberColumn("Avg. speed (km/h)", format="%.1f"),
+               "lost_h": st.column_config.NumberColumn("Bus-hours lost vs. timetable", format="%.1f"),
+               "term_otp": st.column_config.ProgressColumn("% not late at last stop", min_value=0, max_value=100, format="%.0f%%"),
+               "gained": st.column_config.NumberColumn("Median delay gained per trip (s)", format="%+.0f")}
         st.dataframe(rt, hide_index=True, width="stretch", height=360, column_config=cfg)
 
         top = rt.head(30).route.tolist()
@@ -468,8 +473,8 @@ with tabs[2]:
                             customdata=np.column_stack([prof.stop, prof.n, prof.otp]),
                             hovertemplate="%{customdata[0]}<br>stop %{x}: %{y:.1f} min<br>%{customdata[1]} visits · "
                                           "%{customdata[2]:.0f}% on time<extra></extra>")
-            fig.update_layout(title="How delay builds up along the route", xaxis_title="stop number along the route",
-                              yaxis_title="minutes late", height=380, legend=dict(orientation="h", y=-0.25), margin=dict(t=50))
+            fig.update_layout(title="How delay builds up along the route", xaxis_title="Stop number along the route",
+                              yaxis_title="Minutes late", height=380, legend=dict(orientation="h", y=-0.25), margin=dict(t=50))
             st.plotly_chart(fig, width="stretch")
 
 # ============ Stops
@@ -482,10 +487,11 @@ with tabs[3]:
     else:
         sd["stop"] = sd.stop + " · " + sd.stop_ref.str.replace("NSR:Quay:", "", regex=False)   # one name can have several platforms
         c1, c2 = st.columns(2)
-        cfg = {"stop_ref": None, "routes": None, "visits": st.column_config.NumberColumn(format="%d"),
+        cfg = {"stop_ref": None, "routes": None, "stop": "Stop (platform id)",
+               "visits": st.column_config.NumberColumn("Visits", format="localized"),
                "otp": st.column_config.ProgressColumn("% on time", min_value=0, max_value=100, format="%.0f%%"),
-               "mean_delay": st.column_config.NumberColumn("mean (min)", format="%.1f"),
-               "p90": st.column_config.NumberColumn("90th pct (min)", format="%.1f")}
+               "mean_delay": st.column_config.NumberColumn("Mean delay (min)", format="%.1f"),
+               "p90": st.column_config.NumberColumn("90th percentile delay (min)", format="%.1f")}
         c1.subheader("Most delayed stops")
         c1.dataframe(sd.sort_values("mean_delay", ascending=False).head(20), hide_index=True, width="stretch", column_config=cfg)
         c2.subheader("Busiest stops")
@@ -513,7 +519,7 @@ with tabs[4]:
                FROM fact_stop_visits WHERE valid AND {W} AND local_quarter >= 0 GROUP BY 1 ORDER BY 1""", P)
     qb = qb[qb.n >= min_n]
     fig = px.bar(qb, x="t", y="mean_delay", color="otp", color_continuous_scale=OTP_SCALE, range_color=(40, 100),
-                 labels=dict(t="time of day (15-minute bins)", mean_delay="mean delay (min)", otp="% on time"),
+                 labels=dict(t="Time of day (15-minute steps)", mean_delay="Mean delay (min)", otp="% on time"),
                  title="Delay in 15-minute steps (colour = % on time)")
     fig.update_layout(height=360, margin=dict(t=50), xaxis=dict(tickangle=-90, nticks=24))
     st.plotly_chart(fig, width="stretch")
@@ -563,8 +569,8 @@ with tabs[5]:
             fig.add_scatter(x=hw.local_hour, y=hw.gap, name="% large gap", line=dict(color="#4575b4", width=3))
             if has_sq:
                 fig.add_bar(x=hw.local_hour, y=hw.ewt, name="excess waiting time (s)", marker_color="#e0e0e0", yaxis="y2")
-            fig.update_layout(title="Regularity through the day", xaxis=dict(title="hour", dtick=1), yaxis_title="% of bus pairs",
-                              yaxis2=dict(overlaying="y", side="right", showgrid=False, title="seconds"), height=380,
+            fig.update_layout(title="Regularity through the day", xaxis=dict(title="Hour (local time)", dtick=1), yaxis_title="% of bus pairs",
+                              yaxis2=dict(overlaying="y", side="right", showgrid=False, title="Seconds"), height=380,
                               legend=dict(orientation="h", y=-0.2), margin=dict(t=50))
             st.plotly_chart(fig, width="stretch")
             hr_ = q(f"""SELECT line_ref, SUM(n_pairs) pairs, SUM(n_bunched) * 100.0 / SUM(n_pairs) bunched,
@@ -573,14 +579,18 @@ with tabs[5]:
             st.caption("Routes with at least 50 bus pairs in the selection (fewer pairs give unstable percentages).")
             hr_.insert(0, "route", hr_.line_ref.map(route_label))
             st.dataframe(hr_.drop(columns="line_ref"), hide_index=True, width="stretch",
-                         column_config={"bunched": st.column_config.NumberColumn("% bunched", format="%.1f"),
-                                        "gap": st.column_config.NumberColumn("% large gap", format="%.1f"),
-                                        "ewt": st.column_config.NumberColumn("excess wait (s)", format="%.0f")})
+                         column_config={"route": "Route", "pairs": st.column_config.NumberColumn("Bus pairs", format="localized"),
+                                        "bunched": st.column_config.NumberColumn("% bunched", format="%.1f"),
+                                        "gap": st.column_config.NumberColumn("% large gaps", format="%.1f"),
+                                        "ewt": st.column_config.NumberColumn("Excess waiting time (s)", format="%.0f")})
 
 # ============ Data
 with tabs[6]:
     st.subheader("Coverage per service date")
-    st.dataframe(dates[["d", "n"]].rename(columns={"d": "service date", "n": "valid stop visits"}), hide_index=True)
+    cov = dates[["d", "n"]].assign(d=pd.to_datetime(dates.d).dt.date)
+    st.dataframe(cov, hide_index=True,
+                 column_config={"d": st.column_config.DateColumn("Service date", format="ddd D MMM YYYY"),
+                                "n": st.column_config.NumberColumn("Valid stop visits", format="localized")})
     st.caption("A service date with only a few hundred visits is the part of a neighbouring day's trips that ran after midnight.")
     if HAS["gold_data_quality"]:
         st.subheader("Gold build checks")
@@ -590,7 +600,9 @@ with tabs[6]:
         with st.expander("Build metadata"):
             st.dataframe(q("SELECT * FROM gold_meta"), hide_index=True, width="stretch",
                          column_config={"key": "Setting", "value": "Value"})
-    st.caption(f"Gold folder: `{GOLD_DIR}` · road map: `{MAP_DIR}` · tables: {', '.join(sorted(TABLES))}")
+    with st.expander("Technical details"):
+        st.markdown(f"**Gold data folder:** `{GOLD_DIR}`  \n**Road map files:** `{MAP_DIR}`  \n"
+                    f"**Tables loaded ({len(TABLES)}):** " + ", ".join(f"`{t}`" for t in sorted(TABLES)))
 
 
 # ============ Busy roads (gold_speed_hour: sums per day x hour x line x road segment; gold_busy_roads: whole period)
@@ -765,8 +777,8 @@ with tabs[9]:
             if "avg_kmh" in tm:
                 sample = tm.dropna(subset=["avg_kmh"]).sample(min(len(tm), 5000), random_state=0)
                 fig = px.scatter(sample, x="avg_kmh", y="delay_gained_s", color="route_short_name", opacity=0.5,
-                                 labels=dict(avg_kmh="trip speed (km/h)", delay_gained_s="delay gained along the trip (s)",
-                                             route_short_name="route"),
+                                 labels=dict(avg_kmh="Trip speed (km/h)", delay_gained_s="Delay gained along the trip (s)",
+                                             route_short_name="Route"),
                                  title="Slower trips gain more delay (up to 5,000 trips shown)")
                 fig.update_layout(height=420, showlegend=False)
                 st.plotly_chart(fig, width="stretch")
