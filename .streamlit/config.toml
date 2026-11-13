@@ -3,4 +3,7 @@
 gatherUsageStats = false     # no calls to Streamlit's servers; the dashboard works fully offline
 
 [theme]
-primaryColor = "#c8102e"
+primaryColor = "#18181B"
+backgroundColor = "#F8FAFC"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#0F172A"

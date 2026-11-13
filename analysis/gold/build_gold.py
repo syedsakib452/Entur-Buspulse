@@ -28,8 +28,8 @@
 # - **Heatmaps for bunching and speed:** `gold_heat_bunching_route_hour`, `gold_heat_bunching_weekday_hour`,
 #   `gold_heat_speed_weekday_hour`, `gold_heat_speed_route_hour` (delay heatmaps: the `gold_heat_*` tables above)
 # - **Filterable by day, ISO week, weekday, hour, line, direction and stop (sums: filter, then divide):**
-#   `gold_delay_hour` (delays), `gold_headway_hour` (bunching), `gold_speed_hour` (speed per road segment;
-#   average speed = sum_distance_m / sum_run_s * 3.6). `dim_date` also has iso_week / iso_year.
+#   `gold_delay_hour` (delays, 30 s histogram buckets `d0..d51`), `gold_headway_hour` (bunching),
+#   `gold_speed_hour` (speed per road segment; average speed = sum_distance_m / sum_run_s * 3.6). `dim_date` also has iso_week / iso_year.
 # - **Per trip:** `gold_trip_metrics` (delays, distance, average speed, how often the bus arrived bunched)
 # - **Rules:** `gold_thresholds` (every threshold used, with its meaning)
 # - **Dashboard KPIs:** `gold_segment_hour` (road-segment run time and speed by date and hour), `gold_trip_summary` (one row per trip: start/end delay, delay gained, run time)
@@ -64,7 +64,7 @@ ROAD_MAX_KMH = 90                                 # ...and runs faster than this
 ROAD_MIN_RUNS = 100                               # ...rank only segments with this many runs
 ROAD_MIN_PEAK_RUNS = 20                           # ...and this many weekday peak-hour runs
 FREE_FLOW_Q = 0.85                                # free-flow speed = 85th percentile of a segment's speeds
-DELAY_EDGES = [-120, -60, 0, 60, 180, 300, 600]   # delay histogram edges (s)
+DELAY_EDGES = list(range(-300, 1230, 30))         # 51 edges -> 52 buckets (d0..d51) in 30 s steps for filterable dashboard KPIs & histograms
 TL_EDGES    = [0, 5, 10, 20, 40]                  # time-lost histogram edges (s)
 HOUR_BANDS  = {"night": (0, 5), "am_peak": (6, 8), "midday": (9, 14), "pm_peak": (15, 17), "evening": (18, 23)}
 THRESHOLDS = [   # (rule, value, meaning) -> gold_thresholds, so reports and the dashboard quote the same numbers
@@ -331,8 +331,6 @@ emit("fact_stop_visits", """
 
 # %%
 print("Building heatmap-ready tables...")
-# One row per heatmap cell. Counts/sums are additive; avg/pct/percentiles are precomputed for plotting.
-# n_valid is kept so a heatmap can mask cells with too few observations.
 RATIOS = """
   sum_delay_s / NULLIF(n_valid, 0)        AS avg_delay_s,
   n_on_time::DOUBLE / NULLIF(n_valid, 0)  AS pct_on_time,
@@ -343,27 +341,20 @@ PCTS = """,
   quantile_cont(delay_s, 0.9) FILTER (WHERE valid) AS p90_delay_s"""
 
 def heat(name, dims, extra=""):
-    # extra = additional select expressions (functionally dependent on dims, or aggregates)
     emit(name, f"""
       SELECT *, {RATIOS} FROM (
         SELECT {dims}{extra}, {CORE}{PCTS} FROM sv GROUP BY ALL)
       ORDER BY {dims}""")
 
-# hour x route   (and 15-minute bins)
 heat("gold_heat_route_hour",    "line_ref, route_short_name, local_hour")
 heat("gold_heat_route_quarter", "line_ref, route_short_name, local_quarter, local_time_bin")
-# weekday x hour  (rows = weekday, columns = hour)
 heat("gold_heat_weekday_hour",  "weekday, local_hour", f", {WEEKDAY_NAME_SQL} AS weekday_name, COUNT(DISTINCT service_date) AS n_service_dates")
-# stop x hour, and route -> stop x hour (station-hour view for one route)
 heat("gold_heat_stop_hour",       "stop_ref, stop_name, local_hour")
 heat("gold_heat_route_stop_hour", "line_ref, route_short_name, stop_ref, stop_name, local_hour")
 
-# spatial: one row per stop with coordinates + aggregated metrics
 ev_rel = read("per_stop_evidence", required=False)
 ev_join, ev_cols = "", ""
 if ev_rel:
-    # per_stop_evidence has one row per stop PER DAY: add the counts up over all days and
-    # recompute the share from the totals (taking one day's share would be wrong for the period)
     ev_join = f"""LEFT JOIN (SELECT CAST(stop_id AS VARCHAR) AS stop_ref, SUM(calls) AS evidence_calls,
                        SUM(stopped) AS evidence_stopped, SUM(passed) AS evidence_passed,
                        SUM(stopped) + SUM(passed) AS conclusive,
@@ -374,7 +365,6 @@ if ev_rel:
     m = scalar(f"SELECT COUNT(DISTINCT stop_ref) FROM sv WHERE stop_ref IN (SELECT CAST(stop_id AS VARCHAR) FROM {ev_rel})")
     info("per_stop_evidence.stop_id matches clean_stop_visits.stop_ref",
          f"{m:,} of {scalar('SELECT COUNT(DISTINCT stop_ref) FROM sv'):,} visited stops matched")
-    # one row per (service_date, stop) is expected; a duplicate within one day would be a silver problem
     ev_key = "service_date, stop_id" if "service_date" in schema(ev_rel) else "stop_id"
     dup = scalar(f"SELECT COUNT(*) - COUNT(DISTINCT ({ev_key})) FROM {ev_rel}")
     check("per_stop_evidence has one row per stop and day", dup == 0, f"{dup} duplicate rows")
@@ -416,27 +406,9 @@ emit("gold_headway", f"""
            COUNT(*) AS n_pairs, SUM(act_h) AS sum_actual_headway_s, SUM(aim_h) AS sum_aimed_headway_s,
            SUM((act_h < {BUNCH_RATIO} * aim_h)::INT) AS n_bunched,
            SUM((act_h > {GAP_RATIO} * aim_h)::INT)   AS n_large_gap,
-           SUM(act_h * act_h) AS sum_actual_headway_sq, SUM(aim_h * aim_h) AS sum_aimed_headway_sq   -- for excess wait time
+           SUM(act_h * act_h) AS sum_actual_headway_sq, SUM(aim_h * aim_h) AS sum_aimed_headway_sq
     FROM h WHERE aim_h BETWEEN {HEADWAY_MIN_S} AND {HEADWAY_MAX_S}
     GROUP BY ALL""")
-
-# %% [markdown]
-# ### Dashboard KPI tables
-# 
-# - `gold_segment_hour`: one row per road segment (consecutive stops of a journey), service date, local hour, line and direction.
-#   Additive sums let the dashboard filter by any combination and then divide: average run time = `sum_actual_s / n`,
-#   time lost against the timetable = `(sum_actual_s - sum_aimed_s) / n`. With segment lengths from GTFS (`dashboard/build_map.py`)
-#   it gives the speed on every piece of road. Kolumbus reports one time per stop (actual arrival = actual departure), so a
-#   segment's run time is driving plus dwell. Legs with 0 s run time (two stops reported in the same second) are left out,
-#   because they would mean infinite speed. `local_hour` is the hour the bus reached the second stop.
-#   Legs with a **scheduled** time of 0 s are kept: the timetable has one-minute resolution, so consecutive stops often share
-#   the same scheduled minute (about a fifth of all legs). Dropping them (as `gold_segment_runtime` does with `aim_s > 0`)
-#   removes real driving time and makes buses look faster than the timetable. Compare actual and scheduled time on sums
-#   over many legs, not on a single leg.
-# - `gold_trip_summary`: one row per observed trip. Delay at the first and last observed stop, the largest delay, delay
-#   gained along the trip, and actual vs scheduled run time. This gives *terminus punctuality* and *delay growth* per route.
-# - `gold_headway` also stores the sums of squared headways, so the dashboard can compute **excess waiting time**:
-#   `EWT = sum(act²)/(2·sum(act)) − sum(aim²)/(2·sum(aim))` (seconds a random passenger waits longer than the timetable promises).
 
 # %%
 print("Building dashboard KPI tables...")
@@ -474,11 +446,8 @@ emit("gold_trip_summary", """
     FROM sv WHERE valid
     GROUP BY service_date, journey_ref""")
 
-
 # %%
 print("Building fleet, GPS evidence, coverage and event-status tables...")
-
-# 1. Fleet activity (trip_vehicle)
 tv = read("trip_vehicle", required=False)
 if tv:
     emit("gold_fleet_activity", f"""
@@ -486,7 +455,6 @@ if tv:
                COUNT(DISTINCT vehicle_id) AS n_vehicles, SUM(n_stops) AS sum_stops, AVG(median_m) AS avg_median_m
         FROM {tv} GROUP BY 1 ORDER BY 1""")
 
-# 2. GPS evidence per stop/class (stop_gps_status)
 gps = read("stop_gps_status", required=False)
 if gps:
     g = schema(gps)
@@ -511,7 +479,6 @@ if gps:
     info("stop_gps_status.stop_id matches clean_stop_visits.stop_ref",
          f"{m:,} of {scalar('SELECT COUNT(DISTINCT stop_ref) FROM gold_stop_evidence'):,} GPS stops matched")
 
-# 3. Time-lost reference (time_lost_null)
 nul = read("time_lost_null", required=False)
 if nul:
     x = num(schema(nul), "time_lost_s")
@@ -520,7 +487,6 @@ if nul:
     emit_rows("gold_time_lost_reference", "bucket VARCHAR, n_stop_free_intervals BIGINT",
               [(f"tl{i}", int(counts.get(i, 0))) for i in range(len(TL_EDGES) + 1)])
 
-# 4. Observed vs expected visits per stop/day (expected_per_stop) - only if keys line up
 exp = read("expected_per_stop", required=False)
 if exp:
     m = scalar(f"SELECT COUNT(DISTINCT stop_ref) FROM sv WHERE stop_ref IN (SELECT CAST(stop_id AS VARCHAR) FROM {exp})")
@@ -537,7 +503,6 @@ if exp:
     else:
         print("  gold_stop_coverage skipped: no stop_id overlap with clean_stop_visits.stop_ref")
 
-# 5. stop_event_status: counts per status values exactly as they appear in silver (no assumed meanings)
 ses = read("stop_event_status", required=False)
 if ses:
     q = schema(ses)
@@ -548,24 +513,6 @@ if ses:
         FROM {ses} GROUP BY ALL""")
     vals = con.execute("SELECT visit_status, final_status, SUM(n_events) FROM gold_event_status GROUP BY ALL ORDER BY 3 DESC").fetchall()
     info("stop_event_status values (visit_status, final_status, n)", vals)
-
-# %% [markdown]
-# ### Headways and busy roads (from silver `stop_headways` and `trip_segments`)
-#
-# - `gold_headway_hour`: additive headway sums per service date, hour, line, direction and stop, from silver's
-#   `stop_headways` (buses in the order they ACTUALLY passed; the scheduled headway is the timetable gap between the
-#   same two trips). Bunched / large gap use the thresholds above. Sums of squares give the excess waiting time:
-#   `EWT = sum_h2/(2*sum_h) - sum_s2/(2*sum_s)`, and the headway spread: `CV = sqrt(sum_h2/n - (sum_h/n)^2) / (sum_h/n)`.
-# - `gold_headway_route`: the same over all days per line, direction and hour band, with CV, EWT, bunching and gap shares.
-# - `gold_bunching_stops`: one row per stop with coordinates and bunching share, ranked (map of where buses bunch).
-# - `gold_road_segment_hour`: per road segment (two consecutive stops, in driving direction, all lines together),
-#   day type (weekday / weekend) and local hour: runs, median and 15th/85th percentile speed, median run time and
-#   median deviation from the timetable.
-# - `gold_busy_roads`: one row per road segment: free-flow speed (85th percentile), median speed in each hour band,
-#   travel time index (free-flow speed / weekday-peak speed; 1.0 = no slowdown), share of speed lost at peak, and
-#   vehicle-hours lost (sum over all runs of the time beyond free-flow driving: frequency x slowdown). Ranked by
-#   vehicle-hours lost and by travel time index. A run time is driving plus the dwell at the next stop (Kolumbus
-#   reports one time per stop), so stops with long dwells also show up; compare segments, not single runs.
 
 # %%
 print("Building headway and busy-road tables...")
@@ -617,7 +564,6 @@ if hw_rel:
                 SELECT stop_ref, COUNT(DISTINCT line_ref) AS n_lines, {HW_SUMS} FROM hw2 GROUP BY ALL)) b
         LEFT JOIN dim_stop d USING (stop_ref)
         ORDER BY bunching_rank NULLS LAST""")
-    # heatmap-ready bunching: one row per cell, all days together
     emit("gold_heat_bunching_route_hour", f"""
         SELECT r.*, l.route_short_name FROM (
           SELECT *, {HW_RATIOS} FROM (
@@ -663,7 +609,7 @@ if seg_rel:
           FROM road2 GROUP BY ALL),
         r AS (
           SELECT road2.*, ff.free_flow_kmh,
-                 greatest(run_s - dist_m / (ff.free_flow_kmh / 3.6), 0) AS excess_s,     -- time beyond free-flow driving
+                 greatest(run_s - dist_m / (ff.free_flow_kmh / 3.6), 0) AS excess_s,
                  (day_type = 'weekday' AND hour_band IN ('am_peak', 'pm_peak')) AS is_peak
           FROM road2 JOIN ff USING (from_stop_ref, to_stop_ref)),
         seg AS (
@@ -685,8 +631,8 @@ if seg_rel:
           FROM r GROUP BY from_stop_ref, to_stop_ref),
         x AS (
           SELECT seg.*,
-                 free_flow_kmh / NULLIF(peak_kmh, 0)     AS travel_time_index,     -- 1.0 = no slowdown at peak
-                 1 - peak_kmh / NULLIF(free_flow_kmh, 0) AS peak_speed_loss,       -- share of free-flow speed lost
+                 free_flow_kmh / NULLIF(peak_kmh, 0)     AS travel_time_index,
+                 1 - peak_kmh / NULLIF(free_flow_kmh, 0) AS peak_speed_loss,
                  (n_runs >= {ROAD_MIN_RUNS} AND n_peak_runs >= {ROAD_MIN_PEAK_RUNS}) AS ranked
           FROM seg)
         SELECT x.*,
@@ -698,7 +644,6 @@ if seg_rel:
         LEFT JOIN dim_stop fs  ON fs.stop_ref  = x.from_stop_ref
         LEFT JOIN dim_stop tsd ON tsd.stop_ref = x.to_stop_ref
         ORDER BY rank_hours_lost NULLS LAST""")
-    # heatmap-ready speed: network-wide and per line, all days together
     emit("gold_heat_speed_weekday_hour", f"""
         SELECT weekday, {WEEKDAY_NAME_SQL} AS weekday_name, local_hour, COUNT(DISTINCT service_date) AS n_days,
                COUNT(*) AS n_runs, median(kmh) AS median_kmh, quantile_cont(kmh, 0.15) AS p15_kmh,
@@ -716,8 +661,6 @@ if seg_rel:
     for row in top:
         info("busiest road segment (vehicle-hours lost, travel time index)", f"{row[0]} -> {row[1]} [{row[2]}]: {row[3]} h, {row[4]}")
 
-    # speed per day x hour x line x road segment, as sums: after any filter,
-    # average speed = sum_distance_m / sum_run_s * 3.6 (distance-weighted), time lost = sum_excess_s
     emit("gold_speed_hour", f"""
         WITH ff AS (SELECT from_stop_ref, to_stop_ref, quantile_cont(kmh, {FREE_FLOW_Q}) AS free_flow_kmh
                     FROM road2 GROUP BY ALL)
@@ -730,7 +673,6 @@ if seg_rel:
         GROUP BY service_date, iso_week, weekday, day_type, local_hour, hour_band,
                  line_ref, direction_ref, from_stop_ref, to_stop_ref""")
 
-    # all valid stop-to-stop runs of a trip (no busy-road filters), for trip distance and speed
     con.execute(f"""
     CREATE OR REPLACE TEMP TABLE trip_runs AS
     SELECT TRY_CAST(service_date AS DATE) AS service_date, {label(gs,'trip_id')} AS trip_id,
@@ -741,8 +683,7 @@ if seg_rel:
     GROUP BY ALL""")
 else:
     info("trip_segments not in silver", "busy-road tables skipped")
-# one row per observed trip: delays (gold_trip_summary) + distance and speed (trip_segments)
-# + how often this bus arrived bunched behind the previous one (stop_headways)
+
 trip_parts = ["t.*", "weekofyear(t.service_date) AS iso_week"]
 trip_joins = ""
 if seg_rel:
@@ -852,5 +793,3 @@ failed = [l for k, l, ok, _ in LOG if k == "check" and not ok]
 print(f"SUCCESS: all {n_pass} reconciliation checks passed. Gold layer ready at {GOLD_DIR.resolve()}" if not failed
       else f"WARNING: {len(failed)} check(s) failed: {failed}")
 assert not failed, f"Failed checks: {failed}"
-
-

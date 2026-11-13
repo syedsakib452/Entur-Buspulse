@@ -1,0 +1,1538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GeoPulse · Interactive Data Table &amp; Cached Map Dashboard</title>
+
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+  <style>
+    /* Custom scrollbar & subtle map animations */
+    ::-webkit-scrollbar {
+      width: 7px;
+      height: 7px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    .leaflet-container {
+      font-family: 'Inter', system-ui, sans-serif !important;
+      z-index: 10;
+    }
+
+    /* Custom Leaflet Popup Styling */
+    .leaflet-popup-content-wrapper {
+      border-radius: 14px !important;
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.18), 0 4px 10px -2px rgba(15, 23, 42, 0.08) !important;
+      padding: 2px !important;
+    }
+    .leaflet-popup-content {
+      margin: 12px 14px !important;
+      line-height: 1.45 !important;
+    }
+
+    /* Pulse ring for active selected marker */
+    @keyframes markerPulse {
+      0% {
+        transform: scale(0.95);
+        opacity: 0.75;
+      }
+      70% {
+        transform: scale(1.85);
+        opacity: 0;
+      }
+      100% {
+        transform: scale(1.85);
+        opacity: 0;
+      }
+    }
+    .marker-pulse-ring {
+      animation: markerPulse 1.8s infinite cubic-bezier(0.24, 0, 0.38, 1);
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans antialiased selection:bg-indigo-100 selection:text-indigo-900">
+
+  <!-- Toast Notification Container (replaces alert/confirm) -->
+  <div id="toastContainer" class="fixed bottom-4 right-4 z-[9999] flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+  <!-- Top Header & Tile Cache Telemetry Bar -->
+  <header class="bg-white border-b border-slate-200/90 sticky top-0 z-30 shadow-xs">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 py-3">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+        <!-- Brand & Connectivity -->
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-blue-600 text-white flex items-center justify-center shadow-sm shrink-0">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+              </svg>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h1 class="text-base sm:text-lg font-bold tracking-tight text-slate-900">GeoPulse Explorer</h1>
+                <span id="networkBadge" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  Online
+                </span>
+              </div>
+              <p class="text-xs text-slate-500 hidden sm:block">Synced Asset Table &amp; Persistent Client-Cached Map</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tile Cache Status Bar -->
+        <div class="flex flex-wrap items-center gap-2 bg-slate-50 border border-slate-200/90 rounded-2xl p-2">
+          <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white border border-slate-200/70 shadow-2xs" title="Tiles served directly from local browser storage without downloading">
+            <svg class="w-3.5 h-3.5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span class="text-xs text-slate-500">Cache Hits:</span>
+            <span id="cacheHitsCount" class="text-xs font-mono font-semibold text-emerald-700">0</span>
+          </div>
+
+          <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white border border-slate-200/70 shadow-2xs" title="New tiles fetched over the network and saved locally">
+            <svg class="w-3.5 h-3.5 text-blue-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            <span class="text-xs text-slate-500">Downloads:</span>
+            <span id="networkDownloadsCount" class="text-xs font-mono font-semibold text-blue-700">0</span>
+          </div>
+
+          <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white border border-slate-200/70 shadow-2xs" title="Total map tiles persisted in local browser storage">
+            <svg class="w-3.5 h-3.5 text-indigo-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+            </svg>
+            <span class="text-xs text-slate-500">Stored:</span>
+            <span id="storedTilesInfo" class="text-xs font-mono font-semibold text-slate-800">0 tiles (0 KB)</span>
+            <span id="storageBackendTag" class="text-[10px] font-medium px-1.5 py-0.2 bg-indigo-50 text-indigo-700 rounded-md">IndexedDB</span>
+          </div>
+
+          <div class="flex items-center gap-1.5 ml-auto sm:ml-0">
+            <button id="precacheBtn" type="button"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white transition shadow-2xs cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+              </svg>
+              <span id="precacheBtnLabel">Pre-cache Current View</span>
+            </button>
+
+            <button id="clearCacheBtn" type="button"
+              class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium bg-white hover:bg-rose-50 text-slate-700 hover:text-rose-700 border border-slate-200 hover:border-rose-200 transition cursor-pointer"
+              title="Delete all locally stored map tiles">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              <span>Clear Tile Cache</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Responsive Split-Pane Workspace -->
+  <main class="max-w-[1600px] mx-auto px-4 sm:px-6 py-5">
+    <div class="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
+
+      <!-- LEFT PANE: Filterable & Sortable Data Table -->
+      <section class="xl:col-span-7 bg-white border border-slate-200/90 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+        <!-- Table Header & Data Actions -->
+        <div class="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <div class="flex items-center gap-2.5">
+              <h2 class="text-base font-bold text-slate-900">Locations &amp; Network Assets</h2>
+              <span id="showingCountBadge" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">
+                Showing 15 of 15 items
+              </span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">Click any row to fly the map there, or click a map pin to highlight its record.</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <button id="openImportModalBtn" type="button"
+              class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 transition cursor-pointer">
+              <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+              Import CSV / JSON
+            </button>
+
+            <button id="openAddModalBtn" type="button"
+              class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white transition shadow-2xs cursor-pointer">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              + Add Entry
+            </button>
+          </div>
+        </div>
+
+        <!-- Multi-Control Filter Bar -->
+        <div class="p-3.5 sm:px-5 bg-slate-50/80 border-b border-slate-200/80 grid grid-cols-1 sm:grid-cols-12 gap-2.5">
+          <!-- Live Keyword Search -->
+          <div class="sm:col-span-5 relative">
+            <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+            </svg>
+            <input id="searchInput" type="text" placeholder="Search ID, name, city, metric..."
+              class="w-full pl-9 pr-8 py-2 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+            <button id="clearSearchBtn" type="button" aria-label="Clear search"
+              class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-sm font-bold cursor-pointer">
+              ×
+            </button>
+          </div>
+
+          <!-- Category Dropdown -->
+          <div class="sm:col-span-3">
+            <select id="categoryFilter"
+              class="w-full px-3 py-2 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition cursor-pointer">
+              <option value="ALL">All Categories</option>
+            </select>
+          </div>
+
+          <!-- Status Dropdown -->
+          <div class="sm:col-span-2">
+            <select id="statusFilter"
+              class="w-full px-3 py-2 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition cursor-pointer">
+              <option value="ALL">All Statuses</option>
+            </select>
+          </div>
+
+          <!-- Clear Filters Button -->
+          <div class="sm:col-span-2">
+            <button id="clearFiltersBtn" type="button"
+              class="w-full h-full px-3 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 transition cursor-pointer">
+              Clear Filters
+            </button>
+          </div>
+        </div>
+
+        <!-- Scrollable Responsive Data Table -->
+        <div id="tableScrollContainer" class="overflow-auto max-h-[540px] xl:max-h-[630px] relative">
+          <table class="w-full text-left border-collapse min-w-[760px]">
+            <thead class="bg-slate-50 sticky top-0 z-10 border-b border-slate-200 text-[11px] font-semibold uppercase tracking-wider text-slate-500 select-none">
+              <tr>
+                <th data-sort="id" class="py-3 px-3.5 cursor-pointer hover:bg-slate-100/80 hover:text-slate-800 transition">
+                  <div class="flex items-center gap-1">ID <span class="sort-icon text-slate-400">↕</span></div>
+                </th>
+                <th data-sort="name" class="py-3 px-3.5 cursor-pointer hover:bg-slate-100/80 hover:text-slate-800 transition">
+                  <div class="flex items-center gap-1">Name <span class="sort-icon text-slate-400">↕</span></div>
+                </th>
+                <th data-sort="category" class="py-3 px-3.5 cursor-pointer hover:bg-slate-100/80 hover:text-slate-800 transition">
+                  <div class="flex items-center gap-1">Category <span class="sort-icon text-slate-400">↕</span></div>
+                </th>
+                <th data-sort="status" class="py-3 px-3.5 cursor-pointer hover:bg-slate-100/80 hover:text-slate-800 transition">
+                  <div class="flex items-center gap-1">Status <span class="sort-icon text-slate-400">↕</span></div>
+                </th>
+                <th data-sort="city" class="py-3 px-3.5 cursor-pointer hover:bg-slate-100/80 hover:text-slate-800 transition">
+                  <div class="flex items-center gap-1">City / Area <span class="sort-icon text-slate-400">↕</span></div>
+                </th>
+                <th data-sort="lat" class="py-3 px-3.5 cursor-pointer hover:bg-slate-100/80 hover:text-slate-800 transition">
+                  <div class="flex items-center gap-1">Lat / Lng <span class="sort-icon text-slate-400">↕</span></div>
+                </th>
+                <th data-sort="value" class="py-3 px-3.5 text-right cursor-pointer hover:bg-slate-100/80 hover:text-slate-800 transition">
+                  <div class="flex items-center justify-end gap-1">Value / Metric <span class="sort-icon text-slate-400">↕</span></div>
+                </th>
+              </tr>
+            </thead>
+            <tbody id="tableBody" class="divide-y divide-slate-100 text-xs sm:text-sm"></tbody>
+          </table>
+
+          <!-- Empty Filter State -->
+          <div id="emptyTableState" class="hidden py-14 px-6 text-center">
+            <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 class="text-sm font-semibold text-slate-800">No matching locations found</h3>
+            <p class="text-xs text-slate-500 mt-1 max-w-xs mx-auto">Try clearing your search term or resetting the Category and Status dropdowns.</p>
+            <button id="emptyResetBtn" type="button"
+              class="mt-3 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white transition cursor-pointer">
+              Reset All Filters
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT PANE: Always-Available Online Map with Street & Dark Toggle -->
+      <section class="xl:col-span-5 bg-white border border-slate-200/90 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+        <!-- Map Card Header -->
+        <div class="p-4 sm:px-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2.5">
+          <div>
+            <h2 class="text-base font-bold text-slate-900">Interactive Map View</h2>
+            <p class="text-xs text-slate-500">Tiles auto-cache locally in your browser on first view</p>
+          </div>
+
+          <!-- Prominent Segmented Toggle: Street View vs Dark View -->
+          <div role="group" aria-label="Map style switch" class="inline-flex p-1 rounded-xl bg-slate-100 border border-slate-200/80">
+            <button id="streetViewBtn" type="button"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer bg-white text-slate-900 shadow-xs">
+              <svg class="w-3.5 h-3.5 text-amber-500" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+              Street View
+            </button>
+            <button id="darkViewBtn" type="button"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer text-slate-600 hover:text-slate-900">
+              <svg class="w-3.5 h-3.5 text-indigo-500" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+              </svg>
+              Dark View
+            </button>
+          </div>
+        </div>
+
+        <!-- Map Viewport Wrapper -->
+        <div id="mapWrapper" class="relative w-full h-[430px] sm:h-[500px] xl:h-[690px] bg-slate-200">
+          <div id="leafletMap" class="w-full h-full"></div>
+
+          <!-- Floating Fit Bounds Control -->
+          <button id="fitBoundsBtn" type="button"
+            class="absolute top-3 right-3 z-[500] inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-white/95 hover:bg-white text-slate-800 border border-slate-200/90 shadow-md backdrop-blur-xs transition cursor-pointer"
+            title="Zoom map to fit all currently filtered locations">
+            <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+            </svg>
+            Fit Filtered Pins
+          </button>
+
+          <!-- Floating Legend Pill -->
+          <div class="absolute bottom-3 left-3 z-[500] bg-white/95 backdrop-blur-xs border border-slate-200/90 rounded-xl px-3 py-2 shadow-md flex flex-wrap items-center gap-3 text-[11px] font-medium text-slate-700">
+            <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>Operational</span>
+            <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>Congested / Delayed</span>
+            <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>Maintenance</span>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- MODAL 1: + Add Entry -->
+  <div id="addEntryModal" class="hidden fixed inset-0 z-[2000] bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-lg w-full overflow-hidden animate-fadeIn">
+      <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-bold text-slate-900">Add New Location Entry</h3>
+          <p class="text-xs text-slate-500">Immediately adds the record to the table and places a pin on the map.</p>
+        </div>
+        <button type="button" data-close-modal="addEntryModal" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer">✕</button>
+      </div>
+
+      <form id="addEntryForm" class="p-5 space-y-3.5 text-xs sm:text-sm">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">ID *</label>
+            <input id="entryId" type="text" required placeholder="AST-116"
+              class="w-full px-3 py-2 border border-slate-200 rounded-xl font-mono text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500" />
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Location / Asset Name *</label>
+            <input id="entryName" type="text" required placeholder="e.g. Hillevåg Transit Stop"
+              class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Category *</label>
+            <input id="entryCategory" type="text" list="categorySuggestions" required placeholder="e.g. Transit Hub"
+              class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500" />
+            <datalist id="categorySuggestions">
+              <option value="Transit Hub"></option>
+              <option value="Mobility Corridor"></option>
+              <option value="Regional Hub"></option>
+              <option value="Charging Depot"></option>
+              <option value="Rail Interchange"></option>
+            </datalist>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Status *</label>
+            <select id="entryStatus"
+              class="w-full px-3 py-2 border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500">
+              <option value="Operational">Operational</option>
+              <option value="Congested">Congested</option>
+              <option value="Delayed">Delayed</option>
+              <option value="Maintenance">Maintenance</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">City / Area *</label>
+            <input id="entryCity" type="text" required placeholder="e.g. Stavanger"
+              class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Value / Metric *</label>
+            <input id="entryValue" type="text" required placeholder="e.g. 92.4% OTP"
+              class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500" />
+          </div>
+        </div>
+
+        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-700">Coordinates</span>
+            <button id="useMapCenterBtn" type="button"
+              class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 cursor-pointer">
+              📍 Fill from current map center
+            </button>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] text-slate-500 mb-1">Latitude (-90 to 90) *</label>
+              <input id="entryLat" type="number" step="any" min="-90" max="90" required placeholder="58.9550"
+                class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg font-mono text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/30" />
+            </div>
+            <div>
+              <label class="block text-[11px] text-slate-500 mb-1">Longitude (-180 to 180) *</label>
+              <input id="entryLng" type="number" step="any" min="-180" max="180" required placeholder="5.7250"
+                class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg font-mono text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/30" />
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-2 flex items-center justify-end gap-2">
+          <button type="button" data-close-modal="addEntryModal"
+            class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer">
+            Cancel
+          </button>
+          <button type="submit"
+            class="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs cursor-pointer">
+            Save &amp; Show on Map
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 2: Import CSV / JSON -->
+  <div id="importModal" class="hidden fixed inset-0 z-[2000] bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-xl w-full overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-bold text-slate-900">Import CSV or JSON Dataset</h3>
+          <p class="text-xs text-slate-500">Upload a file or paste rows with ID, Name, Category, Status, City, Latitude, Longitude, Value.</p>
+        </div>
+        <button type="button" data-close-modal="importModal" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer">✕</button>
+      </div>
+
+      <div class="p-5 space-y-4 text-xs sm:text-sm">
+        <!-- File Upload Dropzone -->
+        <label for="importFileInput"
+          class="flex flex-col items-center justify-center p-5 border-2 border-dashed border-slate-300 hover:border-indigo-400 rounded-2xl bg-slate-50/70 hover:bg-indigo-50/30 transition cursor-pointer text-center">
+          <svg class="w-7 h-7 text-indigo-500 mb-1.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          </svg>
+          <span class="text-xs font-semibold text-slate-800">Click to select a .CSV or .JSON file</span>
+          <span class="text-[11px] text-slate-500 mt-0.5">Columns are matched automatically (case-insensitive)</span>
+          <input id="importFileInput" type="file" accept=".csv,.json,text/csv,application/json" class="hidden" />
+        </label>
+
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-xs font-semibold text-slate-700">Or paste CSV / JSON text directly</label>
+            <button id="fillSampleCsvBtn" type="button" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 cursor-pointer">
+              Insert sample CSV
+            </button>
+          </div>
+          <textarea id="importTextArea" rows="5"
+            placeholder="id,name,category,status,city,latitude,longitude,value&#10;HUB-01,Oslo Sentralstasjon,Transit Hub,Operational,Oslo,59.9111,10.7528,93.5% OTP"
+            class="w-full p-3 border border-slate-200 rounded-xl font-mono text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500"></textarea>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+          <button id="restoreDefaultDataBtn" type="button"
+            class="px-3 py-2 rounded-xl text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 cursor-pointer">
+            Restore 15 Default Locations
+          </button>
+
+          <div class="flex items-center gap-2">
+            <button id="importAppendBtn" type="button"
+              class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-800 cursor-pointer">
+              Append to Table
+            </button>
+            <button id="importReplaceBtn" type="button"
+              class="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs cursor-pointer">
+              Replace Table Data
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      // =========================================================================
+      // 1. PERSISTENT TILE CACHE MANAGER (IndexedDB -> Cache API -> Memory Map)
+      // =========================================================================
+      class PersistentTileStore {
+        constructor(dbName = 'GeoPulseTileDB', storeName = 'map_tile_cache') {
+          this.dbName = dbName;
+          this.storeName = storeName;
+          this.db = null;
+          this.cacheApi = null;
+          this.memoryStore = new Map();
+          this.backend = 'initializing';
+          this.hits = 0;
+          this.downloads = 0;
+          this.readyPromise = this._init();
+        }
+
+        async _init() {
+          // 1. Try IndexedDB first (persistent across browser sessions & page reloads)
+          if (typeof indexedDB !== 'undefined') {
+            try {
+              this.db = await new Promise((resolve, reject) => {
+                const req = indexedDB.open(this.dbName, 1);
+                req.onupgradeneeded = (event) => {
+                  const db = event.target.result;
+                  if (!db.objectStoreNames.contains(this.storeName)) {
+                    db.createObjectStore(this.storeName, { keyPath: 'key' });
+                  }
+                };
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+              });
+              this.backend = 'IndexedDB';
+              return;
+            } catch (err) {
+              console.warn('IndexedDB unavailable (likely sandboxed iframe), trying Cache API:', err);
+            }
+          }
+
+          // 2. Fallback to Cache API
+          if (typeof caches !== 'undefined') {
+            try {
+              this.cacheApi = await caches.open(this.storeName);
+              this.backend = 'Cache API';
+              return;
+            } catch (err) {
+              console.warn('Cache API unavailable, falling back to in-memory Map:', err);
+            }
+          }
+
+          // 3. Fallback to in-memory Map
+          this.backend = 'Memory';
+        }
+
+        async get(key) {
+          await this.readyPromise;
+          if (this.backend === 'IndexedDB' && this.db) {
+            return new Promise((resolve) => {
+              try {
+                const tx = this.db.transaction(this.storeName, 'readonly');
+                const store = tx.objectStore(this.storeName);
+                const req = store.get(key);
+                req.onsuccess = () => resolve(req.result ? req.result.blob : null);
+                req.onerror = () => resolve(null);
+              } catch (_) {
+                resolve(null);
+              }
+            });
+          }
+          if (this.backend === 'Cache API' && this.cacheApi) {
+            try {
+              const res = await this.cacheApi.match('/' + encodeURIComponent(key));
+              return res ? await res.blob() : null;
+            } catch (_) {
+              return null;
+            }
+          }
+          return this.memoryStore.get(key) || null;
+        }
+
+        async put(key, blob, layerId) {
+          await this.readyPromise;
+          if (!blob || blob.size === 0) return;
+
+          if (this.backend === 'IndexedDB' && this.db) {
+            return new Promise((resolve) => {
+              try {
+                const tx = this.db.transaction(this.storeName, 'readwrite');
+                const store = tx.objectStore(this.storeName);
+                store.put({
+                  key,
+                  blob,
+                  size: blob.size,
+                  layerId,
+                  timestamp: Date.now(),
+                });
+                tx.oncomplete = () => resolve(true);
+                tx.onerror = () => resolve(false);
+              } catch (_) {
+                resolve(false);
+              }
+            });
+          }
+          if (this.backend === 'Cache API' && this.cacheApi) {
+            try {
+              await this.cacheApi.put(
+                '/' + encodeURIComponent(key),
+                new Response(blob, { headers: { 'Content-Type': blob.type || 'image/png' } })
+              );
+              return true;
+            } catch (_) {
+              return false;
+            }
+          }
+          this.memoryStore.set(key, blob);
+          return true;
+        }
+
+        async getStats() {
+          await this.readyPromise;
+          if (this.backend === 'IndexedDB' && this.db) {
+            return new Promise((resolve) => {
+              try {
+                const tx = this.db.transaction(this.storeName, 'readonly');
+                const store = tx.objectStore(this.storeName);
+                let count = 0;
+                let totalBytes = 0;
+                const cursorReq = store.openCursor();
+                cursorReq.onsuccess = (e) => {
+                  const cursor = e.target.result;
+                  if (cursor) {
+                    count += 1;
+                    totalBytes += cursor.value.size || (cursor.value.blob ? cursor.value.blob.size : 0);
+                    cursor.continue();
+                  } else {
+                    resolve({ count, totalBytes, backend: this.backend });
+                  }
+                };
+                cursorReq.onerror = () => resolve({ count: 0, totalBytes: 0, backend: this.backend });
+              } catch (_) {
+                resolve({ count: 0, totalBytes: 0, backend: this.backend });
+              }
+            });
+          }
+          if (this.backend === 'Cache API' && this.cacheApi) {
+            try {
+              const keys = await this.cacheApi.keys();
+              let totalBytes = 0;
+              for (const req of keys) {
+                const res = await this.cacheApi.match(req);
+                if (res) {
+                  const b = await res.blob();
+                  totalBytes += b.size;
+                }
+              }
+              return { count: keys.length, totalBytes, backend: this.backend };
+            } catch (_) {
+              return { count: 0, totalBytes: 0, backend: this.backend };
+            }
+          }
+          let totalBytes = 0;
+          this.memoryStore.forEach((b) => { totalBytes += b.size || 0; });
+          return { count: this.memoryStore.size, totalBytes, backend: this.backend };
+        }
+
+        async clear() {
+          await this.readyPromise;
+          if (this.backend === 'IndexedDB' && this.db) {
+            await new Promise((resolve) => {
+              try {
+                const tx = this.db.transaction(this.storeName, 'readwrite');
+                tx.objectStore(this.storeName).clear();
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => resolve();
+              } catch (_) {
+                resolve();
+              }
+            });
+          } else if (this.backend === 'Cache API' && this.cacheApi) {
+            const keys = await this.cacheApi.keys();
+            await Promise.all(keys.map((k) => this.cacheApi.delete(k)));
+          } else {
+            this.memoryStore.clear();
+          }
+          this.hits = 0;
+          this.downloads = 0;
+        }
+      }
+
+      const tileStore = new PersistentTileStore();
+      const inFlightFetches = new Map(); // Deduplicates simultaneous tile network fetches
+
+      async function getOrFetchTileBlob(key, url, layerId) {
+        // 1. Check local persistent cache first
+        const cachedBlob = await tileStore.get(key);
+        if (cachedBlob) {
+          tileStore.hits += 1;
+          scheduleTelemetryRefresh();
+          return cachedBlob;
+        }
+
+        // 2. Deduplicate concurrent requests for the exact same tile key
+        if (inFlightFetches.has(key)) {
+          return inFlightFetches.get(key);
+        }
+
+        const fetchPromise = (async () => {
+          try {
+            const response = await fetch(url, { mode: 'cors' });
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}`);
+            }
+            const blob = await response.blob();
+            await tileStore.put(key, blob, layerId);
+            tileStore.downloads += 1;
+            scheduleTelemetryRefresh();
+            return blob;
+          } finally {
+            inFlightFetches.delete(key);
+          }
+        })();
+
+        inFlightFetches.set(key, fetchPromise);
+        return fetchPromise;
+      }
+
+      // =========================================================================
+      // 2. CUSTOM LEAFLET TILE LAYER SUBCLASS (CachedTileLayer)
+      // =========================================================================
+      const CachedTileLayer = L.TileLayer.extend({
+        createTile: function (coords, done) {
+          const tile = document.createElement('img');
+          tile.alt = '';
+          tile.setAttribute('role', 'presentation');
+
+          const url = this.getTileUrl(coords);
+          const layerId = this.options.layerId || 'default';
+          const cacheKey = `${layerId}_${coords.z}_${coords.x}_${coords.y}`;
+
+          getOrFetchTileBlob(cacheKey, url, layerId)
+            .then((blob) => {
+              const objectUrl = URL.createObjectURL(blob);
+              tile.onload = () => {
+                URL.revokeObjectURL(objectUrl);
+                done(null, tile);
+              };
+              tile.onerror = (err) => {
+                URL.revokeObjectURL(objectUrl);
+                done(err, tile);
+              };
+              tile.src = objectUrl;
+            })
+            .catch((err) => {
+              done(err, tile);
+            });
+
+          return tile;
+        },
+      });
+
+      // =========================================================================
+      // 3. SAMPLE DATASET (15 Realistic Locations / Transit & Mobility Assets)
+      // =========================================================================
+      const SAMPLE_DATASET = [
+        { id: 'AST-101', name: 'Stavanger Byterminal Hub', category: 'Transit Hub', status: 'Operational', city: 'Stavanger Sentrum', lat: 58.9699, lng: 5.7331, value: '94.2% OTP' },
+        { id: 'AST-102', name: 'Sandnes Sentrum Terminal', category: 'Transit Hub', status: 'Operational', city: 'Sandnes', lat: 58.8524, lng: 5.7352, value: '91.8% OTP' },
+        { id: 'AST-103', name: 'Forus Næringspark Nord', category: 'Mobility Corridor', status: 'Congested', city: 'Forus', lat: 58.8942, lng: 5.7185, value: '76.4% OTP' },
+        { id: 'AST-104', name: 'Stavanger Lufthavn Sola', category: 'Airport Link', status: 'Operational', city: 'Sola', lat: 58.8819, lng: 5.6278, value: '96.1% OTP' },
+        { id: 'AST-105', name: 'Universitetet i Stavanger (UiS)', category: 'Campus Hub', status: 'Operational', city: 'Ullandhaug', lat: 58.9378, lng: 5.6968, value: '89.5% OTP' },
+        { id: 'AST-106', name: 'SUS Nytt Sykehus Ullandhaug', category: 'Medical Hub', status: 'Operational', city: 'Ullandhaug', lat: 58.9325, lng: 5.7042, value: '92.7% OTP' },
+        { id: 'AST-107', name: 'Madlakrossen Interchange', category: 'Mobility Corridor', status: 'Delayed', city: 'Madla', lat: 58.9478, lng: 5.6769, value: '79.3% OTP' },
+        { id: 'AST-108', name: 'Randaberg Sentrum Stop', category: 'Regional Hub', status: 'Operational', city: 'Randaberg', lat: 59.0016, lng: 5.6164, value: '95.0% OTP' },
+        { id: 'AST-109', name: 'Tananger Ferry & Bus Quay', category: 'Ferry Terminal', status: 'Operational', city: 'Tananger', lat: 58.9347, lng: 5.5761, value: '93.4% OTP' },
+        { id: 'AST-110', name: 'Jåttåvågen Station Plaza', category: 'Rail Interchange', status: 'Operational', city: 'Hinna Park', lat: 58.9126, lng: 5.7318, value: '90.6% OTP' },
+        { id: 'AST-111', name: 'Kvadrat Shopping Hub', category: 'Commercial Hub', status: 'Congested', city: 'Lura', lat: 58.8774, lng: 5.7248, value: '78.1% OTP' },
+        { id: 'AST-112', name: 'Hundvåg Senter Terminal', category: 'Island Hub', status: 'Operational', city: 'Hundvåg', lat: 58.9945, lng: 5.7294, value: '92.0% OTP' },
+        { id: 'AST-113', name: 'Bryne Stasjon Bus Plaza', category: 'Regional Hub', status: 'Operational', city: 'Bryne', lat: 58.7358, lng: 5.6476, value: '94.8% OTP' },
+        { id: 'AST-114', name: 'Klepp Krossen Depot', category: 'Charging Depot', status: 'Maintenance', city: 'Kleppe', lat: 58.7764, lng: 5.6295, value: '82.5% Load' },
+        { id: 'AST-115', name: 'Ålgård Sentrum Terminal', category: 'Regional Hub', status: 'Delayed', city: 'Ålgård', lat: 58.7647, lng: 5.8542, value: '81.2% OTP' },
+      ];
+
+      // =========================================================================
+      // 4. APPLICATION STATE
+      // =========================================================================
+      const state = {
+        items: SAMPLE_DATASET.map((d) => ({ ...d })),
+        search: '',
+        category: 'ALL',
+        status: 'ALL',
+        sortKey: 'id',
+        sortDir: 'asc', // 'asc' | 'desc'
+        selectedId: null,
+        mapStyle: 'street', // 'street' | 'dark'
+      };
+
+      // =========================================================================
+      // 5. LEAFLET MAP INITIALIZATION (Street & Dark Cached Layers)
+      // =========================================================================
+      const TILE_URLS = {
+        street: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+        dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+      };
+
+      const map = L.map('leafletMap', {
+        center: [58.915, 5.705],
+        zoom: 11,
+        zoomControl: true,
+      });
+
+      const streetLayer = new CachedTileLayer(TILE_URLS.street, {
+        layerId: 'street',
+        subdomains: 'abcd',
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+      });
+
+      const darkLayer = new CachedTileLayer(TILE_URLS.dark, {
+        layerId: 'dark',
+        subdomains: 'abcd',
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+      });
+
+      streetLayer.addTo(map);
+      const markersLayer = L.layerGroup().addTo(map);
+      const markerById = new Map();
+
+      // Ensure Leaflet adapts smoothly on responsive container resize
+      const mapWrapper = document.getElementById('mapWrapper');
+      if (typeof ResizeObserver !== 'undefined' && mapWrapper) {
+        new ResizeObserver(() => map.invalidateSize()).observe(mapWrapper);
+      }
+
+      // =========================================================================
+      // 6. UI HELPERS (Toasts, Status Styling, Escaping, Telemetry)
+      // =========================================================================
+      function showToast(message, type = 'info') {
+        const container = document.getElementById('toastContainer');
+        const colors = {
+          success: 'bg-slate-900 text-white border-emerald-500/50',
+          info: 'bg-slate-900 text-white border-indigo-500/50',
+          warning: 'bg-amber-950 text-amber-50 border-amber-500/60',
+          error: 'bg-rose-950 text-rose-50 border-rose-500/60',
+        };
+        const icons = {
+          success: '✓',
+          info: 'ℹ',
+          warning: '⚠',
+          error: '✕',
+        };
+        const el = document.createElement('div');
+        el.className = `pointer-events-auto flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border shadow-lg text-xs font-medium transition-all duration-200 ${colors[type] || colors.info}`;
+        el.innerHTML = `<span class="font-bold text-sm">${icons[type] || 'ℹ'}</span><span>${escapeHtml(message)}</span>`;
+        container.appendChild(el);
+        setTimeout(() => {
+          el.style.opacity = '0';
+          el.style.transform = 'translateY(6px)';
+          setTimeout(() => el.remove(), 220);
+        }, 3200);
+      }
+
+      function escapeHtml(str) {
+        return String(str ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function getStatusMeta(status) {
+        const norm = String(status || '').toLowerCase();
+        if (norm.includes('operat') || norm.includes('active') || norm.includes('online') || norm.includes('normal')) {
+          return {
+            badge: 'bg-emerald-50 text-emerald-700 border-emerald-200/80',
+            dot: 'bg-emerald-500',
+            pinHex: '#10b981',
+          };
+        }
+        if (norm.includes('congest') || norm.includes('delay') || norm.includes('warn') || norm.includes('busy')) {
+          return {
+            badge: 'bg-amber-50 text-amber-800 border-amber-200/80',
+            dot: 'bg-amber-500',
+            pinHex: '#f59e0b',
+          };
+        }
+        if (norm.includes('maint') || norm.includes('offline') || norm.includes('error') || norm.includes('closed')) {
+          return {
+            badge: 'bg-rose-50 text-rose-700 border-rose-200/80',
+            dot: 'bg-rose-500',
+            pinHex: '#f43f5e',
+          };
+        }
+        return {
+          badge: 'bg-sky-50 text-sky-700 border-sky-200/80',
+          dot: 'bg-sky-500',
+          pinHex: '#0ea5e9',
+        };
+      }
+
+      function formatBytes(bytes) {
+        if (!bytes || bytes <= 0) return '0 KB';
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+        return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+      }
+
+      let telemetryTimer = null;
+      function scheduleTelemetryRefresh() {
+        document.getElementById('cacheHitsCount').textContent = tileStore.hits.toLocaleString();
+        document.getElementById('networkDownloadsCount').textContent = tileStore.downloads.toLocaleString();
+        if (telemetryTimer) clearTimeout(telemetryTimer);
+        telemetryTimer = setTimeout(refreshCacheStats, 250);
+      }
+
+      async function refreshCacheStats() {
+        const stats = await tileStore.getStats();
+        document.getElementById('cacheHitsCount').textContent = tileStore.hits.toLocaleString();
+        document.getElementById('networkDownloadsCount').textContent = tileStore.downloads.toLocaleString();
+        document.getElementById('storedTilesInfo').textContent =
+          `${stats.count.toLocaleString()} tile${stats.count === 1 ? '' : 's'} (${formatBytes(stats.totalBytes)})`;
+        document.getElementById('storageBackendTag').textContent = stats.backend;
+      }
+
+      // =========================================================================
+      // 7. FILTERING, SORTING & BIDIRECTIONAL SYNC RENDERING
+      // =========================================================================
+      function populateFilterDropdowns() {
+        const catSelect = document.getElementById('categoryFilter');
+        const statusSelect = document.getElementById('statusFilter');
+        const prevCat = state.category;
+        const prevStatus = state.status;
+
+        const categories = [...new Set(state.items.map((i) => i.category).filter(Boolean))].sort();
+        const statuses = [...new Set(state.items.map((i) => i.status).filter(Boolean))].sort();
+
+        catSelect.innerHTML = '<option value="ALL">All Categories</option>' +
+          categories.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+        statusSelect.innerHTML = '<option value="ALL">All Statuses</option>' +
+          statuses.map((s) => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+
+        state.category = categories.includes(prevCat) ? prevCat : 'ALL';
+        state.status = statuses.includes(prevStatus) ? prevStatus : 'ALL';
+        catSelect.value = state.category;
+        statusSelect.value = state.status;
+      }
+
+      function getFilteredAndSortedItems() {
+        const query = state.search.trim().toLowerCase();
+        const filtered = state.items.filter((item) => {
+          if (state.category !== 'ALL' && item.category !== state.category) return false;
+          if (state.status !== 'ALL' && item.status !== state.status) return false;
+          if (query) {
+            const hay = `${item.id} ${item.name} ${item.category} ${item.status} ${item.city} ${item.value}`.toLowerCase();
+            if (!hay.includes(query)) return false;
+          }
+          return true;
+        });
+
+        const { sortKey, sortDir } = state;
+        const mult = sortDir === 'asc' ? 1 : -1;
+
+        filtered.sort((a, b) => {
+          let va = a[sortKey];
+          let vb = b[sortKey];
+          if (sortKey === 'lat' || sortKey === 'lng') {
+            return (Number(va) - Number(vb)) * mult;
+          }
+          // Natural alphanumeric sort for strings & metrics
+          return String(va ?? '').localeCompare(String(vb ?? ''), undefined, { numeric: true, sensitivity: 'base' }) * mult;
+        });
+
+        return filtered;
+      }
+
+      function createCustomPinIcon(item, isSelected) {
+        const meta = getStatusMeta(item.status);
+        const size = isSelected ? 34 : 26;
+        const pulseHtml = isSelected
+          ? `<span class="marker-pulse-ring absolute inset-0 rounded-full" style="background:${meta.pinHex};"></span>`
+          : '';
+        const borderStyle = isSelected ? '3px solid #312e81' : '2.5px solid #ffffff';
+
+        return L.divIcon({
+          className: 'custom-geopulse-pin',
+          iconSize: [size, size],
+          iconAnchor: [size / 2, size / 2],
+          popupAnchor: [0, -size / 2],
+          html: `
+            <div style="width:${size}px;height:${size}px;position:relative;display:flex;align-items:center;justify-content:center;">
+              ${pulseHtml}
+              <div style="width:${size - 6}px;height:${size - 6}px;border-radius:9999px;background:${meta.pinHex};border:${borderStyle};box-shadow:0 3px 8px rgba(15,23,42,0.35);display:flex;align-items:center;justify-content:center;">
+                <div style="width:6px;height:6px;border-radius:9999px;background:#ffffff;"></div>
+              </div>
+            </div>
+          `,
+        });
+      }
+
+      function buildPopupHtml(item) {
+        const meta = getStatusMeta(item.status);
+        return `
+          <div class="min-w-[205px] text-slate-800">
+            <div class="flex items-center justify-between gap-2 mb-1">
+              <span class="font-mono text-[11px] font-semibold text-slate-500">${escapeHtml(item.id)}</span>
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${meta.badge}">
+                <span class="w-1.5 h-1.5 rounded-full ${meta.dot}"></span>${escapeHtml(item.status)}
+              </span>
+            </div>
+            <div class="font-bold text-sm text-slate-900 leading-snug">${escapeHtml(item.name)}</div>
+            <div class="text-xs text-slate-500 mt-0.5">${escapeHtml(item.category)} · ${escapeHtml(item.city)}</div>
+            <div class="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+              <span class="font-mono text-[11px] text-slate-500">${Number(item.lat).toFixed(4)}, ${Number(item.lng).toFixed(4)}</span>
+              <span class="font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">${escapeHtml(item.value)}</span>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderDashboard({ fitMap = false } = {}) {
+        const rows = getFilteredAndSortedItems();
+
+        // Update counter badge
+        document.getElementById('showingCountBadge').textContent =
+          `Showing ${rows.length} of ${state.items.length} items`;
+
+        // Update sort header arrows
+        document.querySelectorAll('th[data-sort]').forEach((th) => {
+          const key = th.getAttribute('data-sort');
+          const icon = th.querySelector('.sort-icon');
+          if (key === state.sortKey) {
+            icon.textContent = state.sortDir === 'asc' ? '↑' : '↓';
+            icon.className = 'sort-icon text-indigo-600 font-bold';
+          } else {
+            icon.textContent = '↕';
+            icon.className = 'sort-icon text-slate-400';
+          }
+        });
+
+        // Render table rows
+        const tbody = document.getElementById('tableBody');
+        const emptyState = document.getElementById('emptyTableState');
+
+        if (rows.length === 0) {
+          tbody.innerHTML = '';
+          emptyState.classList.remove('hidden');
+        } else {
+          emptyState.classList.add('hidden');
+          tbody.innerHTML = rows.map((item) => {
+            const isSelected = item.id === state.selectedId;
+            const meta = getStatusMeta(item.status);
+            const rowClasses = isSelected
+              ? 'bg-indigo-50/90 hover:bg-indigo-50 ring-1 ring-inset ring-indigo-500/35'
+              : 'hover:bg-slate-50/90';
+
+            return `
+              <tr data-row-id="${escapeHtml(item.id)}" class="cursor-pointer transition-colors ${rowClasses}">
+                <td class="py-3 px-3.5 font-mono text-xs font-semibold ${isSelected ? 'text-indigo-700' : 'text-slate-600'}">
+                  ${escapeHtml(item.id)}
+                </td>
+                <td class="py-3 px-3.5 font-semibold text-slate-900">
+                  ${escapeHtml(item.name)}
+                </td>
+                <td class="py-3 px-3.5 text-slate-600">
+                  <span class="inline-block px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+                    ${escapeHtml(item.category)}
+                  </span>
+                </td>
+                <td class="py-3 px-3.5">
+                  <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${meta.badge}">
+                    <span class="w-1.5 h-1.5 rounded-full ${meta.dot}"></span>
+                    ${escapeHtml(item.status)}
+                  </span>
+                </td>
+                <td class="py-3 px-3.5 text-slate-600">${escapeHtml(item.city)}</td>
+                <td class="py-3 px-3.5 font-mono text-[11px] text-slate-500">
+                  ${Number(item.lat).toFixed(4)}, ${Number(item.lng).toFixed(4)}
+                </td>
+                <td class="py-3 px-3.5 text-right font-mono text-xs font-semibold text-slate-800">
+                  ${escapeHtml(item.value)}
+                </td>
+              </tr>
+            `;
+          }).join('');
+        }
+
+        // Sync Map Markers
+        markersLayer.clearLayers();
+        markerById.clear();
+
+        rows.forEach((item) => {
+          const isSelected = item.id === state.selectedId;
+          const marker = L.marker([item.lat, item.lng], {
+            icon: createCustomPinIcon(item, isSelected),
+            zIndexOffset: isSelected ? 1000 : 0,
+          });
+          marker.bindPopup(buildPopupHtml(item), { maxWidth: 280 });
+          marker.on('click', () => {
+            selectItem(item.id, { flyToMap: false, scrollTable: true, openPopup: true });
+          });
+          marker.addTo(markersLayer);
+          markerById.set(item.id, marker);
+        });
+
+        if (fitMap && rows.length > 0) {
+          const bounds = L.latLngBounds(rows.map((r) => [r.lat, r.lng]));
+          map.fitBounds(bounds, { padding: [42, 42], maxZoom: 13 });
+        }
+      }
+
+      function selectItem(id, { flyToMap = true, scrollTable = true, openPopup = true } = {}) {
+        state.selectedId = id;
+        renderDashboard({ fitMap: false });
+
+        const item = state.items.find((i) => i.id === id);
+        if (!item) return;
+
+        if (flyToMap) {
+          map.flyTo([item.lat, item.lng], Math.max(map.getZoom(), 13), { duration: 0.7 });
+        }
+
+        const marker = markerById.get(id);
+        if (marker && openPopup) {
+          marker.openPopup();
+        }
+
+        if (scrollTable) {
+          const tr = document.querySelector(`tr[data-row-id="${CSS.escape(id)}"]`);
+          if (tr) {
+            tr.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        }
+      }
+
+      // =========================================================================
+      // 8. STREET VIEW & DARK VIEW TOGGLE
+      // =========================================================================
+      function setMapStyle(style) {
+        if (state.mapStyle === style) return;
+        state.mapStyle = style;
+
+        const streetBtn = document.getElementById('streetViewBtn');
+        const darkBtn = document.getElementById('darkViewBtn');
+
+        if (style === 'street') {
+          if (map.hasLayer(darkLayer)) map.removeLayer(darkLayer);
+          if (!map.hasLayer(streetLayer)) streetLayer.addTo(map);
+          streetBtn.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer bg-white text-slate-900 shadow-xs';
+          darkBtn.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer text-slate-600 hover:text-slate-900';
+        } else {
+          if (map.hasLayer(streetLayer)) map.removeLayer(streetLayer);
+          if (!map.hasLayer(darkLayer)) darkLayer.addTo(map);
+          darkBtn.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer bg-slate-900 text-white shadow-xs';
+          streetBtn.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer text-slate-600 hover:text-slate-900';
+        }
+      }
+
+      document.getElementById('streetViewBtn').addEventListener('click', () => setMapStyle('street'));
+      document.getElementById('darkViewBtn').addEventListener('click', () => setMapStyle('dark'));
+
+      // =========================================================================
+      // 9. PRE-CACHE CURRENT VIEW & CLEAR TILE CACHE CONTROLS
+      // =========================================================================
+      function buildTileUrlFromTemplate(template, z, x, y) {
+        const subdomains = ['a', 'b', 'c', 'd'];
+        const s = subdomains[Math.abs(x + y) % subdomains.length];
+        const r = L.Browser.retina ? '@2x' : '';
+        return template
+          .replace('{s}', s)
+          .replace('{z}', z)
+          .replace('{x}', x)
+          .replace('{y}', y)
+          .replace('{r}', r);
+      }
+
+      async function precacheCurrentViewport() {
+        const btn = document.getElementById('precacheBtn');
+        const label = document.getElementById('precacheBtnLabel');
+        btn.disabled = true;
+
+        try {
+          const zoom = Math.round(map.getZoom());
+          const bounds = map.getBounds();
+          const nw = map.project(bounds.getNorthWest(), zoom);
+          const se = map.project(bounds.getSouthEast(), zoom);
+          const maxTileIndex = Math.pow(2, zoom) - 1;
+
+          // Include 1-tile buffer around viewport for smooth panning
+          const minX = Math.max(0, Math.floor(nw.x / 256) - 1);
+          const maxX = Math.min(maxTileIndex, Math.floor(se.x / 256) + 1);
+          const minY = Math.max(0, Math.floor(nw.y / 256) - 1);
+          const maxY = Math.min(maxTileIndex, Math.floor(se.y / 256) + 1);
+
+          const tasks = [];
+          for (let x = minX; x <= maxX; x++) {
+            for (let y = minY; y <= maxY; y++) {
+              for (const layerId of ['street', 'dark']) {
+                if (tasks.length >= 140) break;
+                const key = `${layerId}_${zoom}_${x}_${y}`;
+                const url = buildTileUrlFromTemplate(TILE_URLS[layerId], zoom, x, y);
+                tasks.push({ key, url, layerId });
+              }
+            }
+          }
+
+          let completed = 0;
+          const prevDownloads = tileStore.downloads;
+          const batchSize = 6;
+
+          for (let i = 0; i < tasks.length; i += batchSize) {
+            const batch = tasks.slice(i, i + batchSize);
+            await Promise.allSettled(
+              batch.map((t) => getOrFetchTileBlob(t.key, t.url, t.layerId))
+            );
+            completed += batch.length;
+            label.textContent = `Caching ${completed}/${tasks.length}...`;
+          }
+
+          await refreshCacheStats();
+          const newlyDownloaded = tileStore.downloads - prevDownloads;
+          showToast(
+            `Viewport cached for both Street & Dark views (${newlyDownloaded} new tiles saved).`,
+            'success'
+          );
+        } catch (err) {
+          showToast('Could not finish pre-caching tiles while offline.', 'warning');
+        } finally {
+          btn.disabled = false;
+          label.textContent = 'Pre-cache Current View';
+        }
+      }
+
+      document.getElementById('precacheBtn').addEventListener('click', precacheCurrentViewport);
+
+      document.getElementById('clearCacheBtn').addEventListener('click', async () => {
+        await tileStore.clear();
+        await refreshCacheStats();
+        showToast('Local map tile cache cleared.', 'info');
+      });
+
+      // =========================================================================
+      // 10. EVENT LISTENERS (Filters, Sorting, Modals, CSV/JSON Import)
+      // =========================================================================
+      const searchInput = document.getElementById('searchInput');
+      const clearSearchBtn = document.getElementById('clearSearchBtn');
+
+      searchInput.addEventListener('input', (e) => {
+        state.search = e.target.value;
+        clearSearchBtn.classList.toggle('hidden', !state.search);
+        renderDashboard({ fitMap: false });
+      });
+
+      clearSearchBtn.addEventListener('click', () => {
+        state.search = '';
+        searchInput.value = '';
+        clearSearchBtn.classList.add('hidden');
+        renderDashboard({ fitMap: false });
+      });
+
+      document.getElementById('categoryFilter').addEventListener('change', (e) => {
+        state.category = e.target.value;
+        renderDashboard({ fitMap: true });
+      });
+
+      document.getElementById('statusFilter').addEventListener('change', (e) => {
+        state.status = e.target.value;
+        renderDashboard({ fitMap: true });
+      });
+
+      function resetAllFilters() {
+        state.search = '';
+        state.category = 'ALL';
+        state.status = 'ALL';
+        searchInput.value = '';
+        clearSearchBtn.classList.add('hidden');
+        document.getElementById('categoryFilter').value = 'ALL';
+        document.getElementById('statusFilter').value = 'ALL';
+        renderDashboard({ fitMap: true });
+      }
+
+      document.getElementById('clearFiltersBtn').addEventListener('click', resetAllFilters);
+      document.getElementById('emptyResetBtn').addEventListener('click', resetAllFilters);
+      document.getElementById('fitBoundsBtn').addEventListener('click', () => {
+        const rows = getFilteredAndSortedItems();
+        if (rows.length > 0) {
+          const bounds = L.latLngBounds(rows.map((r) => [r.lat, r.lng]));
+          map.fitBounds(bounds, { padding: [42, 42], maxZoom: 14 });
+        }
+      });
+
+      // Sortable table column headers
+      document.querySelectorAll('th[data-sort]').forEach((th) => {
+        th.addEventListener('click', () => {
+          const key = th.getAttribute('data-sort');
+          if (state.sortKey === key) {
+            state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
+          } else {
+            state.sortKey = key;
+            state.sortDir = 'asc';
+          }
+          renderDashboard({ fitMap: false });
+        });
+      });
+
+      // Table row click -> fly map & open popup
+      document.getElementById('tableBody').addEventListener('click', (e) => {
+        const tr = e.target.closest('tr[data-row-id]');
+        if (!tr) return;
+        const id = tr.getAttribute('data-row-id');
+        selectItem(id, { flyToMap: true, scrollTable: false, openPopup: true });
+      });
+
+      // Modal open/close helpers
+      function openModal(modalId) {
+        document.getElementById(modalId).classList.remove('hidden');
+      }
+      function closeModal(modalId) {
+        document.getElementById(modalId).classList.add('hidden');
+      }
+      document.querySelectorAll('[data-close-modal]').forEach((btn) => {
+        btn.addEventListener('click', () => closeModal(btn.getAttribute('data-close-modal')));
+      });
+
+      // + Add Entry Modal
+      document.getElementById('openAddModalBtn').addEventListener('click', () => {
+        const nextNum = state.items.length + 101;
+        document.getElementById('entryId').value = `AST-${nextNum}`;
+        openModal('addEntryModal');
+      });
+
+      document.getElementById('useMapCenterBtn').addEventListener('click', () => {
+        const c = map.getCenter();
+        document.getElementById('entryLat').value = c.lat.toFixed(4);
+        document.getElementById('entryLng').value = c.lng.toFixed(4);
+      });
+
+      document.getElementById('addEntryForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const id = document.getElementById('entryId').value.trim();
+        const name = document.getElementById('entryName').value.trim();
+        const category = document.getElementById('entryCategory').value.trim();
+        const status = document.getElementById('entryStatus').value;
+        const city = document.getElementById('entryCity').value.trim();
+        const value = document.getElementById('entryValue').value.trim();
+        const lat = parseFloat(document.getElementById('entryLat').value);
+        const lng = parseFloat(document.getElementById('entryLng').value);
+
+        if (!Number.isFinite(lat) || lat < -90 || lat > 90 || !Number.isFinite(lng) || lng < -180 || lng > 180) {
+          showToast('Please enter valid Latitude (-90..90) and Longitude (-180..180).', 'error');
+          return;
+        }
+
+        const uniqueId = state.items.some((i) => i.id === id) ? `${id}-${Date.now().toString().slice(-3)}` : id;
+        const newItem = { id: uniqueId, name, category, status, city, lat, lng, value };
+
+        state.items.unshift(newItem);
+        populateFilterDropdowns();
+        closeModal('addEntryModal');
+        e.target.reset();
+
+        selectItem(uniqueId, { flyToMap: true, scrollTable: true, openPopup: true });
+        showToast(`Added "${name}" (${uniqueId}) to table and map.`, 'success');
+      });
+
+      // Import CSV / JSON Modal
+      document.getElementById('openImportModalBtn').addEventListener('click', () => openModal('importModal'));
+
+      document.getElementById('fillSampleCsvBtn').addEventListener('click', () => {
+        document.getElementById('importTextArea').value = [
+          'id,name,category,status,city,latitude,longitude,value',
+          'NOR-201,Oslo Sentralstasjon,Transit Hub,Operational,Oslo,59.9111,10.7528,93.5% OTP',
+          'NOR-202,Bergen Bystasjon,Transit Hub,Congested,Bergen,60.3887,5.3346,84.1% OTP',
+          'NOR-203,Trondheim Sentralstasjon,Rail Interchange,Operational,Trondheim,63.4363,10.3991,95.2% OTP',
+          'NOR-204,Kristiansand Rutebilstasjon,Regional Hub,Operational,Kristiansand,58.1449,7.9912,91.7% OTP',
+        ].join('\n');
+      });
+
+      document.getElementById('importFileInput').addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          document.getElementById('importTextArea').value = String(reader.result || '');
+          showToast(`Loaded "${file.name}" — click Replace or Append to import.`, 'info');
+        };
+        reader.readAsText(file);
+      });
+
+      function parseCsvLine(line, delimiter) {
+        const result = [];
+        let cur = '';
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+          const ch = line[i];
+          if (ch === '"') {
+            if (inQuotes && line[i + 1] === '"') {
+              cur += '"';
+              i++;
+            } else {
+              inQuotes = !inQuotes;
+            }
+          } else if (ch === delimiter && !inQuotes) {
+            result.push(cur.trim());
+            cur = '';
+          } else {
+            cur += ch;
+          }
+        }
+        result.push(cur.trim());
+        return result;
+      }
+
+      function normalizeImportedRecord(raw, idx) {
+        const lowerMap = {};
+        Object.keys(raw || {}).forEach((k) => {
+          lowerMap[k.trim().toLowerCase().replace(/[^a-z0-9]/g, '')] = raw[k];
+        });
+
+        const pick = (...keys) => {
+          for (const k of keys) {
+            if (lowerMap[k] !== undefined && String(lowerMap[k]).trim() !== '') {
+              return String(lowerMap[k]).trim();
+            }
+          }
+          return '';
+        };
+
+        const lat = parseFloat(pick('latitude', 'lat', 'y'));
+        const lng = parseFloat(pick('longitude', 'lng', 'lon', 'long', 'x'));
+        if (!Number.isFinite(lat) || lat < -90 || lat > 90 || !Number.isFinite(lng) || lng < -180 || lng > 180) {
+          return null;
+        }
+
+        return {
+          id: pick('id', 'assetid', 'code') || `IMP-${100 + idx}`,
+          name: pick('name', 'title', 'location', 'stopname', 'label') || `Location ${idx + 1}`,
+          category: pick('category', 'type', 'group') || 'General',
+          status: pick('status', 'state', 'condition') || 'Operational',
+          city: pick('city', 'area', 'cityarea', 'region', 'municipality') || 'Unknown',
+          lat,
+          lng,
+          value: pick('value', 'metric', 'valuemetric', 'score', 'kpi') || '–',
+        };
+      }
+
+      function parseRawInput(text) {
+        const trimmed = text.trim();
+        if (!trimmed) return [];
+
+        // Try JSON first if it starts with [ or {
+        if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+          const parsed = JSON.parse(trimmed);
+          const arr = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.data) ? parsed.data : [parsed]);
+          return arr.map((row, idx) => normalizeImportedRecord(row, idx)).filter(Boolean);
+        }
+
+        // Otherwise parse CSV (auto-detect comma vs semicolon)
+        const lines = trimmed.split(/\r?\n/).filter((l) => l.trim().length > 0);
+        if (lines.length < 2) return [];
+        const delimiter = (lines[0].match(/;/g) || []).length > (lines[0].match(/,/g) || []).length ? ';' : ',';
+        const headers = parseCsvLine(lines[0], delimiter);
+
+        const records = [];
+        for (let i = 1; i < lines.length; i++) {
+          const vals = parseCsvLine(lines[i], delimiter);
+          const obj = {};
+          headers.forEach((h, colIdx) => {
+            obj[h] = vals[colIdx] ?? '';
+          });
+          const norm = normalizeImportedRecord(obj, i - 1);
+          if (norm) records.push(norm);
+        }
+        return records;
+      }
+
+      function handleImport(mode) {
+        const raw = document.getElementById('importTextArea').value;
+        try {
+          const parsed = parseRawInput(raw);
+          if (parsed.length === 0) {
+            showToast('No valid rows found. Ensure Latitude and Longitude columns are present.', 'error');
+            return;
+          }
+
+          if (mode === 'replace') {
+            state.items = parsed;
+            state.selectedId = null;
+          } else {
+            state.items = [...parsed, ...state.items];
+          }
+
+          populateFilterDropdowns();
+          resetAllFilters();
+          closeModal('importModal');
+          showToast(`Imported ${parsed.length} location${parsed.length === 1 ? '' : 's'} (${mode}).`, 'success');
+        } catch (err) {
+          showToast('Could not parse input — check CSV/JSON formatting.', 'error');
+        }
+      }
+
+      document.getElementById('importReplaceBtn').addEventListener('click', () => handleImport('replace'));
+      document.getElementById('importAppendBtn').addEventListener('click', () => handleImport('append'));
+
+      document.getElementById('restoreDefaultDataBtn').addEventListener('click', () => {
+        state.items = SAMPLE_DATASET.map((d) => ({ ...d }));
+        state.selectedId = null;
+        populateFilterDropdowns();
+        resetAllFilters();
+        closeModal('importModal');
+        showToast('Restored the 15 default Stavanger locations.', 'info');
+      });
+
+      // Live Online / Offline Status Indicator
+      function updateNetworkBadge() {
+        const badge = document.getElementById('networkBadge');
+        if (navigator.onLine) {
+          badge.className = 'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/80';
+          badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Online';
+        } else {
+          badge.className = 'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200/80';
+          badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Offline (Using Cached Tiles)';
+        }
+      }
+      window.addEventListener('online', updateNetworkBadge);
+      window.addEventListener('offline', updateNetworkBadge);
+
+      // =========================================================================
+      // 11. BOOTSTRAP
+      // =========================================================================
+      updateNetworkBadge();
+      populateFilterDropdowns();
+      renderDashboard({ fitMap: true });
+      refreshCacheStats();
+    })();
+  </script>
+</body>
+</html>
