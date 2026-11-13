@@ -1,5 +1,0 @@
-# The bronze + silver batch job lives in its own namespace, separate from the collectors.
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: buspulse-tables

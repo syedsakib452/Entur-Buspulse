@@ -13,7 +13,7 @@
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-OWNER="${OWNER:-irtaza0420bm}"; OWNER="${OWNER,,}"          # GHCR names must be lowercase
+OWNER="${OWNER:-syedsakib452}"; OWNER="${OWNER,,}"          # GHCR names must be lowercase
 SINCE="${SINCE:-2026-10-20}"
 TABLES="${TABLES:-$REPO/tables}"
 CORES="$(nproc)"
@@ -22,9 +22,7 @@ SPARK_MEM="${SPARK_MEM:-12g}"
 BRONZE_PROCS="${BRONZE_PROCS:-4}"
 BRONZE_DL_THREADS="${BRONZE_DL_THREADS:-3}"
 REG="ghcr.io/${OWNER}/entur-buspulse"
-
-# ---- OpenStack login: read on the host, passed to bronze as environment variables.
-# (Nothing is mounted. Works with "export X=..." files and plain X=... files.)
+ENV_FILE="/home/ubuntu/.config/buspulse/openstack.env"
 if [[ -z "${ENV_FILE:-}" ]]; then
   for f in "$REPO/openstack.env" "$REPO/analysis/.env" "$HOME/openstack.env"; do
     [[ -f "$f" ]] && ENV_FILE="$f" && break
