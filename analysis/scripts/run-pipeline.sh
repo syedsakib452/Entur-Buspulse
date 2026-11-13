@@ -75,11 +75,30 @@ docker run --rm --name buspulse-silver \
 
 # ---- 3. GOLD (uses only completed silver days; skips if nothing changed)
 echo "--- gold ---"
-docker run --rm --name buspulse-gold \
-  -e SILVER_DIR=/tables/silver-layer -e GOLD_DIR=/tables/gold-layer -e GOLD_WORK_DIR=/work/gold \
-  -v "$TABLES:/tables" -v buspulse-gold-work:/work \
-  "$REG-gold:latest" --start "$SINCE" \
-  || { echo "gold failed"; rc=1; }
+
+if [ -z "${TABLES:-}" ]; then
+    echo "ERROR: TABLES is not set"
+    rc=1
+elif [ -z "${REG:-}" ]; then
+    echo "ERROR: REG is not set"
+    rc=1
+elif [ -z "${SINCE:-}" ]; then
+    echo "ERROR: SINCE is not set"
+    rc=1
+else
+    docker run --rm --name buspulse-gold \
+        -e SILVER_DIR=/tables/silver-layer \
+        -e GOLD_DIR=/tables/gold-layer \
+        -e GOLD_WORK_DIR=/work/gold \
+        -v "$TABLES:/tables" \
+        -v buspulse-gold-work:/work \
+        "$REG-gold:latest" \
+        --start "$SINCE" \
+        || {
+            echo "ERROR: Gold processing failed"
+            rc=1
+        }
+fi
 
 echo "=== $(date -u) pipeline end (exit $rc) ==="
 exit "$rc"
