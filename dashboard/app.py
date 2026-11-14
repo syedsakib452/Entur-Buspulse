@@ -26,19 +26,20 @@ st.set_page_config(page_title="BusPulse", page_icon=":material/directions_bus:",
 DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 CENTER = dict(latitude=58.955, longitude=5.725, zoom=11)
 MIN_N = 20
-BASES = ["Bus roads only (offline)", "Street map (online)"]
+BASES = ["Street", "Dark"]
 PRESETS = [("All day", (0, 23)), ("Early", (0, 5)), ("Morning rush", (6, 8)), ("Midday", (9, 14)), ("Evening rush", (15, 17)), ("Evening", (18, 23))]
 nat = lambda r: (0, int(r), "") if str(r).isdigit() else (1, 0, str(r))
 
 # ================================================================ DESIGN
-INK, MUTED, FAINT, TILE, LINE = "#13283B", "#5F7185", "#9AA9B8", "#F2F5F8", "#E3E9EF"
-GOOD, WARN, BAD, INFO = "#1F9D6C", "#F0A12B", "#E4474B", "#2F6FB5"
+INK, MUTED, FAINT, TILE, LINE = "#172B4D", "#5B6B82", "#97A4B6", "#F3F6FA", "#DCE3EB"
+BG, CARD, TEAL = "#F3F6FA", "#FFFFFF", "#55A6A0"
+GOOD, WARN, BAD, INFO = "#1F9D6C", "#F0A12B", "#E4474B", "#3478C8"
 HEAD = "'Bricolage Grotesque', 'Instrument Sans', system-ui, sans-serif"
 BODY = "'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif"
 
 pio.templates["bp"] = go.layout.Template(layout=go.Layout(
     font=dict(family=BODY, color=INK, size=12), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-    colorway=[INK, BAD, INFO, WARN, GOOD],
+    colorway=[INFO, TEAL, INK, WARN, BAD],
     hoverlabel=dict(bgcolor=INK, bordercolor=INK, font=dict(color="#fff", family=BODY, size=12)),
     xaxis=dict(showgrid=False, zeroline=False, linecolor="#D3DCE5", ticks="outside", tickcolor="#D3DCE5", ticklen=3),
     yaxis=dict(gridcolor="#E6ECF2", zeroline=False, ticks="", showline=False),
@@ -48,11 +49,11 @@ pio.templates.default = "bp"
 st.markdown("<style>@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Instrument+Sans:wght@400;500;600&display=swap');</style>",
             unsafe_allow_html=True)
 CSS = """
-.stApp,[data-testid="stAppViewContainer"],[data-testid="stMain"]{background:#fff}
+.stApp,[data-testid="stAppViewContainer"],[data-testid="stMain"]{background:var(--bg)}
 .stApp,.stApp p,.stApp label,.stApp button,.stApp input,.stApp [data-baseweb]{font-family:var(--body)!important}
 [data-testid="stHeader"]{background:transparent}
 [data-testid="stToolbar"],[data-testid="stDecoration"],footer,#MainMenu{display:none!important}
-.block-container{max-width:1360px;padding:1.1rem 2.2rem 4rem!important}
+.block-container{max-width:100%!important;padding:1.1rem 2.2rem 4rem!important}
 .stApp p,.stApp label{font-weight:400;color:var(--ink)}
 
 /* type: bold titles, fine body */
@@ -67,27 +68,27 @@ CSS = """
 button[data-testid^="stBaseButton-segmented_control"]{border:none!important;border-radius:99px!important;background:transparent!important;color:var(--muted)!important;font-weight:500!important;padding:.45rem 1.05rem!important;box-shadow:none!important}
 button[data-testid^="stBaseButton-segmented_control"]:hover{background:var(--tile)!important;color:var(--ink)!important}
 button[data-testid="stBaseButton-segmented_controlActive"]{background:var(--ink)!important;color:#fff!important;font-weight:600!important}
-button[data-testid^="stBaseButton-pills"]{border:none!important;border-radius:99px!important;background:var(--tile)!important;color:var(--muted)!important;font-weight:500!important;padding:.35rem .9rem!important}
+button[data-testid^="stBaseButton-pills"]{border:1px solid var(--line)!important;border-radius:99px!important;background:#fff!important;color:var(--muted)!important;font-weight:500!important;padding:.35rem .9rem!important}
 button[data-testid="stBaseButton-pillsActive"]{background:#fff!important;color:var(--ink)!important;font-weight:600!important;box-shadow:inset 0 0 0 1.5px var(--ink)!important}
 .block-container [data-testid="stButtonGroup"]:has(button[data-testid^="stBaseButton-pills"]){justify-content:flex-start}
 
 /* search + selects */
-div[data-baseweb="select"]>div{background:var(--tile)!important;border:none!important;border-radius:14px!important;min-height:44px}
+div[data-baseweb="select"]>div{background:#fff!important;border:1px solid var(--line)!important;border-radius:12px!important;min-height:44px}
 span[data-baseweb="tag"]{background:var(--ink)!important;border-radius:99px!important}
 span[data-baseweb="tag"] *{color:#fff!important}
 div[data-testid="stToggle"] label p{font-size:.85rem}
-.block-container button[data-testid="stBaseButton-secondary"]{border:none;background:var(--tile);border-radius:14px;color:var(--ink);font-weight:500;min-height:44px}
+.block-container button[data-testid="stBaseButton-secondary"]{border:1px solid var(--line);background:#fff;border-radius:14px;color:var(--ink);font-weight:500;min-height:44px}
 .block-container button[data-testid="stBaseButton-secondary"]:hover{background:#E8EEF4;color:var(--ink)}
 
 /* filter chips */
-.fc{display:inline-block;background:var(--tile);color:var(--ink);font-size:.78rem;font-weight:500;padding:6px 12px;border-radius:99px;margin:0 6px 6px 0}
+.fc{display:inline-block;background:#fff;border:1px solid var(--line);color:var(--ink);font-size:.78rem;font-weight:500;padding:6px 12px;border-radius:99px;margin:0 6px 6px 0}
 
 /* widgets */
 .grid{display:grid;gap:14px;margin:6px 0 16px}
 .g5{grid-template-columns:repeat(5,minmax(0,1fr))}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
 @media(max-width:1180px){.g5{grid-template-columns:repeat(3,minmax(0,1fr))}.g4{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:760px){.g5,.g4,.g3{grid-template-columns:repeat(1,minmax(0,1fr))}}
-.tile{background:var(--tile);border-radius:20px;padding:18px 20px 14px;display:flex;flex-direction:column;min-height:186px;box-sizing:border-box}
+.tile{background:#fff;border:1px solid var(--line);box-shadow:0 1px 2px rgba(23,43,77,.05);border-radius:14px;padding:16px 18px 12px;display:flex;flex-direction:column;min-height:186px;box-sizing:border-box}
 .tile.sm{min-height:116px}
 .tile.ins{min-height:140px}
 .tl{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.84rem;font-weight:500;color:var(--muted)}
@@ -98,11 +99,11 @@ div[data-testid="stToggle"] label p{font-size:.85rem}
 .tsp{margin-top:auto;padding-top:10px}
 .sp{display:block}
 .cap{font-size:.72rem;color:var(--faint);margin-top:3px}
-.chip{font-size:.72rem;font-weight:600;padding:3px 9px;border-radius:99px;background:#fff;color:var(--ink);white-space:nowrap}
+.chip{font-size:.72rem;font-weight:600;padding:3px 9px;border-radius:99px;background:var(--tile);color:var(--ink);white-space:nowrap}
 .chip.good{background:#DCF2E8;color:#14774F}.chip.warn{background:#FCEBCF;color:#8A5A00}.chip.bad{background:#FADCDD;color:#A52A2E}
 
 /* chart boxes */
-[class*="st-key-box_"]{background:var(--tile);border-radius:16px;padding:18px 20px 12px;gap:.25rem!important;margin-bottom:6px}
+[class*="st-key-box_"]{background:#fff;border:1px solid var(--line);box-shadow:0 1px 2px rgba(23,43,77,.05);border-radius:14px;padding:16px 18px 10px;gap:.25rem!important;margin-bottom:6px}
 [class*="st-key-box_"] [data-testid="stPlotlyChart"]{margin-top:4px}
 
 /* clickable rows: no lines, whole row is the button */
@@ -116,7 +117,7 @@ div[data-testid="stToggle"] label p{font-size:.85rem}
 .bar i{display:block;height:100%;border-radius:9px}
 .badge{display:inline-flex;min-width:44px;height:30px;padding:0 10px;align-items:center;justify-content:center;border-radius:10px;background:var(--ink);color:#fff;font:700 .88rem var(--head)}
 [class*="st-key-row_"]{position:relative;gap:0!important;border-radius:14px;transition:background .12s}
-[class*="st-key-row_"]:hover{background:var(--tile)}
+[class*="st-key-row_"]:hover{background:#fff;box-shadow:0 0 0 1px var(--line)}
 [class*="st-key-row_"] [data-testid="stElementContainer"]:has(button){position:absolute;inset:0;z-index:5;width:100%!important;height:100%!important}
 [class*="st-key-row_"] [data-testid="stButton"],[class*="st-key-row_"] button{width:100%!important;height:100%!important;min-height:0!important;opacity:0;cursor:pointer}
 
@@ -136,8 +137,13 @@ section[data-testid="stSidebar"] button[data-testid="stBaseButton-primary"]{back
 section[data-testid="stSidebar"] button[data-testid="stBaseButton-primary"] p{color:#fff!important}
 [data-testid="stSidebarCollapseButton"],[data-testid="collapsedControl"]{display:none!important}
 div[role="dialog"]{border-radius:24px!important}
+section[data-testid="stSidebar"] [data-testid="stButtonGroup"]{justify-content:flex-start;flex-wrap:wrap}
+.tile.bx{min-height:150px;padding:14px 16px 10px}.bx .tv{font-size:1.9rem;margin-top:8px}
+.hero{display:flex;align-items:center;gap:12px;margin:6px 0 2px}
+.hero .big{font:800 4rem/1 var(--head);letter-spacing:-.05em;color:var(--ink)}
+.sec{font:700 1.15rem var(--head);letter-spacing:-.02em;color:var(--ink);margin:18px 0 6px}
 """
-st.markdown(f"<style>:root{{--ink:{INK};--muted:{MUTED};--faint:{FAINT};--tile:{TILE};--line:{LINE};--head:{HEAD};--body:{BODY}}}{CSS}</style>",
+st.markdown(f"<style>:root{{--ink:{INK};--muted:{MUTED};--faint:{FAINT};--tile:{TILE};--bg:{BG};--line:{LINE};--head:{HEAD};--body:{BODY}}}{CSS}</style>",
             unsafe_allow_html=True)
 
 
@@ -147,7 +153,7 @@ def connect():
     con = duckdb.connect()
     for p in sorted(GOLD.glob("*.parquet")):
         src = f"{p.as_posix()}/*.parquet" if p.is_dir() else p.as_posix()
-        con.execute(f"CREATE VIEW {p.stem} AS SELECT * FROM read_parquet('{src}')")
+        con.execute(f"CREATE TABLE {p.stem} AS SELECT * FROM read_parquet('{src}')")
     con.execute("CREATE TABLE stop_map AS SELECT stop_ref, COALESCE(stop_name, stop_ref) AS stop, stop_lat lat, stop_lon lon FROM dim_stop")
     return con
 
@@ -167,7 +173,7 @@ def geometry():
     if not p.exists():
         return None
     g = pd.read_parquet(p)
-    g["path"] = g["path"].map(lambda a: [list(x) for x in a])
+    g["path"] = g["path"].map(lambda a: [[round(float(x[0]), 5), round(float(x[1]), 5)] for x in a])
     return g[["from_stop_ref", "to_stop_ref", "path"]]
 
 
@@ -199,6 +205,8 @@ day_label = lambda s: f"{pd.Timestamp(s).day} {pd.Timestamp(s).strftime('%b')}"
 
 # ================================================================ filter state + drawer
 st.session_state.setdefault("open", True)
+if not st.session_state.open:  # closed drawer takes no space, so the page uses the full width
+    st.markdown("<style>section[data-testid='stSidebar']{display:none!important}</style>", unsafe_allow_html=True)
 st.session_state.setdefault("hrs_v", 0)
 FLT0 = dict(weeks=[], wd=[], types=[], hours=(0, 23))
 flt = st.session_state.setdefault("flt", dict(FLT0, weeks=[], wd=[], types=[]))
@@ -227,9 +235,13 @@ def clear_all():
 
 
 def option_list(field, opts):
-    cur = flt[field]
-    for v, label in opts.items():
-        st.button(label, key=f"{field}_{v}", type="primary" if v in cur else "secondary", use_container_width=True, on_click=toggle, args=(field, v))
+    key = f"w_{field}_{st.session_state.hrs_v}"  # new key after Clear, so the pills reset
+
+    def sync():
+        st.session_state.flt[field] = list(st.session_state[key] or [])
+
+    st.pills(field, list(opts), selection_mode="multi", default=[v for v in flt[field] if v in opts], format_func=opts.get,
+             key=key, on_change=sync, label_visibility="collapsed")
 
 
 def hours_name(h):
@@ -239,17 +251,18 @@ def hours_name(h):
 
 n_active = sum([bool(flt["weeks"]), bool(flt["wd"]), bool(flt["types"]), tuple(flt["hours"]) != (0, 23), bool(st.session_state.get("search"))])
 c_logo, c_nav, c_btn = st.columns([1.5, 6, 1.5], vertical_alignment="center")
-c_logo.markdown('<div class="brand"><svg width="30" height="30" viewBox="0 0 30 30"><rect width="30" height="30" rx="9" fill="#13283B"/>'
+c_logo.markdown('<div class="brand"><svg width="30" height="30" viewBox="0 0 30 30"><rect width="30" height="30" rx="9" fill="#172B4D"/>'
                 '<path d="M4.5 16h5l3-7.5 4 13.5 3-6h6" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
                 '<span>BusPulse</span></div>', unsafe_allow_html=True)
 PAGES = ["Overview", "Stops", "Routes", "Maps", "Heatmaps", "Trips", "Data"]
 page = c_nav.segmented_control("Page", PAGES, default="Overview", key="nav", label_visibility="collapsed") or "Overview"
 c_btn.button(f"Filters ({n_active})" if n_active else "Filters", icon=":material/tune:", use_container_width=True, on_click=flip_drawer)
 
-c_s, c_chips = st.columns([5, 7], vertical_alignment="center")
+c_s, c_chips, c_base = st.columns([5, 5, 2.4], vertical_alignment="center")
 picked = c_s.multiselect("Search", list(route_opts) + list(stop_opts), key="search", placeholder="Search routes and stops",
                          label_visibility="collapsed")
 chip_slot = c_chips.empty()
+c_base.segmented_control("Map style", BASES, default=BASES[0], key="base", label_visibility="collapsed")
 
 if st.session_state.open:
     with st.sidebar:
@@ -417,9 +430,9 @@ def show(f, h=300):
 
 def hour_chart(df, h=300):
     f = go.Figure()
-    f.add_bar(x=df.local_hour, y=df.n, yaxis="y2", marker_color="#D9E1E9", name="Visits", hovertemplate="%{x}:00, %{y:,} visits<extra></extra>")
-    f.add_scatter(x=df.local_hour, y=df.mean_d / 60, mode="lines+markers", name="Mean delay (min)", line=dict(color=BAD, width=3, shape="spline", smoothing=.5),
-                  marker=dict(size=7, color="#fff", line=dict(color=BAD, width=2)), hovertemplate="%{x}:00, %{y:.1f} min late<extra></extra>")
+    f.add_bar(x=df.local_hour, y=df.n, yaxis="y2", marker_color="#DCE3EB", name="Visits", hovertemplate="%{x}:00, %{y:,} visits<extra></extra>")
+    f.add_scatter(x=df.local_hour, y=df.mean_d / 60, mode="lines+markers", name="Mean delay (min)", line=dict(color=INFO, width=3, shape="spline", smoothing=.5),
+                  marker=dict(size=7, color="#fff", line=dict(color=INFO, width=2)), hovertemplate="%{x}:00, %{y:.1f} min late<extra></extra>")
     f.update_layout(xaxis=dict(dtick=2, title=""), yaxis=dict(title="Minutes late"), bargap=.25,
                     yaxis2=dict(overlaying="y", side="right", showgrid=False, showticklabels=False), legend=dict(orientation="h", y=1.14, x=0))
     show(f, h)
@@ -479,8 +492,8 @@ TIP = {"html": "<div style='padding:2px 4px;font-size:12px'>{tip}</div>", "style
 
 
 def deck(layers, key, height=520, select=True, view=None):
-    base = st.session_state.get("base", BASES[0])
-    d = pdk.Deck(layers=layers, initial_view_state=pdk.ViewState(**(view or CENTER), pitch=0), map_style=None if base == BASES[0] else "light", tooltip=TIP)
+    base = st.session_state.get("base") or BASES[0]
+    d = pdk.Deck(layers=layers, initial_view_state=pdk.ViewState(**(view or CENTER), pitch=0), map_style="dark" if base == "Dark" else "road", tooltip=TIP)
     if not select:
         return st.pydeck_chart(d, height=height, key=key)
     return st.pydeck_chart(d, height=height, on_select="rerun", selection_mode="single-object", key=key)
@@ -499,6 +512,10 @@ def picked_object(ev):
 
 
 def net_layer():
+    return []  # grey road mesh removed: it covered the data and slowed loading
+
+
+def _net_layer_unused():
     g = geometry()
     if g is None:
         return []
@@ -773,26 +790,34 @@ def page_overview():
     rr = q(f"SELECT route_short_name r, {D_AGG} FROM {DEL} WHERE {WS} GROUP BY 1 HAVING SUM(n_valid) >= {MIN_N * 5}", PS)
     ss = q(f"SELECT stop, {D_AGG} FROM {DEL} WHERE {WS} GROUP BY 1 HAVING SUM(n_valid) >= {MIN_N * 5} ORDER BY mean_d DESC LIMIT 8", PS)
 
-    head("Overview", "How the network is running right now in your selection: what is served, how late it is, and where buses bunch up.")
+    head("Overview", "How the network is running in your selection: what is served, how late it is, and where buses bunch up.")
     n_types = lines_df[lines_df.route_short_name.isin(names)].route_type_name.nunique()
-    gd, gb = grade(k.mean_d, 60, 180), grade(h.bunched, 8, 15)
-    grid([
-        tile("Stops", num(k.stops), f"{num(k.plats)} platforms, {num(k.n)} visits", sp=spark(hr.stops), cap="Active stops by hour"),
-        tile("Trips", num(tr.trips), f"{pct(tr.bunched_trips)} contain bunching", chip="" if isna(tr.gained) else f"median {tr.gained / 60:+.1f} min",
-             sp=spark(trh.trips), cap="Trips by start hour"),
-        tile("Routes", num(k.routes), f"{n_types} bus type{'s' if n_types != 1 else ''}, {len(names_all)} in the network", sp=spark(hr.routes), cap="Routes running by hour"),
-        tile("Delays", "–" if isna(k.mean_d) else unit(f"{k.mean_d / 60:.1f}", "min"), f"{pct(k.otp)} on time", chip=f"{pct(k.late)} late", tn=gd,
-             sp=spark(hr.mean_d, TONE[gd]), cap="Mean delay by hour"),
-        tile("Bunched", pct(h.bunched), f"{pct(h.gap)} large gaps", chip="" if isna(h.ewt) else f"+{mins(h.ewt)} wait", tn=gb,
-             sp=spark(bh.bunched, TONE[gb]), cap="Bunched share by hour"),
-    ], 5)
-    grid([tile("On time", pct(k.otp), f"of {num(k.n)} stop visits", tn=grade(k.otp, 85, 70, False), cls="sm"),
-          tile("Extra wait", mins(h.ewt), "Riders wait this much more than scheduled", cls="sm"),
-          tile("Average speed", kmh(sp.kmh), f"{num(sp.runs)} bus runs", cls="sm"),
-          tile("Bus-hours lost", "–" if isna(sp.lost_h) else f"{sp.lost_h:,.0f} h", "Compared with free-flowing traffic", cls="sm")], 4)
+    gd, gb, go_ = grade(k.mean_d, 60, 180), grade(h.bunched, 8, 15), grade(k.otp, 85, 70, False)
+    hq = hr[hr.n >= MIN_N]
+
+    c_hero, c_kpi = st.columns([5, 7])
+    with c_hero:
+        with box("On-time performance", "Each bar is the share of stop visits on time in that hour; red hours let riders down."):
+            st.markdown(f'<div class="hero"><span class="big">{pct(k.otp)}</span><span class="chip {go_}">{pct(k.late)} late</span></div>'
+                        f'<div class="ts">of {num(k.n)} stop visits arrived on time</div>', unsafe_allow_html=True)
+            f = go.Figure(go.Bar(x=hq.local_hour, y=hq.otp, marker_color=[tone(v, OTP_STOPS) for v in hq.otp],
+                                 hovertemplate="%{x}:00, %{y:.0f}% on time<extra></extra>"))
+            f.update_layout(xaxis=dict(dtick=2, title=""), yaxis=dict(title="% on time", range=[0, 100]), bargap=.2)
+            show(f, 250)
+    with c_kpi:
+        grid([
+            tile("Stops", num(k.stops), f"{num(k.plats)} platforms", sp=spark(hr.stops, INFO), cap="Active by hour", cls="bx"),
+            tile("Trips", num(tr.trips), f"{pct(tr.bunched_trips)} with bunching", sp=spark(trh.trips, INFO), cap="By start hour", cls="bx"),
+            tile("Routes", num(k.routes), f"{n_types} bus type{'s' if n_types != 1 else ''}", sp=spark(hr.routes, INFO), cap="Running by hour", cls="bx"),
+            tile("Mean delay", "–" if isna(k.mean_d) else unit(f"{k.mean_d / 60:.1f}", "min"), "Average lateness", tn=gd, chip=pct(k.late) + " late",
+                 sp=spark(hr.mean_d, TONE[gd]), cap="By hour", cls="bx"),
+            tile("Bunched", pct(h.bunched), f"{pct(h.gap)} large gaps", tn=gb, sp=spark(bh.bunched, TONE[gb]), cap="By hour", cls="bx"),
+            tile("Extra wait", mins(h.ewt), "Beyond the timetable", cls="bx"),
+            tile("Average speed", kmh(sp.kmh), f"{num(sp.runs)} bus runs", sp=spark(sph.kmh, TEAL), cap="By hour", cls="bx"),
+            tile("Bus-hours lost", "–" if isna(sp.lost_h) else f"{sp.lost_h:,.0f} h", "Versus free-flowing traffic", cls="bx"),
+        ], 4)
 
     ins = []
-    hq = hr[hr.n >= MIN_N]
     if not hq.empty:
         w, b = hq.loc[hq.mean_d.idxmax()], hq.loc[hq.otp.idxmax()]
         ins.append(("Worst hour", hh(w.local_hour), f"Buses average {mins(w.mean_d)} late. Timetables hold best at {hh(b.local_hour)} ({pct(b.otp)} on time)."))
@@ -801,7 +826,7 @@ def page_overview():
         ins.append(("Hardest day", DAYS[int(w.weekday)], f"{mins(w.mean_d)} mean delay and {pct(w.otp)} on time."))
     if not rr.empty:
         w, b = rr.loc[rr.otp.idxmin()], rr.loc[rr.otp.idxmax()]
-        ins.append(("Route gap", f"{b.otp - w.otp:.0f} points", f"Route {b.r} is the most punctual ({pct(b.otp)}), route {w.r} the least ({pct(w.otp)}). Which route you take matters more than when."))
+        ins.append(("Route gap", f"{b.otp - w.otp:.0f} points", f"Route {b.r} is the most punctual ({pct(b.otp)}), route {w.r} the least ({pct(w.otp)})."))
     if not ss.empty:
         ins.append(("Most delayed busy stop", esc(ss.stop.iloc[0]), f"{mins(ss.mean_d.iloc[0])} late on average, which hits every route that serves it."))
     try:
@@ -813,59 +838,53 @@ def page_overview():
     except Exception:
         pass
     if ins:
-        st.markdown('<div class="bt" style="margin:14px 0 4px;font-size:1.3rem">What stands out</div>', unsafe_allow_html=True)
+        st.markdown('<div class="sec">What stands out</div>', unsafe_allow_html=True)
         grid([tile(a, b, c, cls="ins") for a, b, c in ins], 3)
 
     l, r = st.columns([3, 2])
     with l:
-        with box("Delay through the day", "Lateness (line) against how many stop visits there were (bars)."):
-            hour_chart(hr[hr.n >= MIN_N])
+        with box("Delay through the day", "The line is how late buses ran each hour; the bars show how many stop visits it is based on."):
+            hour_chart(hq, 260)
     with r:
-        with box("Share on time by hour", "Green is reliable, red is not."):
-            f = go.Figure(go.Bar(x=hr.local_hour, y=hr.otp, marker_color=[tone(v, OTP_STOPS) for v in hr.otp], hovertemplate="%{x}:00, %{y:.0f}% on time<extra></extra>"))
-            f.update_layout(xaxis=dict(dtick=2, title=""), yaxis=dict(title="% on time", range=[0, 100]), bargap=.2)
-            show(f)
-    l, r = st.columns(2)
-    with l:
-        with box("Bunching through the day", "Bus pairs arriving together, and pairs leaving a big gap."):
+        with box("Average speed by hour", "Lower speed means buses were stuck in traffic at that time of day."):
+            f = go.Figure(go.Scatter(x=sph.local_hour, y=sph.kmh, mode="lines", fill="tozeroy", fillcolor="rgba(85,166,160,.12)",
+                                     line=dict(color=TEAL, width=3, shape="spline", smoothing=.5), hovertemplate="%{x}:00, %{y:.1f} km/h<extra></extra>"))
+            f.update_layout(xaxis=dict(dtick=2, title=""), yaxis=dict(title="km/h", rangemode="tozero"))
+            show(f, 260)
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        with box("Bunching through the day", "Bunched means buses arrive together; a large gap means a long wait."):
             bq = bh[bh.nh >= MIN_N]
             f = go.Figure()
-            f.add_scatter(x=bq.local_hour, y=bq.bunched, name="Bunched", mode="lines", fill="tozeroy", fillcolor="rgba(47,111,181,.12)",
+            f.add_scatter(x=bq.local_hour, y=bq.bunched, name="Bunched", mode="lines", fill="tozeroy", fillcolor="rgba(52,120,200,.12)",
                           line=dict(color=INFO, width=3, shape="spline", smoothing=.5), hovertemplate="%{x}:00, %{y:.1f}% bunched<extra></extra>")
             f.add_scatter(x=bq.local_hour, y=bq.gap, name="Large gap", mode="lines", line=dict(color=WARN, width=3, shape="spline", smoothing=.5),
                           hovertemplate="%{x}:00, %{y:.1f}% large gaps<extra></extra>")
             f.update_layout(xaxis=dict(dtick=2, title=""), yaxis=dict(title="% of bus pairs"), legend=dict(orientation="h", y=1.14, x=0))
-            show(f)
-    with r:
-        with box("Average speed by hour", "Slower hours mean congestion on the roads."):
-            f = go.Figure(go.Scatter(x=sph.local_hour, y=sph.kmh, mode="lines", fill="tozeroy", fillcolor="rgba(19,40,59,.07)",
-                                     line=dict(color=INK, width=3, shape="spline", smoothing=.5), hovertemplate="%{x}:00, %{y:.1f} km/h<extra></extra>"))
-            f.update_layout(xaxis=dict(dtick=2, title=""), yaxis=dict(title="km/h", rangemode="tozero"))
-            show(f)
-    l, r = st.columns(2)
-    with l:
-        with box("Delay by weekday", "Mean minutes late"):
+            show(f, 260)
+    with c2:
+        with box("Delay by weekday", "Shows which day of the week buses run latest, in average minutes."):
             if len(wd) > 1:
                 f = go.Figure(go.Bar(x=[DAYS[int(x)][:3] for x in wd.weekday], y=wd.mean_d / 60, marker_color=[tone(v, DELAY_STOPS) for v in wd.mean_d],
                                      text=[f"{v / 60:.1f}" for v in wd.mean_d], textposition="outside", cliponaxis=False, hovertemplate="%{x}: %{y:.1f} min<extra></extra>"))
                 f.update_layout(yaxis=dict(title="Minutes late", rangemode="tozero"), bargap=.35)
-                show(f)
+                show(f, 260)
             else:
                 st.caption("Select more than one day to compare weekdays.")
-    with r:
-        with box("On time by bus type", "Share of stop visits that were on time"):
+    with c3:
+        with box("On time by bus type", "Shows which kind of bus keeps to the timetable best."):
             bt = rr.merge(lines_df.drop_duplicates("route_short_name").rename(columns={"route_short_name": "r"}), on="r").assign(w=lambda x: x.otp * x.n)
             bt = bt.groupby("route_type_name").agg(w=("w", "sum"), n=("n", "sum")).reset_index()
             bt["otp"] = bt.w / bt.n
-            hbar(bt, "route_type_name", "otp", INK, fmt=".0f", suffix="%")
+            hbar(bt, "route_type_name", "otp", INFO, fmt=".0f", suffix="%")
     l, r = st.columns(2)
     with l:
-        with box("Most delayed routes", "Mean minutes late"):
+        with box("Most delayed routes", "The routes that run latest on average, so delays pile up here."):
             t = rr.nlargest(8, "mean_d").assign(min=lambda x: x.mean_d / 60)
             t["r"] = "Route " + t.r.astype(str)
             hbar(t, "r", "min", BAD)
     with r:
-        with box("Most delayed stops", "Mean minutes late"):
+        with box("Most delayed stops", "The stops where buses are latest, which affects every route serving them."):
             hbar(ss.assign(min=ss.mean_d / 60), "stop", "min", BAD)
 
 
@@ -913,12 +932,11 @@ def page_routes():
 
 def page_maps():
     head("Maps", "Roads and stops together, with the trouble spots lit up. Click any road or dot for details.")
-    c = st.columns([1.5, 1.4, 1.7, 1.4, 1.5], vertical_alignment="bottom")
+    c = st.columns([1.5, 1.4, 1.7, 1.4], vertical_alignment="bottom")
     roads = c[0].selectbox("Roads", ["Slowdown (travel time index)", "Speed (km/h)", "Bus-hours lost", "Off"])
     pts = c[1].selectbox("Stops", ["Mean delay", "% on time", "% bunched", "Off"])
     heat_how = c[2].selectbox("Heatmap", ["Off", "Bus-hours lost (roads)", "Delay (stops)", "Bunching (stops)"])
     hot = c[3].toggle("Highlight worst 10", value=True)
-    st.session_state["base"] = c[4].selectbox("Background", BASES)
     seg = road_frame()
     s = stop_table()
     layers = net_layer()
