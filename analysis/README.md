@@ -79,6 +79,160 @@ Silver table across the selected dates, runs `build_gold.py`, and writes Gold Pa
 Gold code is skipped; a Gold code/dependency change invalidates the saved build signature. Pass
 `--redo` to force a rebuild.
 
+## Transformations, formulas, and data quality
+
+The rules below describe the active Python/Spark/DuckDB pipeline, not the retired pipeline in
+`archive/`. Thresholds are project choices for this analysis; they are not external service
+standards. The recorded data-quality results are snapshots and will change when new dates are
+processed. See the [Bronze audit notebook](../tables/bronze-layer/_audit/audit.ipynb), its
+[date-range audit CSV](../tables/bronze-layer/_audit/download_audit_2026-10-21_to_2026-11-13.csv),
+the [most recent range-run summary](../tables/bronze-layer/_audit/range-runs/summary.csv), and
+the generated `gold_data_quality` / `gold_meta` tables for the underlying checks.
+
+### Bronze: parse and preserve
+
+The [Bronze builder](bronze-layer/build_bronze_tables.py) downloads raw collector objects,
+decompresses and parses them into tables with explicit Arrow schemas. Each row receives
+`snapshot_time` from the timestamp in the source filename and `source_file` for traceability.
+Feed timestamps and most source values are retained as provided; Bronze does not perform the
+business cleaning used by Silver.
+
+Each raw file is all-or-nothing: a parse or schema-conversion failure contributes no rows from
+that file. Its per-file audit status is:
+
+- `ok`: parsed and produced rows;
+- `empty`: parsed successfully but produced no rows;
+- `failed`: download, parse, or Arrow conversion failed (with stage and error).
+
+The builder compares the Parquet row count with the total rows reported by non-failed file
+parses and prints a verification mismatch if the counts differ. This checks for write/aggregation
+mismatches, but does not prove that the source feed itself was complete or semantically correct.
+
+The audit notebook covers 2026-10-21 through 2026-11-13 (24 days) and checks expected collection
+cadence for two feeds. Its expected count is `86,400 seconds / feed interval` per day, using
+60-second intervals for estimated timetables and 30-second intervals for vehicle positions.
+Daily shortfall and excess are `max(0, expected - ok)` and `max(0, ok - expected)`, respectively.
+
+| Feed | Expected objects | `ok` | Empty | Failed | Daily cadence shortfall | Daily excess |
+|---|---:|---:|---:|---:|---:|---:|
+| Estimated timetable | 34,560 | 34,391 (99.51%) | 0 | 0 | 169 | 0 |
+| Vehicle positions | 69,120 | 68,973 (99.79%) | 5 | 0 | 157 | 10 |
+
+The five vehicle-position files with no rows have status `empty`, not `failed`; the audit
+notebook's `failed` column counts every non-`ok` status, so it reports these five as failures.
+There were no non-empty error fields in this audit. The cadence figures are expected-file
+comparisons, not a row-level completeness or timestamp-gap test. A separate range run for
+2026-11-14 reported zero failed files for estimated timetables, vehicle positions, service
+alerts, and static timetables.
+
+### Silver: clean visits and derive operational measures
+
+The [Silver cleaning job](silver-layer/spark_jobs/silver.py) processes service date `D` using
+real-time stop visits from `D` and `D+1`, so late trips can receive final observations after
+midnight. It selects the nearest available GTFS snapshot (within the configured seven-day search)
+for the schedule and stop reference data.
+
+Cleaning and matching rules:
+
+1. Retain the requested `data_frame_ref`; remove records without the visit key
+   (`data_frame_ref`, `journey_ref`, `stop_order`) or `stop_ref`.
+2. Collapse snapshots to one row per visit. Non-time fields come from the newest snapshot;
+   each actual arrival/departure time comes from the newest snapshot where that field is present.
+3. Exclude ferries using the feed's `vehicle_mode` and GTFS route type. Keep bus route types
+   `3` and `700-799`, and keep only visits whose stop matches GTFS.
+4. Classify a visit as `cancelled`, `observed` (an actual arrival or departure exists), or
+   `unconfirmed`. `clean_stop_visits` contains observed calls; scheduled calls and their match
+   outcomes are retained separately in `stop_event_status`.
+5. Parse event timestamps as UTC instants. Derive local date/hour, weekday, and period using
+   `Europe/Oslo`; UTC timestamps remain available.
+
+Core calculations:
+
+| Measure | Formula / rule |
+|---|---|
+| Event time | Actual departure when present, otherwise actual arrival |
+| Aimed time | Corresponding aimed departure/arrival |
+| Delay | `delay_s = event_time - aimed_time`, in seconds |
+| Delay outlier | `delay_s < -1,800` or `delay_s > 10,800` (more than 30 min early or 3 h late) |
+| Delay class | Early if `< -60 s`; on time if `-60 <= delay_s < 300 s`; late if `>= 300 s` |
+| Delay change | Current delay minus previous-stop delay, only for consecutive stop orders and non-outlier visits |
+| Headway | Current actual visit time minus previous actual visit at the same line/direction/stop |
+| Scheduled headway | Current aimed time minus previous aimed time |
+| Headway ratio | `actual headway / scheduled headway`; bunching `< 0.25`, large gap `> 2.0` |
+| Segment speed | Haversine distance between consecutive stops divided by elapsed seconds, multiplied by `3.6` for km/h |
+
+Headways exclude outlier visits and require a positive scheduled interval. Silver marks segment
+runs valid only when elapsed time is positive, no more than 3,600 seconds, and both endpoint
+visits are not delay outliers.
+
+The [stop/GPS analysis](silver-layer/spark_jobs/stop_analysis.py) matches observed calls to GPS
+tracks and GTFS route geometry. It derives speeds from consecutive pings at least five seconds
+and no more than 90 seconds apart. A vehicle's local cruise speed is the 75th percentile over
+nearby step speeds (11 neighboring steps). Vehicle assignment requires at least three matched
+stops and a median distance no greater than 100 m. The stop test examines pings within 60 seconds
+of a recorded call and within 30 m of the stop: a ping is slow at no more than 2 m/s or 75% of
+local cruise speed. Two or more slow pings mean `stopped_confirmed`, one means `likely_stopped`,
+and nearby pings at 90% or more of local cruise speed indicate `likely_passed`; other nearby
+evidence is `near_unclear`. Missing vehicle/GPS matches remain explicit statuses. Route evidence
+uses the GTFS shape when available, otherwise a stop-to-stop line. Its route snapping and
+off-route tolerances are configured in `silver-layer/spark_jobs/stop_geometry.py`.
+
+The `p_excess` measure is the smoothed empirical upper-tail rank of a call's time loss among
+stop-free intervals:
+`(number of null intervals with loss >= call loss + 1) / (number of null intervals + 1)`.
+
+Quality evidence is written per date: `removal_log` counts rows before/after each cleaning rule;
+`stop_event_status` distinguishes observed, cancelled, unconfirmed, and unmatched scheduled
+calls; GPS outputs retain route/GPS coverage statuses. A date is complete only after both
+`_done_clean` and `_done_stop_analysis` markers exist. The current local Silver output has both
+markers for 25 dates, 2026-10-20 through 2026-11-13.
+
+### Gold: aggregate and reconcile
+
+The [Gold builder](gold/build_gold.py) defines an analysis-valid call as
+`is_actual AND NOT delay_outlier AND delay_s IS NOT NULL`. It classifies valid calls with the
+same production delay thresholds as Silver (`early_s = -60`, `late_s = 300`) and aggregates
+counts, delay sums, variance, histograms, route/stop/date cubes, headways, segments, and
+completeness measures.
+
+Additional Gold filters and formulas include:
+
+- Headway metrics use scheduled headways from 120 through 3,600 seconds. The coefficient of
+  variation is `standard deviation(actual headway) / mean(actual headway)`. Bunching and large
+  gaps use ratios `< 0.25` and `> 2.0`.
+- Gold road-segment analysis keeps runs no longer than 1,800 seconds, ignores segments shorter
+  than 50 m and speeds above 90 km/h, and ranks roads only with at least 100 runs and 20 weekday
+  peak runs. Free-flow speed is the 85th percentile.
+- Route reliability is a weighted score:
+  `0.40*pct_on_time + 0.25*norm_delay + 0.20*(1-pct_bunched) + 0.15*norm_speed`.
+  Delay is inverted min-max normalized (lower delay scores higher), speed is min-max normalized,
+  and the score is divided by the weights of components available for that route.
+- Daily anomaly metrics use a trailing seven-day history with at least three history days.
+  Moderate/high/critical z-score cutoffs are 2.0/2.5/3.5; unusually low speed is treated as an
+  anomaly, while high delay, headway variability, and missed-visit percentage are flagged.
+
+Gold's reconciliation checks verify that row-level facts and aggregate tables conserve call,
+headway, and segment counts; delay buckets sum to valid calls; early/on-time/late counts sum to
+valid calls; aggregate delay sums match row-level sums; and expected/observed trip and stop
+counts agree. These checks detect internal inconsistencies, not missing or biased source data.
+
+The recorded Gold build on 2026-11-15 covers service dates 2026-10-20 through 2026-11-13:
+
+- 3,159,750 cleaned visits; 3,158,322 valid for Gold analysis (99.95%).
+- Mean valid delay 200.3 seconds; 5.4% early, 42.3% on time, and 52.2% late using the
+  `-60/300` second cutoffs.
+- Delay arithmetic agreed with `actual_departure - aimed_departure` within two seconds for
+  100% of rows in that check; the opposite sign matched 0.4%.
+- All 23 recorded reconciliation checks passed (zero failures). The audit also reported
+  4,552/4,552 visited stop IDs matched, no unknown local hours, and no Gold stop-map rows
+  without coordinates. It counted 2,933,744 usable segment legs.
+
+For interpretation, cleaning/outlier rules and threshold changes affect denominators and
+comparability. The production value of `late_s` is 300 seconds in `gold/build_gold.py`; a
+notebook edited for threshold experiments may have different source values or stale saved
+outputs. Check `gold_meta` (build time, service dates, thresholds, row counts, and check totals)
+when reporting a specific run.
+
 ## Rebuild only images affected by code changes
 
 Docker does not automatically rebuild an image when source files change. The helper below
