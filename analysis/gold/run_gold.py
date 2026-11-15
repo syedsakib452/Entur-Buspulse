@@ -2,6 +2,7 @@
 
 Input:  tables/silver-layer/<date>/<table>.parquet
 Output: tables/gold-layer/<gold-table>.parquet and gold.duckdb
+Temporary staging defaults to tables/.gold-work; override with GOLD_WORK_DIR.
 Only dates with both _done_clean and _done_stop_analysis markers are included.
 """
 import argparse
@@ -19,7 +20,7 @@ HERE = Path(__file__).resolve().parent
 PROJECT_ROOT = HERE.parents[1]
 SILVER_DIR = Path(os.getenv("SILVER_DIR", PROJECT_ROOT / "tables" / "silver-layer"))
 GOLD_DIR = Path(os.getenv("GOLD_DIR", PROJECT_ROOT / "tables" / "gold-layer"))
-WORK = Path(os.getenv("GOLD_WORK_DIR", "/work/gold"))
+WORK = Path(os.getenv("GOLD_WORK_DIR", PROJECT_ROOT / "tables" / ".gold-work"))
 SILVER_TABLES = [
     "clean_stop_visits", "stop_event_status", "expected_per_stop",
     "stop_gps_status", "trip_vehicle", "per_stop_evidence", "time_lost_null",
