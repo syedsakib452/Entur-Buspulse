@@ -1,0 +1,1939 @@
+\documentclass[11pt]{article}
+
+    \usepackage[breakable]{tcolorbox}
+    \usepackage{parskip} % Stop auto-indenting (to mimic markdown behaviour)
+    
+
+    % Basic figure setup, for now with no caption control since it's done
+    % automatically by Pandoc (which extracts ![](path) syntax from Markdown).
+    \usepackage{graphicx}
+    % Keep aspect ratio if custom image width or height is specified
+    \setkeys{Gin}{keepaspectratio}
+    % Maintain compatibility with old templates. Remove in nbconvert 6.0
+    \let\Oldincludegraphics\includegraphics
+    % Ensure that by default, figures have no caption (until we provide a
+    % proper Figure object with a Caption API and a way to capture that
+    % in the conversion process - todo).
+    \usepackage{caption}
+    \DeclareCaptionFormat{nocaption}{}
+    \captionsetup{format=nocaption,aboveskip=0pt,belowskip=0pt}
+
+    \usepackage{float}
+    \floatplacement{figure}{H} % forces figures to be placed at the correct location
+    \usepackage{xcolor} % Allow colors to be defined
+    \usepackage{enumerate} % Needed for markdown enumerations to work
+    \usepackage{geometry} % Used to adjust the document margins
+    \usepackage{amsmath} % Equations
+    \usepackage{amssymb} % Equations
+    \usepackage{textcomp} % defines textquotesingle
+    % Hack from http://tex.stackexchange.com/a/47451/13684:
+    \AtBeginDocument{%
+        \def\PYZsq{\textquotesingle}% Upright quotes in Pygmentized code
+    }
+    \usepackage{upquote} % Upright quotes for verbatim code
+    \usepackage{eurosym} % defines \euro
+
+    \usepackage{iftex}
+    \ifPDFTeX
+        \usepackage[T1]{fontenc}
+        \IfFileExists{alphabeta.sty}{
+              \usepackage{alphabeta}
+          }{
+              \usepackage[mathletters]{ucs}
+              \usepackage[utf8x]{inputenc}
+          }
+    \else
+        \usepackage{fontspec}
+        \usepackage{unicode-math}
+    \fi
+
+    \usepackage{fancyvrb} % verbatim replacement that allows latex
+    \usepackage{grffile} % extends the file name processing of package graphics
+                         % to support a larger range
+    \makeatletter % fix for old versions of grffile with XeLaTeX
+    \@ifpackagelater{grffile}{2019/11/01}
+    {
+      % Do nothing on new versions
+    }
+    {
+      \def\Gread@@xetex#1{%
+        \IfFileExists{"\Gin@base".bb}%
+        {\Gread@eps{\Gin@base.bb}}%
+        {\Gread@@xetex@aux#1}%
+      }
+    }
+    \makeatother
+    \usepackage[Export]{adjustbox} % Used to constrain images to a maximum size
+    \adjustboxset{max size={0.9\linewidth}{0.9\paperheight}}
+
+    % The hyperref package gives us a pdf with properly built
+    % internal navigation ('pdf bookmarks' for the table of contents,
+    % internal cross-reference links, web links for URLs, etc.)
+    \usepackage{hyperref}
+    % The default LaTeX title has an obnoxious amount of whitespace. By default,
+    % titling removes some of it. It also provides customization options.
+    \usepackage{titling}
+    \usepackage{longtable} % longtable support required by pandoc >1.10
+    \usepackage{booktabs}  % table support for pandoc > 1.12.2
+    \usepackage{array}     % table support for pandoc >= 2.11.3
+    \usepackage{calc}      % table minipage width calculation for pandoc >= 2.11.1
+    \usepackage[inline]{enumitem} % IRkernel/repr support (it uses the enumerate* environment)
+    \usepackage[normalem]{ulem} % ulem is needed to support strikethroughs (\sout)
+                                % normalem makes italics be italics, not underlines
+    \usepackage{soul}      % strikethrough (\st) support for pandoc >= 3.0.0
+    \usepackage{mathrsfs}
+    
+
+    
+    % Colors for the hyperref package
+    \definecolor{urlcolor}{rgb}{0,.145,.698}
+    \definecolor{linkcolor}{rgb}{.71,0.21,0.01}
+    \definecolor{citecolor}{rgb}{.12,.54,.11}
+
+    % ANSI colors
+    \definecolor{ansi-black}{HTML}{3E424D}
+    \definecolor{ansi-black-intense}{HTML}{282C36}
+    \definecolor{ansi-red}{HTML}{E75C58}
+    \definecolor{ansi-red-intense}{HTML}{B22B31}
+    \definecolor{ansi-green}{HTML}{00A250}
+    \definecolor{ansi-green-intense}{HTML}{007427}
+    \definecolor{ansi-yellow}{HTML}{DDB62B}
+    \definecolor{ansi-yellow-intense}{HTML}{B27D12}
+    \definecolor{ansi-blue}{HTML}{208FFB}
+    \definecolor{ansi-blue-intense}{HTML}{0065CA}
+    \definecolor{ansi-magenta}{HTML}{D160C4}
+    \definecolor{ansi-magenta-intense}{HTML}{A03196}
+    \definecolor{ansi-cyan}{HTML}{60C6C8}
+    \definecolor{ansi-cyan-intense}{HTML}{258F8F}
+    \definecolor{ansi-white}{HTML}{C5C1B4}
+    \definecolor{ansi-white-intense}{HTML}{A1A6B2}
+    \definecolor{ansi-default-inverse-fg}{HTML}{FFFFFF}
+    \definecolor{ansi-default-inverse-bg}{HTML}{000000}
+
+    % common color for the border for error outputs.
+    \definecolor{outerrorbackground}{HTML}{FFDFDF}
+
+    % commands and environments needed by pandoc snippets
+    % extracted from the output of `pandoc -s`
+    \providecommand{\tightlist}{%
+      \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+    \DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+    % Add ',fontsize=\small' for more characters per line
+    \newenvironment{Shaded}{}{}
+    \newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{{#1}}}}
+    \newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.56,0.13,0.00}{{#1}}}
+    \newcommand{\DecValTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{{#1}}}
+    \newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{{#1}}}
+    \newcommand{\FloatTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{{#1}}}
+    \newcommand{\CharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{{#1}}}
+    \newcommand{\StringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{{#1}}}
+    \newcommand{\CommentTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textit{{#1}}}}
+    \newcommand{\OtherTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{{#1}}}
+    \newcommand{\AlertTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{{#1}}}}
+    \newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.02,0.16,0.49}{{#1}}}
+    \newcommand{\RegionMarkerTok}[1]{{#1}}
+    \newcommand{\ErrorTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{{#1}}}}
+    \newcommand{\NormalTok}[1]{{#1}}
+
+    % Additional commands for more recent versions of Pandoc
+    \newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.53,0.00,0.00}{{#1}}}
+    \newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{{#1}}}
+    \newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{{#1}}}
+    \newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.73,0.40,0.53}{{#1}}}
+    \newcommand{\ImportTok}[1]{{#1}}
+    \newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.73,0.13,0.13}{\textit{{#1}}}}
+    \newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{{#1}}}}}
+    \newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{{#1}}}}}
+    \newcommand{\VariableTok}[1]{\textcolor[rgb]{0.10,0.09,0.49}{{#1}}}
+    \newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{{#1}}}}
+    \newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.40,0.40,0.40}{{#1}}}
+    \newcommand{\BuiltInTok}[1]{{#1}}
+    \newcommand{\ExtensionTok}[1]{{#1}}
+    \newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.74,0.48,0.00}{{#1}}}
+    \newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.49,0.56,0.16}{{#1}}}
+    \newcommand{\InformationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{{#1}}}}}
+    \newcommand{\WarningTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{{#1}}}}}
+    \makeatletter
+    \newsavebox\pandoc@box
+    \newcommand*\pandocbounded[1]{%
+      \sbox\pandoc@box{#1}%
+      % scaling factors for width and height
+      \Gscale@div\@tempa\textheight{\dimexpr\ht\pandoc@box+\dp\pandoc@box\relax}%
+      \Gscale@div\@tempb\linewidth{\wd\pandoc@box}%
+      % select the smaller of both
+      \ifdim\@tempb\p@<\@tempa\p@
+        \let\@tempa\@tempb
+      \fi
+      % scaling accordingly (\@tempa < 1)
+      \ifdim\@tempa\p@<\p@
+        \scalebox{\@tempa}{\usebox\pandoc@box}%
+      % scaling not needed, use as it is
+      \else
+        \usebox{\pandoc@box}%
+      \fi
+    }
+    \makeatother
+
+    % Define a nice break command that doesn't care if a line doesn't already
+    % exist.
+    \def\br{\hspace*{\fill} \\* }
+    % Math Jax compatibility definitions
+    \def\gt{>}
+    \def\lt{<}
+    \let\Oldtex\TeX
+    \let\Oldlatex\LaTeX
+    \renewcommand{\TeX}{\textrm{\Oldtex}}
+    \renewcommand{\LaTeX}{\textrm{\Oldlatex}}
+    % Document parameters
+    % Document title
+    \title{building\_silver\_layer\_v2}
+    
+    
+    
+    
+    
+    
+    
+% Pygments definitions
+\makeatletter
+\def\PY@reset{\let\PY@it=\relax \let\PY@bf=\relax%
+    \let\PY@ul=\relax \let\PY@tc=\relax%
+    \let\PY@bc=\relax \let\PY@ff=\relax}
+\def\PY@tok#1{\csname PY@tok@#1\endcsname}
+\def\PY@toks#1+{\ifx\relax#1\empty\else%
+    \PY@tok{#1}\expandafter\PY@toks\fi}
+\def\PY@do#1{\PY@bc{\PY@tc{\PY@ul{%
+    \PY@it{\PY@bf{\PY@ff{#1}}}}}}}
+\def\PY#1#2{\PY@reset\PY@toks#1+\relax+\PY@do{#2}}
+
+\@namedef{PY@tok@w}{\def\PY@tc##1{\textcolor[rgb]{0.73,0.73,0.73}{##1}}}
+\@namedef{PY@tok@c}{\let\PY@it=\textit\def\PY@tc##1{\textcolor[rgb]{0.24,0.48,0.48}{##1}}}
+\@namedef{PY@tok@cp}{\def\PY@tc##1{\textcolor[rgb]{0.61,0.40,0.00}{##1}}}
+\@namedef{PY@tok@k}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\@namedef{PY@tok@kp}{\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\@namedef{PY@tok@kt}{\def\PY@tc##1{\textcolor[rgb]{0.69,0.00,0.25}{##1}}}
+\@namedef{PY@tok@o}{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\@namedef{PY@tok@ow}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.67,0.13,1.00}{##1}}}
+\@namedef{PY@tok@nb}{\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\@namedef{PY@tok@nf}{\def\PY@tc##1{\textcolor[rgb]{0.00,0.00,1.00}{##1}}}
+\@namedef{PY@tok@nc}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.00,1.00}{##1}}}
+\@namedef{PY@tok@nn}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.00,1.00}{##1}}}
+\@namedef{PY@tok@ne}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.80,0.25,0.22}{##1}}}
+\@namedef{PY@tok@nv}{\def\PY@tc##1{\textcolor[rgb]{0.10,0.09,0.49}{##1}}}
+\@namedef{PY@tok@no}{\def\PY@tc##1{\textcolor[rgb]{0.53,0.00,0.00}{##1}}}
+\@namedef{PY@tok@nl}{\def\PY@tc##1{\textcolor[rgb]{0.46,0.46,0.00}{##1}}}
+\@namedef{PY@tok@ni}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.44,0.44,0.44}{##1}}}
+\@namedef{PY@tok@na}{\def\PY@tc##1{\textcolor[rgb]{0.41,0.47,0.13}{##1}}}
+\@namedef{PY@tok@nt}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\@namedef{PY@tok@nd}{\def\PY@tc##1{\textcolor[rgb]{0.67,0.13,1.00}{##1}}}
+\@namedef{PY@tok@s}{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\@namedef{PY@tok@sd}{\let\PY@it=\textit\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\@namedef{PY@tok@si}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.64,0.35,0.47}{##1}}}
+\@namedef{PY@tok@se}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.67,0.36,0.12}{##1}}}
+\@namedef{PY@tok@sr}{\def\PY@tc##1{\textcolor[rgb]{0.64,0.35,0.47}{##1}}}
+\@namedef{PY@tok@ss}{\def\PY@tc##1{\textcolor[rgb]{0.10,0.09,0.49}{##1}}}
+\@namedef{PY@tok@sx}{\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\@namedef{PY@tok@m}{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\@namedef{PY@tok@gh}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.00,0.50}{##1}}}
+\@namedef{PY@tok@gu}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.50,0.00,0.50}{##1}}}
+\@namedef{PY@tok@gd}{\def\PY@tc##1{\textcolor[rgb]{0.63,0.00,0.00}{##1}}}
+\@namedef{PY@tok@gi}{\def\PY@tc##1{\textcolor[rgb]{0.00,0.52,0.00}{##1}}}
+\@namedef{PY@tok@gr}{\def\PY@tc##1{\textcolor[rgb]{0.89,0.00,0.00}{##1}}}
+\@namedef{PY@tok@ge}{\let\PY@it=\textit}
+\@namedef{PY@tok@gs}{\let\PY@bf=\textbf}
+\@namedef{PY@tok@ges}{\let\PY@bf=\textbf\let\PY@it=\textit}
+\@namedef{PY@tok@gp}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.00,0.50}{##1}}}
+\@namedef{PY@tok@go}{\def\PY@tc##1{\textcolor[rgb]{0.44,0.44,0.44}{##1}}}
+\@namedef{PY@tok@gt}{\def\PY@tc##1{\textcolor[rgb]{0.00,0.27,0.87}{##1}}}
+\@namedef{PY@tok@err}{\def\PY@bc##1{{\setlength{\fboxsep}{\string -\fboxrule}\fcolorbox[rgb]{1.00,0.00,0.00}{1,1,1}{\strut ##1}}}}
+\@namedef{PY@tok@kc}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\@namedef{PY@tok@kd}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\@namedef{PY@tok@kn}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\@namedef{PY@tok@kr}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\@namedef{PY@tok@bp}{\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\@namedef{PY@tok@fm}{\def\PY@tc##1{\textcolor[rgb]{0.00,0.00,1.00}{##1}}}
+\@namedef{PY@tok@vc}{\def\PY@tc##1{\textcolor[rgb]{0.10,0.09,0.49}{##1}}}
+\@namedef{PY@tok@vg}{\def\PY@tc##1{\textcolor[rgb]{0.10,0.09,0.49}{##1}}}
+\@namedef{PY@tok@vi}{\def\PY@tc##1{\textcolor[rgb]{0.10,0.09,0.49}{##1}}}
+\@namedef{PY@tok@vm}{\def\PY@tc##1{\textcolor[rgb]{0.10,0.09,0.49}{##1}}}
+\@namedef{PY@tok@sa}{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\@namedef{PY@tok@sb}{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\@namedef{PY@tok@sc}{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\@namedef{PY@tok@dl}{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\@namedef{PY@tok@s2}{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\@namedef{PY@tok@sh}{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\@namedef{PY@tok@s1}{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\@namedef{PY@tok@mb}{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\@namedef{PY@tok@mf}{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\@namedef{PY@tok@mh}{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\@namedef{PY@tok@mi}{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\@namedef{PY@tok@il}{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\@namedef{PY@tok@mo}{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\@namedef{PY@tok@ch}{\let\PY@it=\textit\def\PY@tc##1{\textcolor[rgb]{0.24,0.48,0.48}{##1}}}
+\@namedef{PY@tok@cm}{\let\PY@it=\textit\def\PY@tc##1{\textcolor[rgb]{0.24,0.48,0.48}{##1}}}
+\@namedef{PY@tok@cpf}{\let\PY@it=\textit\def\PY@tc##1{\textcolor[rgb]{0.24,0.48,0.48}{##1}}}
+\@namedef{PY@tok@c1}{\let\PY@it=\textit\def\PY@tc##1{\textcolor[rgb]{0.24,0.48,0.48}{##1}}}
+\@namedef{PY@tok@cs}{\let\PY@it=\textit\def\PY@tc##1{\textcolor[rgb]{0.24,0.48,0.48}{##1}}}
+
+\def\PYZbs{\char`\\}
+\def\PYZus{\char`\_}
+\def\PYZob{\char`\{}
+\def\PYZcb{\char`\}}
+\def\PYZca{\char`\^}
+\def\PYZam{\char`\&}
+\def\PYZlt{\char`\<}
+\def\PYZgt{\char`\>}
+\def\PYZsh{\char`\#}
+\def\PYZpc{\char`\%}
+\def\PYZdl{\char`\$}
+\def\PYZhy{\char`\-}
+\def\PYZsq{\char`\'}
+\def\PYZdq{\char`\"}
+\def\PYZti{\char`\~}
+% for compatibility with earlier versions
+\def\PYZat{@}
+\def\PYZlb{[}
+\def\PYZrb{]}
+\makeatother
+
+
+    % For linebreaks inside Verbatim environment from package fancyvrb.
+    \makeatletter
+        \newbox\Wrappedcontinuationbox
+        \newbox\Wrappedvisiblespacebox
+        \newcommand*\Wrappedvisiblespace {\textcolor{red}{\textvisiblespace}}
+        \newcommand*\Wrappedcontinuationsymbol {\textcolor{red}{\llap{\tiny$\m@th\hookrightarrow$}}}
+        \newcommand*\Wrappedcontinuationindent {3ex }
+        \newcommand*\Wrappedafterbreak {\kern\Wrappedcontinuationindent\copy\Wrappedcontinuationbox}
+        % Take advantage of the already applied Pygments mark-up to insert
+        % potential linebreaks for TeX processing.
+        %        {, <, #, %, $, ' and ": go to next line.
+        %        _, }, ^, &, >, - and ~: stay at end of broken line.
+        % Use of \textquotesingle for straight quote.
+        \newcommand*\Wrappedbreaksatspecials {%
+            \def\PYGZus{\discretionary{\char`\_}{\Wrappedafterbreak}{\char`\_}}%
+            \def\PYGZob{\discretionary{}{\Wrappedafterbreak\char`\{}{\char`\{}}%
+            \def\PYGZcb{\discretionary{\char`\}}{\Wrappedafterbreak}{\char`\}}}%
+            \def\PYGZca{\discretionary{\char`\^}{\Wrappedafterbreak}{\char`\^}}%
+            \def\PYGZam{\discretionary{\char`\&}{\Wrappedafterbreak}{\char`\&}}%
+            \def\PYGZlt{\discretionary{}{\Wrappedafterbreak\char`\<}{\char`\<}}%
+            \def\PYGZgt{\discretionary{\char`\>}{\Wrappedafterbreak}{\char`\>}}%
+            \def\PYGZsh{\discretionary{}{\Wrappedafterbreak\char`\#}{\char`\#}}%
+            \def\PYGZpc{\discretionary{}{\Wrappedafterbreak\char`\%}{\char`\%}}%
+            \def\PYGZdl{\discretionary{}{\Wrappedafterbreak\char`\$}{\char`\$}}%
+            \def\PYGZhy{\discretionary{\char`\-}{\Wrappedafterbreak}{\char`\-}}%
+            \def\PYGZsq{\discretionary{}{\Wrappedafterbreak\textquotesingle}{\textquotesingle}}%
+            \def\PYGZdq{\discretionary{}{\Wrappedafterbreak\char`\"}{\char`\"}}%
+            \def\PYGZti{\discretionary{\char`\~}{\Wrappedafterbreak}{\char`\~}}%
+        }
+        % Some characters . , ; ? ! / are not pygmentized.
+        % This macro makes them "active" and they will insert potential linebreaks
+        \newcommand*\Wrappedbreaksatpunct {%
+            \lccode`\~`\.\lowercase{\def~}{\discretionary{\hbox{\char`\.}}{\Wrappedafterbreak}{\hbox{\char`\.}}}%
+            \lccode`\~`\,\lowercase{\def~}{\discretionary{\hbox{\char`\,}}{\Wrappedafterbreak}{\hbox{\char`\,}}}%
+            \lccode`\~`\;\lowercase{\def~}{\discretionary{\hbox{\char`\;}}{\Wrappedafterbreak}{\hbox{\char`\;}}}%
+            \lccode`\~`\:\lowercase{\def~}{\discretionary{\hbox{\char`\:}}{\Wrappedafterbreak}{\hbox{\char`\:}}}%
+            \lccode`\~`\?\lowercase{\def~}{\discretionary{\hbox{\char`\?}}{\Wrappedafterbreak}{\hbox{\char`\?}}}%
+            \lccode`\~`\!\lowercase{\def~}{\discretionary{\hbox{\char`\!}}{\Wrappedafterbreak}{\hbox{\char`\!}}}%
+            \lccode`\~`\/\lowercase{\def~}{\discretionary{\hbox{\char`\/}}{\Wrappedafterbreak}{\hbox{\char`\/}}}%
+            \catcode`\.\active
+            \catcode`\,\active
+            \catcode`\;\active
+            \catcode`\:\active
+            \catcode`\?\active
+            \catcode`\!\active
+            \catcode`\/\active
+            \lccode`\~`\~
+        }
+    \makeatother
+
+    \let\OriginalVerbatim=\Verbatim
+    \makeatletter
+    \renewcommand{\Verbatim}[1][1]{%
+        %\parskip\z@skip
+        \sbox\Wrappedcontinuationbox {\Wrappedcontinuationsymbol}%
+        \sbox\Wrappedvisiblespacebox {\FV@SetupFont\Wrappedvisiblespace}%
+        \def\FancyVerbFormatLine ##1{\hsize\linewidth
+            \vtop{\raggedright\hyphenpenalty\z@\exhyphenpenalty\z@
+                \doublehyphendemerits\z@\finalhyphendemerits\z@
+                \strut ##1\strut}%
+        }%
+        % If the linebreak is at a space, the latter will be displayed as visible
+        % space at end of first line, and a continuation symbol starts next line.
+        % Stretch/shrink are however usually zero for typewriter font.
+        \def\FV@Space {%
+            \nobreak\hskip\z@ plus\fontdimen3\font minus\fontdimen4\font
+            \discretionary{\copy\Wrappedvisiblespacebox}{\Wrappedafterbreak}
+            {\kern\fontdimen2\font}%
+        }%
+
+        % Allow breaks at special characters using \PYG... macros.
+        \Wrappedbreaksatspecials
+        % Breaks at punctuation characters . , ; ? ! and / need catcode=\active
+        \OriginalVerbatim[#1,codes*=\Wrappedbreaksatpunct]%
+    }
+    \makeatother
+
+    % Exact colors from NB
+    \definecolor{incolor}{HTML}{303F9F}
+    \definecolor{outcolor}{HTML}{D84315}
+    \definecolor{cellborder}{HTML}{CFCFCF}
+    \definecolor{cellbackground}{HTML}{F7F7F7}
+
+    % prompt
+    \makeatletter
+    \newcommand{\boxspacing}{\kern\kvtcb@left@rule\kern\kvtcb@boxsep}
+    \makeatother
+    \newcommand{\prompt}[4]{
+        {\ttfamily\llap{{\color{#2}[#3]:\hspace{3pt}#4}}\vspace{-\baselineskip}}
+    }
+    
+
+    
+    % Prevent overflowing lines due to hard-to-break entities
+    \sloppy
+    % Setup hyperref package
+    \hypersetup{
+      breaklinks=true,  % so long urls are correctly broken across lines
+      colorlinks=true,
+      urlcolor=urlcolor,
+      linkcolor=linkcolor,
+      citecolor=citecolor,
+      }
+    % Slightly bigger margins than the latex defaults
+    
+    \geometry{verbose,tmargin=1in,bmargin=1in,lmargin=1in,rmargin=1in}
+    
+    
+
+\begin{document}
+    
+    \maketitle
+    
+    
+
+    
+    \section{Kolumbus Scheduled and Real-Time Bus Service: Analysis
+Report}\label{kolumbus-scheduled-and-real-time-bus-service-analysis-report}
+
+\subsection{Problem and aim}\label{problem-and-aim}
+
+I am investigating how the bus service in the published GTFS timetable
+compares with the stop-call information recorded in the SIRI Estimated
+Timetable (ET) real-time feed. The problem is that these sources
+describe service in different ways: GTFS says what is scheduled, while
+the real-time feed records changing predictions and, when available,
+what actually happened. The real-time data also contains repeated
+snapshots, so its raw row counts cannot be treated as counts of bus
+visits.
+
+My aim is to build a reliable record of scheduled and real-time bus stop
+events, then assess which scheduled events are confirmed, cancelled,
+unconfirmed, or not represented in the feed. I want to understand the
+coverage and quality of the data before drawing conclusions about bus
+operations or delays. In particular, a missing real-time record is not
+by itself proof that a bus did not run.
+
+\subsection{What I am doing}\label{what-i-am-doing}
+
+I first inspect the Parquet files and their schemas. I then use the
+static GTFS relationships between routes, trips, stops, stop times, and
+service calendars to reconstruct the bus stop events expected on each
+service date. I review service alerts and check that their identifiers
+can be related to GTFS records.
+
+Next, I profile the real-time \texttt{stop\_visits} data. Because one
+journey-stop event may appear in multiple snapshots as predictions
+change, I consolidate those records into one visit, using the latest
+snapshot while retaining actual arrival or departure times that may have
+appeared earlier. I validate the records against GTFS, limit the
+analysis to bus services and known stops, and classify each visit by its
+available evidence.
+
+Finally, I match scheduled bus stop events with real-time visits using
+the service date, trip, stop, and occurrence of that stop in the trip. I
+use the matched records to summarize scheduled and observed activity by
+stop, route, and date, and to calculate delay where an actual time is
+available.
+
+\subsection{How I interpret the
+results}\label{how-i-interpret-the-results}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Expected} means the GTFS timetable and service calendar
+  indicate that the stop event was scheduled.
+\item
+  \textbf{Observed} means a real-time record contains an actual arrival
+  or departure time after snapshots have been consolidated.
+\item
+  \textbf{Cancelled} means the real-time feed marks the journey or stop
+  call as cancelled.
+\item
+  \textbf{Unconfirmed} means a real-time record exists but contains no
+  actual arrival or departure time.
+\item
+  \textbf{Not in feed} means no matching real-time record was found.
+  This may indicate incomplete feed coverage and is not automatically a
+  missed service.
+\end{itemize}
+
+The conclusions are limited by the dates available, the accuracy of the
+source identifiers and timetable, and the completeness of the real-time
+feed. I calculate delay only when an actual time can be compared with
+its aimed timetable time. I keep timestamps in UTC and derive local-time
+fields for interpretation, taking daylight-saving changes into account.
+
+\subsection{Analysis structure}\label{analysis-structure}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Part
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Analysis
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+0?1 & Configure the analysis and inspect the source files \\
+2 & Examine static GTFS routes, trips, stops, and timetable
+relationships \\
+3 & Review service alerts and check their links to GTFS identifiers \\
+4 & Profile the real-time feed, its repeated snapshots, and data
+quality \\
+5 & Reconstruct scheduled bus stop events from the timetable and service
+calendars \\
+6 & Clean, validate, and classify real-time stop visits \\
+7 & Compare scheduled events with real-time outcomes by stop and
+route \\
+8 & Save the cleaned and comparison tables for further analysis \\
+\end{longtable}
+
+\textbf{Important:} I consolidate repeated snapshots before counting
+visits or comparing observed events with the timetable.
+
+    \subsection{0. Analysis setup}\label{analysis-setup}
+
+I set the data location, output folder, local timezone, and service-date
+selection used throughout the notebook.
+
+    \subsection{1. Source-file overview}\label{source-file-overview}
+
+I begin by checking the available Parquet files, their row and column
+counts, and the snapshot dates in the static GTFS tables. This
+establishes what data is available before I build the timetable or
+compare it with real-time records.
+
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+                   file     rows  cols  row\_groups
+0           gtfs\_agency        3     6           1
+1           gtfs\_routes      318     7           1
+2            gtfs\_trips    13833     9           1
+3       gtfs\_stop\_times   418837    11           1
+4            gtfs\_stops     7676    12           1
+5         gtfs\_calendar      223    12           1
+6   gtfs\_calendar\_dates     2722     5           1
+7           gtfs\_shapes   614593     7           1
+8        service\_alerts       53    17           1
+9           stop\_visits  9989935    26         100
+10    vehicle\_positions   300316    13           4
+    \end{Verbatim}
+
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+gtfs\_agency          agency\_id, agency\_name, agency\_url, agency\_timezone,
+snapshot\_time, source\_file
+gtfs\_routes          agency\_id, route\_id, route\_short\_name, route\_long\_name,
+route\_type, snapshot\_time, source\_file
+gtfs\_trips           route\_id, trip\_id, service\_id, trip\_headsign, direction\_id,
+shape\_id, boarding\_type, snapshot\_time, source\_file
+gtfs\_stop\_times      trip\_id, stop\_id, arrival\_time, departure\_time,
+stop\_sequence, stop\_headsign, pickup\_type, drop\_off\_type, shape\_dist\_traveled,
+snapshot\_time, source\_file
+gtfs\_stops           stop\_id, stop\_name, stop\_lat, stop\_lon, stop\_desc,
+location\_type, parent\_station, wheelchair\_boarding, vehicle\_type, platform\_code,
+snapshot\_time, source\_file
+gtfs\_calendar        service\_id, monday, tuesday, wednesday, thursday, friday,
+saturday, sunday, start\_date, end\_date, snapshot\_time, source\_file
+gtfs\_calendar\_dates  service\_id, date, exception\_type, snapshot\_time,
+source\_file
+gtfs\_shapes          shape\_id, shape\_pt\_sequence, shape\_pt\_lat, shape\_pt\_lon,
+shape\_dist\_traveled, snapshot\_time, source\_file
+service\_alerts       snapshot\_time, situation\_number, creation\_time,
+version\_time, progress, severity, report\_type, planned, summary, valid\_start,
+valid\_end, affect\_type, line\_ref, journey\_ref, operator\_ref,
+origin\_aimed\_departure, source\_file
+stop\_visits          snapshot\_time, recorded\_at, journey\_ref, data\_frame\_ref,
+line\_ref, direction\_ref, vehicle\_mode, operator\_ref, monitored,
+journey\_cancelled, call\_type, stop\_order, stop\_ref, stop\_name, destination,
+aimed\_arrival, expected\_arrival, actual\_arrival, aimed\_departure,
+expected\_departure, actual\_departure, arrival\_status, departure\_status,
+call\_cancelled, prediction\_inaccurate, source\_file
+vehicle\_positions    snapshot\_time, vehicle\_id, last\_updated, line\_ref,
+line\_name, public\_code, latitude, longitude, bearing, speed, delay,
+occupancy\_status, source\_file
+    \end{Verbatim}
+
+    \textbf{Data considerations.} The GTFS fields are stored as strings,
+including dates, sequence values, and flags. I convert these fields to
+appropriate types before using them in calculations or comparisons. The
+\texttt{snapshot\_time} and \texttt{source\_file} fields were added by
+the data pipeline rather than being standard GTFS fields. I check the
+snapshot metadata to confirm that the static tables represent a
+consistent timetable snapshot and are not duplicated across multiple
+extracts.
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+gtfs\_agency          distinct snapshots: 1  (2026-10-24 20:00:12+00:00 →
+2026-10-24 20:00:12+00:00)
+gtfs\_routes          distinct snapshots: 1  (2026-10-24 20:00:12+00:00 →
+2026-10-24 20:00:12+00:00)
+gtfs\_trips           distinct snapshots: 1  (2026-10-24 20:00:12+00:00 →
+2026-10-24 20:00:12+00:00)
+gtfs\_stop\_times      distinct snapshots: 1  (2026-10-24 20:00:12+00:00 →
+2026-10-24 20:00:12+00:00)
+gtfs\_stops           distinct snapshots: 1  (2026-10-24 20:00:12+00:00 →
+2026-10-24 20:00:12+00:00)
+gtfs\_calendar        distinct snapshots: 1  (2026-10-24 20:00:12+00:00 →
+2026-10-24 20:00:12+00:00)
+gtfs\_calendar\_dates  distinct snapshots: 1  (2026-10-24 20:00:12+00:00 →
+2026-10-24 20:00:12+00:00)
+    \end{Verbatim}
+
+    \subsection{2. Static GTFS: the scheduled
+service}\label{static-gtfs-the-scheduled-service}
+
+I use the static GTFS tables to describe the service the timetable says
+should operate. The route, trip, stop, stop-time, and calendar tables
+together provide the basis for identifying scheduled bus events.
+
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+          agency\_id agency\_name agency\_timezone
+0  KOL:Authority:26   Norled AS     Europe/Oslo
+1  KOL:Authority:30  Fjord1 ASA     Europe/Oslo
+2   KOL:Authority:8    Kolumbus     Europe/Oslo
+    \end{Verbatim}
+
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+318 routes | 13,833 trips | 418,837 stop\_times | 7,676 stops
+    \end{Verbatim}
+
+    \subsubsection{\texorpdfstring{2.1 Interpreting
+\texttt{route\_type}}{2.1 Interpreting route\_type}}\label{interpreting-route_type}
+
+The route types in these files use the extended GTFS codes rather than
+only the basic 0?7 values. I use the following common interpretations to
+distinguish bus services from ferry services. If a route-type label
+affects a reported conclusion, I verify it against the applicable
+official GTFS reference.
+
+            \begin{tcolorbox}[breakable, size=fbox, boxrule=.5pt, pad at break*=1mm, opacityfill=0]
+\begin{Verbatim}[commandchars=\\\{\}]
+  route\_type             route\_type\_name  n\_routes
+5        712                  School bus       179
+3        704                   Local bus       105
+4        705                   Night bus        13
+2       1014  High-speed passenger ferry        12
+0       1004             Local car ferry         8
+1       1008       Local passenger ferry         1
+\end{Verbatim}
+\end{tcolorbox}
+        
+    \subsubsection{2.2 Checking the school-bus
+classification}\label{checking-the-school-bus-classification}
+
+I check whether route type \texttt{712} behaves like a school-bus
+category by comparing the stops served by routes of type \texttt{712}
+with those served by local bus routes of type \texttt{704}. This is a
+more systematic check than relying on individual route numbers. I expect
+the service patterns to differ, although major terminals may be shared.
+The comparison provides evidence for interpreting the category; it does
+not, by itself, prove the intended meaning of the code.
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+stops served by 704 (local bus):  3,821
+stops served by 712 (school bus): 3,074
+stops served by BOTH:             2,202
+stops served ONLY by 712:         872
+    \end{Verbatim}
+
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+                  stop\_id stop\_name        served\_by
+1097       NSR:Quay:44969  UiS nord  [704, 705, 712]
+1098       NSR:Quay:44970  UiS nord       [704, 705]
+1108       NSR:Quay:44984   UiS øst  [704, 705, 712]
+1110       NSR:Quay:44986   UiS øst       [704, 705]
+4930  NSR:StopPlace:25943  UiS nord               []
+4937  NSR:StopPlace:25953   UiS øst               []
+    \end{Verbatim}
+
+    
+    \subsubsection{2.3 Linking a shape to trips, routes, and
+stops}\label{linking-a-shape-to-trips-routes-and-stops}
+
+A \texttt{shape\_id} describes a path, but it does not alone identify
+the timetable's ordered stop calls. I trace the relationships from
+\texttt{shape\_id} to trips, from trips to routes, and from each trip to
+its ordered \texttt{stop\_times}; I then use the stops table to retrieve
+names and coordinates. The function below makes this lookup repeatable
+for any shape I want to examine.
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+248 trips use this shape, on route(s):
+    \end{Verbatim}
+
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+          route\_id route\_short\_name route\_long\_name route\_type route\_type\_name
+2  KOL:Line:8\_1001                1                        704       Local bus
+    \end{Verbatim}
+
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+Stops for example trip KOL:ServiceJourney:1001\_251008118370980\_2001:
+    \end{Verbatim}
+
+            \begin{tcolorbox}[breakable, size=fbox, boxrule=.5pt, pad at break*=1mm, opacityfill=0]
+\begin{Verbatim}[commandchars=\\\{\}]
+    stop\_sequence          stop\_id                   stop\_name arrival\_time
+departure\_time
+0               1  NSR:Quay:103376  Sandnes bussterminal Ruten     05:30:00
+05:30:00
+1               2  NSR:Quay:109015               Olav Vs plass     05:32:00
+05:32:00
+2               3  NSR:Quay:111020               Jernbaneveien     05:33:00
+05:33:00
+3               4   NSR:Quay:47663                  Strandgata     05:35:00
+05:35:00
+4               5  NSR:Quay:109013             Strandgata nord     05:37:00
+05:37:00
+5               6   NSR:Quay:49004               Gamle Postvei     05:39:00
+05:39:00
+6               7   NSR:Quay:45344                  Seljeveien     05:40:00
+05:40:00
+7               8   NSR:Quay:47836                     Kvadrat     05:41:00
+05:41:00
+8               9   NSR:Quay:48301                Porsmyrveien     05:42:00
+05:42:00
+9              10   NSR:Quay:46365         Jakob Askelands vei     05:43:00
+05:43:00
+10             11   NSR:Quay:47231                Løwenstrasse     05:44:00
+05:44:00
+11             12   NSR:Quay:48774                   2020 park     05:45:00
+05:45:00
+12             13   NSR:Quay:48992              Nådlandsbråtet     05:46:00
+05:46:00
+13             14   NSR:Quay:49080              Gausel stasjon     05:47:00
+05:47:00
+14             15   NSR:Quay:49085                 Gauselhagen     05:49:00
+05:49:00
+15             16   NSR:Quay:49078              Gausel sentrum     05:50:00
+05:50:00
+16             17  NSR:Quay:108991                       Jåttå     05:52:00
+05:52:00
+17             18  NSR:Quay:108996               Stadionparken     05:53:00
+05:53:00
+18             19  NSR:Quay:108998                  Skråtårnet     05:54:00
+05:54:00
+19             20  NSR:Quay:108999               Hinnasvingene     05:56:00
+05:56:00
+20             21   NSR:Quay:47141                Lyngnesveien     05:58:00
+05:58:00
+21             22   NSR:Quay:47331                     Mariero     05:59:00
+05:59:00
+22             23   NSR:Quay:48151                    Eikeberg     06:00:00
+06:00:00
+23             24   NSR:Quay:45392                    Sjøhagen     06:01:00
+06:01:00
+24             25   NSR:Quay:47870             Kvaleberg skole     06:02:00
+06:02:00
+25             26   NSR:Quay:45727                    Hillevåg     06:03:00
+06:03:00
+26             27   NSR:Quay:45732           Hillevågstunnelen     06:04:00
+06:04:00
+27             28   NSR:Quay:47270                  Strømsbrua     06:05:00
+06:05:00
+28             29   NSR:Quay:46034               Vålandsbakken     06:06:00
+06:06:00
+29             30   NSR:Quay:46919                 Statens hus     06:07:00
+06:07:00
+30             31   NSR:Quay:47005     Stavanger politistasjon     06:08:00
+06:08:00
+31             32   NSR:Quay:46974               Jernbaneveien     06:09:00
+06:09:00
+\end{Verbatim}
+\end{tcolorbox}
+        
+    \subsubsection{2.4 Checking static-table
+integrity}\label{checking-static-table-integrity}
+
+Before using the timetable to create expected stop events, I check for
+duplicate identifiers and broken references between trips, stop times,
+and stops. A non-zero problem count indicates records that need
+investigation because they may affect joins or event counts.
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+OK   duplicate trip\_id in trips: 0 of 13,833
+OK   duplicate stop\_id in stops: 0 of 7,676
+OK   stop\_times with trip\_id not in trips: 0 of 418,837
+OK   stop\_times with stop\_id not in stops: 0 of 418,837
+OK   trips with route\_id not in routes: 0 of 13,833
+OK   trips with service\_id in neither calendar nor calendar\_dates: 0 of 13,833
+OK   stops with missing coordinates: 0 of 7,676
+calendar service dates: 20261016 → 20270403
+exception types in calendar\_dates: \{'2': 1942, '1': 780\} (1 = service added, 2 =
+service removed)
+    \end{Verbatim}
+
+    \subsection{3. Service alerts}\label{service-alerts}
+
+I examine the service-alert records as additional context for
+interpreting service disruptions. The relevant category field in this
+dataset is \texttt{affect\_type}, with values such as \texttt{line} and
+\texttt{journey}. Alerts can be repeated across snapshots, so I retain
+the latest record for each alert reference before summarizing or
+matching alerts to timetable entities.
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+53 alert rows, 10 distinct situations
+affect\_type
+line       44
+journey     9
+
+severity
+normal      41
+noImpact     6
+severe       6
+
+summary
+Mulige forsinkelser pga. vanskelige værforhold    41
+Forsinket på grunn av mye trafikk                  4
+Trafikkmelding                                     3
+Redusert kapasitet                                 3
+Forsinket på grunn av tekniske problemer           1
+Tur avsluttes før endeholdeplass                   1
+
+after de-duplicating snapshots: 11 rows
+affect\_type
+journey    6
+line       5
+
+    \end{Verbatim}
+
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+               snapshot\_time                                   summary  severity          line\_ref                                   journey\_ref                valid\_start                  valid\_end
+9  2026-10-24 10:59:35+00:00                        Redusert kapasitet  noImpact  KOL:Line:26\_5958                                           NaN  2026-10-24T13:00:00+02:00  2026-10-24T13:12:00+02:00
+16 2026-10-24 11:51:39+00:00  Forsinket på grunn av tekniske problemer    severe   KOL:Line:8\_1006  KOL:ServiceJourney:1006\_261005064436180\_3024  2026-10-24T00:00:00+02:00  2026-10-24T15:57:00+02:00
+28 2026-10-24 15:57:00+00:00         Forsinket på grunn av mye trafikk    severe   KOL:Line:8\_2010  KOL:ServiceJourney:2010\_260923062817478\_4014  2026-10-24T00:00:00+02:00  2026-10-24T18:06:00+02:00
+32 2026-10-24 16:17:01+00:00         Forsinket på grunn av mye trafikk    severe   KOL:Line:8\_6100  KOL:ServiceJourney:6100\_250903083239593\_4017  2026-10-24T00:00:00+02:00  2026-10-24T19:28:00+02:00
+43 2026-10-24 19:39:18+00:00                        Redusert kapasitet  noImpact  KOL:Line:26\_5958                                           NaN  2026-10-24T21:40:00+02:00  2026-10-24T21:53:00+02:00
+50 2026-10-24 23:24:37+00:00          Tur avsluttes før endeholdeplass    severe   KOL:Line:8\_1104  KOL:ServiceJourney:1104\_251007084239511\_3070  2026-10-24T00:00:00+02:00  2026-10-25T02:31:00+02:00
+    \end{Verbatim}
+
+    
+    I check whether alert \texttt{journey\_ref} values correspond to GTFS
+\texttt{trip\_id} values and whether \texttt{line\_ref} values
+correspond to GTFS \texttt{route\_id} values. This confirms whether the
+alert records can be linked to the trips and routes used in the
+scheduled-versus-real-time comparison.
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+alert journey\_ref found in gtfs trip\_id : 4/4
+alert line\_ref found in gtfs route\_id   : 9/9
+    \end{Verbatim}
+
+    \subsection{\texorpdfstring{4. Real-time \texttt{stop\_visits}: SIRI
+Estimated Timetable
+data}{4. Real-time stop\_visits: SIRI Estimated Timetable data}}\label{real-time-stop_visits-siri-estimated-timetable-data}
+
+I now examine the real-time source that records stop-level journey
+information, including aimed, predicted, and actual times.
+
+    \subsubsection{4.1 Loading the analysis
+fields}\label{loading-the-analysis-fields}
+
+The \texttt{stop\_visits} file contains approximately 10 million rows
+and 26 columns. To reduce memory use, I read only the fields needed for
+profiling, cleaning, and comparison. I do not rely on
+\texttt{stop\_name} or \texttt{destination} here because they are mostly
+empty in this extract; I use the GTFS stop table for stop names. I also
+omit \texttt{source\_file} and \texttt{recorded\_at}, which are not
+needed for the analysis below.
+
+I interpret the main SIRI fields as follows:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{data\_frame\_ref} identifies the journey's service date.
+\item
+  \texttt{journey\_ref}, \texttt{line\_ref}, and \texttt{stop\_ref} are
+  checked against GTFS trip, route, and stop identifiers.
+\item
+  \texttt{aimed\_*} fields represent timetable times,
+  \texttt{expected\_*} fields represent current predictions, and
+  \texttt{actual\_*} fields represent recorded arrival or departure
+  times.
+\item
+  \texttt{snapshot\_time} records when this version of the real-time row
+  was captured.
+\end{itemize}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+9,989,935 raw rows | 4,513 MB in memory
+    \end{Verbatim}
+
+            \begin{tcolorbox}[breakable, size=fbox, boxrule=.5pt, pad at break*=1mm, opacityfill=0]
+\begin{Verbatim}[commandchars=\\\{\}]
+              snapshot\_time data\_frame\_ref
+journey\_ref          line\_ref direction\_ref vehicle\_mode monitored
+journey\_cancelled call\_cancelled  call\_type  \textbackslash{}
+0 2026-10-24 00:00:15+00:00     2026-10-24
+KOL:ServiceJourney:1130\_250903083242106\_4040  KOL:Line:30\_1130       inbound
+ferry      True             False          False  estimated
+1 2026-10-24 00:00:15+00:00     2026-10-24
+KOL:ServiceJourney:1130\_250903083242106\_4040  KOL:Line:30\_1130       inbound
+ferry      True             False          False  estimated
+2 2026-10-24 00:00:15+00:00     2026-10-24
+KOL:ServiceJourney:5958\_250903083240300\_8028  KOL:Line:26\_5958       inbound
+ferry      True             False          False  estimated
+
+   stop\_order        stop\_ref              aimed\_arrival
+expected\_arrival actual\_arrival            aimed\_departure
+expected\_departure actual\_departure arrival\_status  \textbackslash{}
+0           1  NSR:Quay:99269                        NaN
+NaN            NaN  2026-10-24T18:30:00+02:00  2026-10-24T18:30:00+02:00
+NaN            NaN
+1           2  NSR:Quay:99704  2026-10-24T18:54:00+02:00
+2026-10-24T18:54:00+02:00            NaN                        NaN
+NaN              NaN            NaN
+2           1  NSR:Quay:47191                        NaN
+NaN            NaN  2026-10-24T16:40:00+02:00  2026-10-24T16:40:00+02:00
+NaN            NaN
+
+  departure\_status prediction\_inaccurate
+0              NaN                 False
+1              NaN                 False
+2              NaN                 False
+\end{Verbatim}
+\end{tcolorbox}
+        
+    \subsubsection{Initial real-time data
+assessment}\label{initial-real-time-data-assessment}
+
+I focus on \texttt{stop\_visits} because it is the source used to
+determine whether scheduled events have corresponding real-time
+evidence. I first examine its identifiers, repeated records, and field
+completeness before defining the cleaning and observation rules.
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+Non-ferry records: 9,494,374  (raw file had 9,989,935)
+  of which vehicle\_mode is NULL: 2,429
+vehicle\_mode
+bus    9491945
+NaN       2429
+Memory usage: 4,297 MB
+    \end{Verbatim}
+
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+                        True  False  Missing
+journey\_cancelled       1686      0  9492688
+call\_cancelled         64612      0  9429762
+prediction\_inaccurate      0      0  9494374
+    \end{Verbatim}
+
+    
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+                    Has value  Missing
+aimed\_arrival         9231791   262583
+expected\_arrival      6589616  2904758
+actual\_arrival        2642175  6852199
+aimed\_departure       9231791   262583
+expected\_departure    6500328  2994046
+actual\_departure      2731463  6762911
+arrival\_status        6732697  2761677
+departure\_status      6498192  2996182
+    \end{Verbatim}
+
+    
+    \subsubsection{4.2 Understanding repeated
+snapshots}\label{understanding-repeated-snapshots}
+
+The initial count of distinct \texttt{stop\_name} values does not
+represent the number of distinct stops because the feed's
+\texttt{stop\_name} field is mostly empty. I count distinct
+\texttt{stop\_ref} identifiers instead. I also measure how many rows are
+recorded for each service-date, journey, and stop-order key. This shows
+why raw row counts overstate the number of visits: the same visit can be
+present in several snapshots.
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+service dates in feed: ['2026-10-23', '2026-10-24', '2026-10-25', '2026-10-26',
+'2026-10-27']
+distinct stop\_ref  : 2,247
+
+unique visits (journey × stop × date): 91,273
+raw rows                              : 9,989,935
+snapshots per visit:
+count    91273.0
+mean       109.5
+std         67.2
+min          2.0
+25\%         93.0
+50\%        105.0
+75\%        125.0
+max       1428.0
+    \end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+service dates in feed: ['2026-10-24', '2026-10-25', '2026-10-26', '2026-10-27']
+distinct stop\_ref  : 2,225
+
+unique visits (journey × stop × date): 90,261
+raw buses                              : 9,494,374
+snapshots per visit:
+count    90261.0
+mean       105.2
+std         39.9
+min          1.0
+25\%         93.0
+50\%        105.0
+75\%        125.0
+max       1428.0
+    \end{Verbatim}
+
+    \subsubsection{4.3 Assessing real-time data
+quality}\label{assessing-real-time-data-quality}
+
+I measure missing values and inspect the values in fields that describe
+vehicle mode, call type, cancellation, monitoring, prediction quality,
+and arrival or departure status. These checks help me understand which
+fields are reliable enough to use in the cleaning rules and in the
+interpretation of a visit.
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+Share of nulls per column (\%):
+journey\_cancelled        95.0
+prediction\_inaccurate    95.0
+call\_cancelled           94.4
+actual\_arrival           73.4
+actual\_departure         72.5
+departure\_status         35.0
+arrival\_status           32.6
+expected\_departure       31.6
+expected\_arrival         30.8
+aimed\_departure           4.3
+aimed\_arrival             4.3
+snapshot\_time             0.0
+data\_frame\_ref            0.0
+direction\_ref             0.0
+line\_ref                  0.0
+journey\_ref               0.0
+stop\_ref                  0.0
+monitored                 0.0
+stop\_order                0.0
+call\_type                 0.0
+vehicle\_mode              0.0
+
+--- vehicle\_mode ---
+vehicle\_mode
+bus      9491945
+ferry     495561
+NaN         2429
+
+--- call\_type ---
+call\_type
+estimated    7207575
+recorded     2782360
+
+--- arrival\_status ---
+arrival\_status
+delayed      6246114
+NaN          3257238
+early         420931
+cancelled      64420
+onTime          1232
+
+--- departure\_status ---
+departure\_status
+delayed      6146452
+NaN          3491743
+onTime        290508
+cancelled      61232
+
+--- monitored ---
+monitored
+True     9989533
+None         384
+False         18
+
+--- journey\_cancelled ---
+journey\_cancelled
+None     9492688
+False     495463
+True        1784
+
+--- call\_cancelled ---
+call\_cancelled
+None     9429762
+False     490055
+True       70118
+
+--- prediction\_inaccurate ---
+prediction\_inaccurate
+None     9494374
+False     495561
+    \end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+Share of nulls per column (\%):
+journey\_cancelled        100.0
+prediction\_inaccurate    100.0
+call\_cancelled            99.3
+actual\_arrival            72.2
+actual\_departure          71.2
+departure\_status          31.6
+expected\_departure        31.5
+expected\_arrival          30.6
+arrival\_status            29.1
+aimed\_departure            2.8
+aimed\_arrival              2.8
+snapshot\_time              0.0
+data\_frame\_ref             0.0
+direction\_ref              0.0
+line\_ref                   0.0
+journey\_ref                0.0
+stop\_ref                   0.0
+monitored                  0.0
+stop\_order                 0.0
+call\_type                  0.0
+vehicle\_mode               0.0
+
+--- vehicle\_mode ---
+vehicle\_mode
+bus    9491945
+NaN       2429
+
+--- call\_type ---
+call\_type
+estimated    6735045
+recorded     2759329
+
+--- arrival\_status ---
+arrival\_status
+delayed      6246114
+NaN          2761677
+early         420931
+cancelled      64420
+onTime          1232
+
+--- departure\_status ---
+departure\_status
+delayed      6146452
+NaN          2996182
+onTime        290508
+cancelled      61232
+
+--- monitored ---
+monitored
+True    9493990
+None        384
+
+--- journey\_cancelled ---
+journey\_cancelled
+None    9492688
+True       1686
+
+--- call\_cancelled ---
+call\_cancelled
+None    9429762
+True      64612
+
+--- prediction\_inaccurate ---
+prediction\_inaccurate
+None    9494374
+    \end{Verbatim}
+
+    \textbf{Basis for classifying a visit.} I use the presence of
+\texttt{actual\_arrival} or \texttt{actual\_departure} as evidence that
+the stop event was observed. I check how complete those fields are
+before relying on this rule. If actual times are sparse, I report that
+limitation and investigate whether another feed field provides a
+defensible alternative rather than silently treating predictions as
+completed visits.
+
+            \begin{tcolorbox}[breakable, size=fbox, boxrule=.5pt, pad at break*=1mm, opacityfill=0]
+\begin{Verbatim}[commandchars=\\\{\}]
+0
+\end{Verbatim}
+\end{tcolorbox}
+        
+    \subsection{5. Reconstructing expected service from the
+timetable}\label{reconstructing-expected-service-from-the-timetable}
+
+I determine whether each GTFS service is active on each date by
+combining its regular calendar with date-specific exceptions. A service
+is active when the date falls within its calendar range and the weekday
+flag is set. I then add services listed in \texttt{calendar\_dates} with
+\texttt{exception\_type\ =\ 1} and remove those listed with
+\texttt{exception\_type\ =\ 2}, such as holiday exceptions. Each
+associated row in \texttt{stop\_times} represents one scheduled stop
+event for an active trip.
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+services per weekday flag (should NOT be all 0): \{'monday': 141, 'saturday': 16,
+'sunday': 5\}
+    \end{Verbatim}
+
+    \subsubsection{5.1 Counting expected stop events by service
+date}\label{counting-expected-stop-events-by-service-date}
+
+I apply the calendar rules to identify the trips scheduled for each
+service date, then count their stop-time records. These counts provide
+the timetable-based baseline for comparison with real-time activity.
+
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+   service\_date             route\_type\_name  trips  scheduled\_stop\_events  distinct\_stops
+0    2026-10-24  High-speed passenger ferry     52                    391              44
+1    2026-10-24                   Local bus   2537                  83983            2213
+2    2026-10-24             Local car ferry    309                    722              28
+3    2026-10-24       Local passenger ferry      2                     20              10
+4    2026-10-24                   Night bus     65                   2775             864
+5    2026-10-25  High-speed passenger ferry     53                    413              55
+6    2026-10-25                   Local bus   1626                  51747            2038
+7    2026-10-25             Local car ferry    315                    722              28
+8    2026-10-25       Local passenger ferry      2                     20              10
+9    2026-10-25                   Night bus     80                   3338             918
+10   2026-10-25                  School bus      1                     10              10
+11   2026-10-26  High-speed passenger ferry     97                    606              53
+12   2026-10-26                   Local bus   4882                 147146            3799
+13   2026-10-26             Local car ferry    371                    852              29
+14   2026-10-26       Local passenger ferry      4                     40              10
+15   2026-10-26                  School bus    511                   7457            3018
+16   2026-10-27  High-speed passenger ferry     95                    601              53
+17   2026-10-27                   Local bus   4898                 147702            3795
+18   2026-10-27             Local car ferry    368                    865              40
+19   2026-10-27       Local passenger ferry      4                     40              10
+20   2026-10-27                  School bus    500                   7297            3015
+    \end{Verbatim}
+
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+BUS ONLY:
+    \end{Verbatim}
+
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+              trips  scheduled\_stop\_events  distinct\_stops
+service\_date                                              
+2026-10-24     2602                  86758            2247
+2026-10-25     1707                  55095            2190
+2026-10-26     5393                 154603            4673
+2026-10-27     5398                 154999            4670
+    \end{Verbatim}
+
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+                   rows  trips            first\_snapshot
+last\_snapshot
+data\_frame\_ref
+2026-10-23         2109      2 2026-10-24 00:00:15+00:00 2026-10-24
+03:20:55+00:00
+2026-10-24      9400601   2778 2026-10-24 00:00:15+00:00 2026-10-24
+23:22:31+00:00
+2026-10-25       523079    284 2026-10-24 00:00:15+00:00 2026-10-24
+23:59:41+00:00
+2026-10-26         5924      2 2026-10-24 00:00:15+00:00 2026-10-24
+23:59:41+00:00
+2026-10-27        58222      1 2026-10-24 01:14:34+00:00 2026-10-24
+23:59:41+00:00
+    \end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+feed trips on 24th:         2778
+  of those in GTFS trips:   2778
+  of those I scheduled:     2778
+2026-10-24 active service\_ids: 15 | trips on them: 2987
+2026-10-26 active service\_ids: 121 | trips on them: 5883
+service\_ids: trips 284 | calendar 223 | calendar\_dates 259
+    \end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+route\_type\_name
+High-speed passenger ferry    36
+Local bus                     75
+Local car ferry               60
+Local passenger ferry          2
+Night bus                     14
+Name: trip\_id, dtype: int64
+    \end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+departure\_time
+08     1
+09     2
+10     1
+11     1
+15     2
+17     1
+18     1
+20     1
+21     1
+24    66
+25    12
+Name: count, dtype: int64
+    \end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+0 missing trips use 0 service\_ids
+    \end{Verbatim}
+
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+Empty DataFrame
+Columns: []
+Index: []
+    \end{Verbatim}
+
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+monday       141
+tuesday      128
+wednesday    134
+thursday     132
+friday       144
+saturday      16
+sunday         5
+dtype: int64
+exception\_type
+2    1942
+1     780
+Name: count, dtype: int64
+date
+20261023     6
+20261024     5
+20261025    12
+20261026     9
+20261027    11
+dtype: int64
+    \end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+first departure hour (GTFS time):
+Series([], )
+
+active on 23rd / 25th:
+Series([], )
+
+scheduled-but-missing trips found in feed under another date:
+data\_frame\_ref
+2026-10-25    4
+2026-10-26    1
+
+first departure hour of the missing scheduled trips:
+first\_dep
+0      4
+1      1
+6      2
+7      3
+8      8
+9      7
+10     8
+11     5
+12     5
+13     6
+14     5
+15     9
+16     7
+17     8
+18     6
+19     5
+20     5
+21     5
+22     4
+23     1
+24    70
+25    13
+    \end{Verbatim}
+
+    \texttt{expected\_per\_stop} summarizes the number of scheduled bus
+visits at each stop on each service date. I use it as the
+expected-activity baseline when assessing observed visits; it describes
+the timetable, not the number of buses confirmed by the real-time feed.
+
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+      service\_date         stop\_id  expected\_visits                stop\_name   stop\_lat  stop\_lon
+11748   2026-10-27  NSR:Quay:46957              815             Vaktapoteket  58.966459  5.731226
+7075    2026-10-26  NSR:Quay:46957              811             Vaktapoteket  58.966459  5.731226
+11753   2026-10-27  NSR:Quay:46964              801             Vaktapoteket  58.966693  5.731406
+7080    2026-10-26  NSR:Quay:46964              800             Vaktapoteket  58.966693  5.731406
+1093    2026-10-24  NSR:Quay:46957              539             Vaktapoteket  58.966459  5.731226
+1098    2026-10-24  NSR:Quay:46964              533             Vaktapoteket  58.966693  5.731406
+11014   2026-10-27  NSR:Quay:46034              529            Vålandsbakken  58.957290  5.740290
+6341    2026-10-26  NSR:Quay:46034              529            Vålandsbakken  58.957290  5.740290
+7045    2026-10-26  NSR:Quay:46919              529              Statens hus  58.961118  5.737835
+7106    2026-10-26  NSR:Quay:47005              529  Stavanger politistasjon  58.963432  5.735529
+11779   2026-10-27  NSR:Quay:47005              529  Stavanger politistasjon  58.963432  5.735529
+11718   2026-10-27  NSR:Quay:46919              529              Statens hus  58.961118  5.737835
+11658   2026-10-27  NSR:Quay:46836              525           Lindahlsbakken  58.955635  5.741340
+11013   2026-10-27  NSR:Quay:46033              525            Vålandsbakken  58.957532  5.739911
+11777   2026-10-27  NSR:Quay:47003              525  Stavanger politistasjon  58.962876  5.735773
+    \end{Verbatim}
+
+    
+    \subsection{6. Preparing and classifying real-time
+visits}\label{preparing-and-classifying-real-time-visits}
+
+I clean the real-time records so that each usable row represents one
+journey-stop event rather than one downloaded snapshot. I record row
+removals by rule in \texttt{removal\_log}, which lets me report how each
+cleaning decision affects the data.
+
+My cleaning process is:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Keep the selected service dates and remove rows without the
+  identifiers needed to define a visit.
+\item
+  Consolidate repeated snapshots using the latest snapshot for each
+  visit. Because actual arrival and departure times may have been
+  recorded in an earlier snapshot, I retain those values when the latest
+  snapshot does not contain them. Other fields, including predictions
+  and cancellation flags, come from the latest snapshot.
+\item
+  Parse timestamps as UTC and derive local-time fields only for
+  interpretation.
+\item
+  Check whether trip, route, and stop identifiers link to the static
+  GTFS tables.
+\item
+  Exclude ferry services and retain bus route types and stops that exist
+  in GTFS.
+\item
+  Classify each visit, calculate delay from a single selected arrival or
+  departure event, and add analysis flags and time fields.
+\end{enumerate}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+keep chosen service dates                                  9,494,374 ->
+9,494,374   removed            0
+drop rows with null key / stop\_ref                         9,494,374 ->
+9,494,374   removed            0
+visits whose newest snapshot has no actual time but an older one does: 43
+(rescued below)
+de-duplicate snapshots (keep latest per visit)             9,494,374 ->
+90,261   removed    9,404,113
+    \end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+OK   aimed\_arrival: values that failed to parse: 0 of 87,571
+OK   expected\_arrival: values that failed to parse: 0 of 2,828
+OK   actual\_arrival: values that failed to parse: 0 of 84,786
+OK   aimed\_departure: values that failed to parse: 0 of 87,571
+OK   expected\_departure: values that failed to parse: 0 of 2,726
+OK   actual\_departure: values that failed to parse: 0 of 84,888
+aimed\_arrival         97.0
+expected\_arrival       3.1
+actual\_arrival        93.9
+aimed\_departure       97.0
+expected\_departure     3.0
+actual\_departure      94.0
+timestamp dtype: datetime64[us, UTC]
+    \end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+journey\_ref in GTFS trips : 100.0\%
+stop\_ref in GTFS stops    : 100.0\%
+line\_ref in GTFS routes   : 100.0\%
+OK   duplicate route\_id in routes: 0 of 318
+OK   duplicate stop\_id in stops: 0 of 7,676
+ferry lines: 5 by vehicle\_mode, 21 by route\_type, 21 together
+exclude ferry lines (vehicle\_mode or route\_type)              90,261 ->
+90,092   removed          169
+
+route\_type\_name  Local bus  Night bus  School bus
+vehicle\_mode
+bus                  85098       4990           4
+keep bus route types only (3, 700-799)                        90,092 ->
+90,092   removed            0
+keep stops that exist in GTFS                                 90,092 ->
+90,092   removed            0
+    \end{Verbatim}
+
+    \subsubsection{6.4 Defining an observed stop
+visit}\label{defining-an-observed-stop-visit}
+
+I classify each cleaned visit using the following rules:
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+\texttt{visit\_status}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Rule
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\texttt{cancelled} & The journey or stop call is marked as cancelled. \\
+\texttt{observed} & It is not cancelled and an actual arrival or
+departure time is present. \\
+\texttt{unconfirmed} & It is not cancelled, but no actual time is
+present. The visit may be in the future or the feed may never report an
+actual time. \\
+\end{longtable}
+
+I include only \texttt{observed} visits in the confirmed-visit table,
+while retaining unconfirmed visits to show where real-time records exist
+without an actual time.
+
+For each visit, I use one event consistently for \texttt{visit\_time},
+\texttt{aimed\_time}, and \texttt{delay\_s}: departure when an actual
+departure is available, otherwise arrival. This accommodates first stops
+with no arrival and last stops with no departure. \texttt{delay\_event}
+identifies which event was used.
+
+I retain the following flags rather than removing those records:
+\texttt{delay\_outlier} marks delays more than three hours late or more
+than 30 minutes early; \texttt{on\_time} marks delays from 60 seconds
+early to 180 seconds late and is meaningful only for observed visits;
+\texttt{no\_prediction} marks a call without an expected time; and
+\texttt{is\_actual} records whether \texttt{call\_type} is
+\texttt{recorded}, allowing comparison with the actual-time
+classification.
+
+I store timestamps in UTC. The \texttt{local\_date},
+\texttt{local\_hour}, \texttt{weekday}, and \texttt{visit\_time\_local}
+fields are derived in \texttt{Europe/Oslo}. On 2026-10-25, the local
+02:00 hour occurs twice because of the daylight-saving transition, so I
+use \texttt{hour\_utc} for unambiguous hourly counts across that date. I
+use \texttt{data\_frame\_ref} for the service date because a journey
+shortly after midnight may belong to the previous service day.
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+is\_actual (call\_type == recorded) vs has actual\_* time:
+has\_actual\_time  False  True
+is\_actual
+False             2784     43
+True                 0  87265
+    \end{Verbatim}
+
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+              visits  share
+visit\_status               
+observed       87279  0.969
+unconfirmed     2432  0.027
+cancelled        381  0.004
+    \end{Verbatim}
+
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+delay outliers among observed: 21
+on time among observed with a delay: 62.0\%
+    \end{Verbatim}
+
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+                                               rule  rows\_before  rows\_after  removed
+0                         keep chosen service dates      9494374     9494374        0
+1                drop rows with null key / stop\_ref      9494374     9494374        0
+2    de-duplicate snapshots (keep latest per visit)      9494374       90261  9404113
+3  exclude ferry lines (vehicle\_mode or route\_type)        90261       90092      169
+4            keep bus route types only (3, 700-799)        90092       90092        0
+5                     keep stops that exist in GTFS        90092       90092        0
+    \end{Verbatim}
+
+    
+    \subsection{7. Comparing scheduled and real-time stop
+events}\label{comparing-scheduled-and-real-time-stop-events}
+
+I compare the scheduled bus events with cleaned real-time records to
+assess which scheduled stops are observed, cancelled, unconfirmed, or
+absent from the feed. I summarize the outcomes by stop, route, and
+service date.
+
+    I match each scheduled stop event to a real-time visit using service
+date, trip, stop, and the stop occurrence within that trip. I use the
+occurrence number rather than matching \texttt{stop\_sequence} directly
+to \texttt{stop\_order}, because those numbering fields are not
+guaranteed to use the same sequence. Before interpreting the comparison,
+I check how many scheduled and real-time trip identifiers overlap.
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+scheduled bus trips : 15,100
+trips seen in ET    : 2,674
+in both             : 2,674
+ET only (not in static timetable, e.g. added trips): 0
+timetable only (no real-time data at all)         : 12,426
+    \end{Verbatim}
+
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+final\_status  cancelled  observed  trip\_not\_in\_feed  unconfirmed  scheduled\_total  observed\_share
+service\_date                                                                                     
+2026-10-24          324     83724              2534          176            86758           0.965
+2026-10-25           17      3548             49274         2256            55095           0.064
+2026-10-26            3         1            154599            0           154603           0.000
+2026-10-27           37         6            154956            0           154999           0.000
+    \end{Verbatim}
+
+    
+    \textbf{Interpreting the comparison.} The outcome categories describe
+the evidence available in the two sources:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{observed}: a scheduled event has a matched real-time visit
+  with an actual time.
+\item
+  \texttt{cancelled}: the matched real-time record indicates
+  cancellation.
+\item
+  \texttt{unconfirmed}: a matching real-time record exists, but it has
+  no actual time.
+\item
+  \texttt{trip\_not\_in\_feed}: the timetable includes the trip, but the
+  real-time feed contains no record for it. This may reflect limited
+  feed coverage, not necessarily a missed bus.
+\item
+  \texttt{stop\_not\_in\_feed}: the trip is present in the real-time
+  feed, but the scheduled stop has no corresponding real-time record.
+\end{itemize}
+
+I interpret these categories separately so that feed coverage gaps are
+not confused with confirmed cancellations or failures to operate.
+
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+     service\_date          stop\_id  expected\_visits  observed\_visits  cancelled  median\_delay\_s                stop\_name   stop\_lat  stop\_lon  observed\_share
+1093   2026-10-24   NSR:Quay:46957              539              519          3      103.299500             Vaktapoteket  58.966459  5.731226           0.963
+1098   2026-10-24   NSR:Quay:46964              533              517          3      152.329000             Vaktapoteket  58.966693  5.731406           0.970
+1070   2026-10-24   NSR:Quay:46920              343              329          1       58.331000              Statens hus  58.960533  5.738111           0.959
+1118   2026-10-24   NSR:Quay:47003              343              329          1       72.383000  Stavanger politistasjon  58.962876  5.735773           0.959
+675    2026-10-24   NSR:Quay:46033              343              329          1       64.317000            Vålandsbakken  58.957532  5.739911           0.959
+1027   2026-10-24   NSR:Quay:46836              343              329          1       51.329000           Lindahlsbakken  58.955635  5.741340           0.959
+676    2026-10-24   NSR:Quay:46034              338              328          2       75.314500            Vålandsbakken  58.957290  5.740290           0.970
+1069   2026-10-24   NSR:Quay:46919              338              328          2       79.307000              Statens hus  58.961118  5.737835           0.970
+1120   2026-10-24   NSR:Quay:47005              338              328          2       57.826500  Stavanger politistasjon  58.963432  5.735529           0.970
+1231   2026-10-24   NSR:Quay:47271              326              313          1       40.355000               Strømsbrua  58.953664  5.741909           0.960
+1230   2026-10-24   NSR:Quay:47270              322              312          2       87.861500               Strømsbrua  58.954434  5.742140           0.969
+1106   2026-10-24   NSR:Quay:46974              308              293          1       21.776031            Jernbaneveien  58.966973  5.733415           0.951
+22     2026-10-24  NSR:Quay:101964              270              259          2      139.332000       St. Svithuns plass  58.962902  5.725116           0.959
+1279   2026-10-24   NSR:Quay:47383              271              259          1      109.321000                   Kannik  58.964585  5.728295           0.956
+604    2026-10-24   NSR:Quay:45855              270              259          2      122.326000            Holbergs gate  58.961471  5.716522           0.959
+    \end{Verbatim}
+
+    
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+    service\_date route\_short\_name  expected\_visits  observed\_visits  observed\_share
+189   2026-10-26                5             9106                0           0.000
+466   2026-10-27                5             9106                0           0.000
+475   2026-10-27                6             8342                0           0.000
+198   2026-10-26                6             8342                0           0.000
+40    2026-10-24                5             7974             7810           0.979
+452   2026-10-27                3             7304                0           0.000
+175   2026-10-26                3             7274                0           0.000
+459   2026-10-27                4             7008                0           0.000
+44    2026-10-24                6             6976             6820           0.978
+182   2026-10-26                4             6880                0           0.000
+399   2026-10-27                1             6858                0           0.000
+122   2026-10-26                1             6792                0           0.000
+35    2026-10-24                4             6362             5946           0.935
+461   2026-10-27               42             6266                0           0.000
+184   2026-10-26               42             6171                0           0.000
+    \end{Verbatim}
+
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{building_silver_layer_v2_files/building_silver_layer_v2_59_1.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \subsection{8. Checking if the BUS actually stopped at the stop or
+not}\label{checking-if-the-bus-actually-stopped-at-the-stop-or-not}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+observed visits: 87,279 | with a dwell (both times): 82,119
+negative dwell: 0
+
+count    82119.0
+mean         0.0
+std          0.0
+min          0.0
+5\%           0.0
+25\%          0.0
+50\%          0.0
+75\%          0.0
+95\%          0.0
+max          0.0
+
+visits per dwell second (0-20 s):
+dwell\_s
+0.0    82119
+    \end{Verbatim}
+
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{building_silver_layer_v2_files/building_silver_layer_v2_61_1.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+               visits  share
+stop\_class
+likely\_passed   82119  0.941
+unknown          5160  0.059
+
+share passed by local hour:
+            visits  share\_passed
+local\_hour
+0             2671           1.0
+1             2465           1.0
+2             1453           1.0
+3             1063           1.0
+4              542           1.0
+5              349           1.0
+6              765           1.0
+7             1867           1.0
+8             2664           1.0
+9             3363           1.0
+10            4195           1.0
+11            5254           1.0
+12            5249           1.0
+13            5372           1.0
+14            5370           1.0
+15            5378           1.0
+16            5041           1.0
+17            4989           1.0
+18            4818           1.0
+19            4357           1.0
+20            3818           1.0
+21            3759           1.0
+22            3628           1.0
+23            3689           1.0
+    \end{Verbatim}
+
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+           stop\_ref            stop\_name  visits  share\_passed
+3   NSR:Quay:100428  Coop Extra Moksheim      33           1.0
+4   NSR:Quay:100429  Coop Extra Moksheim      34           1.0
+5   NSR:Quay:100430        Skarhaugvegen      34           1.0
+12  NSR:Quay:101344            Resahagen      56           1.0
+16  NSR:Quay:101964   St. Svithuns plass     271           1.0
+24  NSR:Quay:102676        Kveldsbeleika      31           1.0
+25  NSR:Quay:102677        Kveldsbeleika      30           1.0
+30  NSR:Quay:102744             Endrestø      74           1.0
+51  NSR:Quay:105300              Iglamyr      49           1.0
+63  NSR:Quay:107636       Nådlandsbråtet     203           1.0
+69  NSR:Quay:107871         Løwenstrasse     189           1.0
+81  NSR:Quay:108770           Helsehuset     111           1.0
+82  NSR:Quay:108874       SUS Ullandhaug     157           1.0
+83  NSR:Quay:108875       SUS Ullandhaug     157           1.0
+84  NSR:Quay:108881                Jåtun     106           1.0
+    \end{Verbatim}
+
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+call\_cancelled visits: 307
+
+arrival\_status:
+ arrival\_status
+NaN          83800
+cancelled      307
+delayed         93
+early           24
+
+departure\_status:
+ departure\_status
+NaN          83865
+cancelled      291
+delayed         68
+    \end{Verbatim}
+
+    \subsection{8. Saving the analysis
+tables}\label{saving-the-analysis-tables}
+
+I save the cleaned visit data and scheduled-versus-real-time comparison
+so that the next stage can reuse the results without repeating the full
+preparation process:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{clean\_stop\_visits.parquet} contains one row per confirmed
+  bus visit, with stop, time, delay, and route information. Timestamps
+  are in UTC, with derived \texttt{Europe/Oslo} fields and a DST-safe
+  \texttt{hour\_utc} field.
+\item
+  \texttt{stop\_event\_status.parquet} contains each scheduled bus stop
+  event and its comparison outcome.
+\item
+  \texttt{expected\_per\_stop.parquet} contains the timetable-based
+  expected number of visits by stop and service date.
+\item
+  \texttt{removal\_log.csv} records the rows removed by each cleaning
+  rule, providing an audit trail for the report.
+\end{itemize}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+clean\_stop\_visits: 87,279 rows
+stored timestamp dtype: datetime64[ns, UTC]
+    \end{Verbatim}
+
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+  service\_date                                   journey\_ref         line\_ref route\_short\_name route\_type\_name direction\_ref  stop\_order        stop\_ref               stop\_name   stop\_lat  stop\_lon  \textbackslash{}
+0   2026-10-24  KOL:ServiceJourney:1109\_251007078405577\_1140  KOL:Line:8\_1109                9       Local bus             0           1  NSR:Quay:46967  Stavanger bussterminal  58.966548  5.733496   
+1   2026-10-24  KOL:ServiceJourney:1109\_251007078405577\_1140  KOL:Line:8\_1109                9       Local bus             0           2  NSR:Quay:46955               Klubbgata  58.970015  5.734989   
+2   2026-10-24  KOL:ServiceJourney:1109\_251007078405577\_1140  KOL:Line:8\_1109                9       Local bus             0           3  NSR:Quay:46413             Jorenholmen  58.971445  5.737626   
+3   2026-10-24  KOL:ServiceJourney:1109\_251007078405577\_1140  KOL:Line:8\_1109                9       Local bus             0           4  NSR:Quay:48551              Fiskepiren  58.971420  5.741196   
+4   2026-10-24  KOL:ServiceJourney:1109\_251007078405577\_1140  KOL:Line:8\_1109                9       Local bus             0           5  NSR:Quay:48605             Bekhuskaien  58.971015  5.744256   
+
+              aimed\_arrival                actual\_arrival           aimed\_departure              actual\_departure                    visit\_time                aimed\_time delay\_event  delay\_s  \textbackslash{}
+0                       NaT                           NaT 2026-10-23 23:30:00+00:00 2026-10-23 23:31:49.296+00:00 2026-10-23 23:31:49.296+00:00 2026-10-23 23:30:00+00:00   departure  109.296   
+1 2026-10-23 23:33:00+00:00 2026-10-23 23:33:30.302+00:00 2026-10-23 23:33:00+00:00 2026-10-23 23:33:30.302+00:00 2026-10-23 23:33:30.302+00:00 2026-10-23 23:33:00+00:00   departure   30.302   
+2 2026-10-23 23:33:00+00:00 2026-10-23 23:34:54.327+00:00 2026-10-23 23:33:00+00:00 2026-10-23 23:34:54.327+00:00 2026-10-23 23:34:54.327+00:00 2026-10-23 23:33:00+00:00   departure  114.327   
+3 2026-10-23 23:34:00+00:00 2026-10-23 23:35:39.327+00:00 2026-10-23 23:34:00+00:00 2026-10-23 23:35:39.327+00:00 2026-10-23 23:35:39.327+00:00 2026-10-23 23:34:00+00:00   departure   99.327   
+4 2026-10-23 23:34:00+00:00 2026-10-23 23:36:05.316+00:00 2026-10-23 23:34:00+00:00 2026-10-23 23:36:05.316+00:00 2026-10-23 23:36:05.316+00:00 2026-10-23 23:34:00+00:00   departure  125.316   
+
+   delay\_arrival\_s  delay\_departure\_s  delay\_outlier  on\_time  is\_actual  n\_snapshots  local\_date  local\_hour   weekday                  hour\_utc              visit\_time\_local  
+0              NaN            109.296          False     True       True            2  2026-10-24           1  Saturday 2026-10-23 23:00:00+00:00 2026-10-24 01:31:49.296+02:00  
+1           30.302             30.302          False     True       True            2  2026-10-24           1  Saturday 2026-10-23 23:00:00+00:00 2026-10-24 01:33:30.302+02:00  
+2          114.327            114.327          False     True       True            2  2026-10-24           1  Saturday 2026-10-23 23:00:00+00:00 2026-10-24 01:34:54.327+02:00  
+3           99.327             99.327          False     True       True            2  2026-10-24           1  Saturday 2026-10-23 23:00:00+00:00 2026-10-24 01:35:39.327+02:00  
+4          125.316            125.316          False     True       True            2  2026-10-24           1  Saturday 2026-10-23 23:00:00+00:00 2026-10-24 01:36:05.316+02:00  
+    \end{Verbatim}
+
+    
+    \subsection{9. Report-ready
+visualizations}\label{report-ready-visualizations}
+
+The figures below summarize scheduled service, real-time feed coverage,
+observed delays, and stop behavior. They use the analysis tables built
+above and are saved as high-resolution PNG files in
+\texttt{clean/report\_figures/} for use in a written report. A low
+observed share or a record missing from the feed indicates limited
+evidence in these data; it does not, by itself, prove that a bus did not
+run.
+ 
+            
+    
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{building_silver_layer_v2_files/building_silver_layer_v2_67_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{building_silver_layer_v2_files/building_silver_layer_v2_67_1.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \begin{Verbatim}[commandchars=\\\{\}, frame=single, framerule=2mm, rulecolor=\color{outerrorbackground}]
+\textcolor{ansi-red}{---------------------------------------------------------------------------}
+\textcolor{ansi-red}{KeyError}                                  Traceback (most recent call last)
+\textcolor{ansi-cyan}{Cell}\textcolor{ansi-cyan}{ }\textcolor{ansi-green}{In[41]}\textcolor{ansi-green}{, line 52}
+\textcolor{ansi-green}{     48} axes[\textcolor{ansi-green}{1}, \textcolor{ansi-green}{0}].set\_ylabel(\textcolor{ansi-yellow}{"Observed visits"})
+\textcolor{ansi-green}{     49} 
+\textcolor{ansi-green}{     50} \def\tcRGB{\textcolor[RGB]}\expandafter\tcRGB\expandafter{\detokenize{95,135,135}}{\# The short-dwell threshold is the PASS\_MAX\_S definition from section 8.2.}
+\textcolor{ansi-green}{     51} known\_visits = v[v[\textcolor{ansi-yellow}{"stop\_class"}].ne(\textcolor{ansi-yellow}{"unknown"})]
+\textcolor{ansi-green}{---> }\textcolor{ansi-green}{52} pass\_by\_hour = known\_visits.groupby(\textcolor{ansi-yellow}{"local\_hour"})[\textcolor{ansi-yellow}{"passed"}].agg(visits=\textcolor{ansi-yellow}{"size"}, share\_passed=\textcolor{ansi-yellow}{"mean"})
+\textcolor{ansi-green}{     53} axes[\textcolor{ansi-green}{1}, \textcolor{ansi-green}{1}].bar(pass\_by\_hour.index, pass\_by\_hour[\textcolor{ansi-yellow}{"visits"}], color=\textcolor{ansi-yellow}{"\#cbd5e1"}, label=\textcolor{ansi-yellow}{"Classified visits"})
+\textcolor{ansi-green}{     54} pass\_ax = axes[\textcolor{ansi-green}{1}, \textcolor{ansi-green}{1}].twinx()
+\textcolor{ansi-green}{     55} pass\_ax.plot(pass\_by\_hour.index, pass\_by\_hour["share\_passed"] * 100,
+
+\textcolor{ansi-cyan}{File }\textcolor{ansi-green}{\textasciitilde{}\textbackslash{}AppData\textbackslash{}Local\textbackslash{}Python\textbackslash{}pythoncore-3.14-64\textbackslash{}Lib\textbackslash{}site-packages\textbackslash{}pandas\textbackslash{}core\textbackslash{}groupby\textbackslash{}generic.py:3002}, in \textcolor{ansi-cyan}{DataFrameGroupBy.\_\_getitem\_\_}\textcolor{ansi-blue}{(self, key)}
+\textcolor{ansi-green}{   2995} \def\tcRGB{\textcolor[RGB]}\expandafter\tcRGB\expandafter{\detokenize{0,135,0}}{\textbf{if}} \def\tcRGB{\textcolor[RGB]}\expandafter\tcRGB\expandafter{\detokenize{0,135,0}}{isinstance}(key, \def\tcRGB{\textcolor[RGB]}\expandafter\tcRGB\expandafter{\detokenize{0,135,0}}{tuple}) \def\tcRGB{\textcolor[RGB]}\expandafter\tcRGB\expandafter{\detokenize{175,0,255}}{\textbf{and}} \def\tcRGB{\textcolor[RGB]}\expandafter\tcRGB\expandafter{\detokenize{0,135,0}}{len}(key) > \textcolor{ansi-green}{1}:
+\textcolor{ansi-green}{   2996}     \def\tcRGB{\textcolor[RGB]}\expandafter\tcRGB\expandafter{\detokenize{95,135,135}}{\# if len == 1, then it becomes a SeriesGroupBy and this is actually}
+\textcolor{ansi-green}{   2997}     \def\tcRGB{\textcolor[RGB]}\expandafter\tcRGB\expandafter{\detokenize{95,135,135}}{\# valid syntax, so don't raise}
+\textcolor{ansi-green}{   2998}     \def\tcRGB{\textcolor[RGB]}\expandafter\tcRGB\expandafter{\detokenize{0,135,0}}{\textbf{raise}} \def\tcRGB{\textcolor[RGB]}\expandafter\tcRGB\expandafter{\detokenize{215,95,95}}{\textbf{ValueError}}(
+\textcolor{ansi-green}{   2999}         \textcolor{ansi-yellow}{"}\textcolor{ansi-yellow}{Cannot subset columns with a tuple with more than one element. }\textcolor{ansi-yellow}{"}
+\textcolor{ansi-green}{   3000}         \textcolor{ansi-yellow}{"}\textcolor{ansi-yellow}{Use a list instead.}\textcolor{ansi-yellow}{"}
+\textcolor{ansi-green}{   3001}     )
+\textcolor{ansi-green}{-> }\textcolor{ansi-green}{3002} \def\tcRGB{\textcolor[RGB]}\expandafter\tcRGB\expandafter{\detokenize{0,135,0}}{\textbf{return}} \textcolor{ansi-black}{\setlength{\fboxsep}{0pt}\colorbox{ansi-yellow}{super\strut}}\textcolor{ansi-black}{\setlength{\fboxsep}{0pt}\colorbox{ansi-yellow}{(\strut}}\textcolor{ansi-black}{\setlength{\fboxsep}{0pt}\colorbox{ansi-yellow}{)\strut}}\textcolor{ansi-black}{\setlength{\fboxsep}{0pt}\colorbox{ansi-yellow}{.\strut}}\textcolor{ansi-black}{\setlength{\fboxsep}{0pt}\colorbox{ansi-yellow}{\_\_getitem\_\_\strut}}\textcolor{ansi-black}{\setlength{\fboxsep}{0pt}\colorbox{ansi-yellow}{(\strut}}\textcolor{ansi-black}{\setlength{\fboxsep}{0pt}\colorbox{ansi-yellow}{key\strut}}\textcolor{ansi-black}{\setlength{\fboxsep}{0pt}\colorbox{ansi-yellow}{)\strut}}
+
+\textcolor{ansi-cyan}{File }\textcolor{ansi-green}{\textasciitilde{}\textbackslash{}AppData\textbackslash{}Local\textbackslash{}Python\textbackslash{}pythoncore-3.14-64\textbackslash{}Lib\textbackslash{}site-packages\textbackslash{}pandas\textbackslash{}core\textbackslash{}base.py:241}, in \textcolor{ansi-cyan}{SelectionMixin.\_\_getitem\_\_}\textcolor{ansi-blue}{(self, key)}
+\textcolor{ansi-green}{    239} \def\tcRGB{\textcolor[RGB]}\expandafter\tcRGB\expandafter{\detokenize{0,135,0}}{\textbf{else}}:
+\textcolor{ansi-green}{    240}     \def\tcRGB{\textcolor[RGB]}\expandafter\tcRGB\expandafter{\detokenize{0,135,0}}{\textbf{if}} key \def\tcRGB{\textcolor[RGB]}\expandafter\tcRGB\expandafter{\detokenize{175,0,255}}{\textbf{not}} \def\tcRGB{\textcolor[RGB]}\expandafter\tcRGB\expandafter{\detokenize{175,0,255}}{\textbf{in}} \def\tcRGB{\textcolor[RGB]}\expandafter\tcRGB\expandafter{\detokenize{0,135,0}}{self}.obj:
+\textcolor{ansi-green}{--> }\textcolor{ansi-green}{241}         \def\tcRGB{\textcolor[RGB]}\expandafter\tcRGB\expandafter{\detokenize{0,135,0}}{\textbf{raise}} \def\tcRGB{\textcolor[RGB]}\expandafter\tcRGB\expandafter{\detokenize{215,95,95}}{\textbf{KeyError}}(\textcolor{ansi-yellow}{f}\textcolor{ansi-yellow}{"}\textcolor{ansi-yellow}{Column not found: }\def\tcRGB{\textcolor[RGB]}\expandafter\tcRGB\expandafter{\detokenize{175,95,135}}{\textbf{\{}}key\def\tcRGB{\textcolor[RGB]}\expandafter\tcRGB\expandafter{\detokenize{175,95,135}}{\textbf{\}}}\textcolor{ansi-yellow}{"})
+\textcolor{ansi-green}{    242}     ndim = \def\tcRGB{\textcolor[RGB]}\expandafter\tcRGB\expandafter{\detokenize{0,135,0}}{self}.obj[key].ndim
+\textcolor{ansi-green}{    243}     \def\tcRGB{\textcolor[RGB]}\expandafter\tcRGB\expandafter{\detokenize{0,135,0}}{\textbf{return}} \def\tcRGB{\textcolor[RGB]}\expandafter\tcRGB\expandafter{\detokenize{0,135,0}}{self}.\_gotitem(key, ndim=ndim)
+
+\textcolor{ansi-red}{KeyError}: 'Column not found: passed'
+    \end{Verbatim}
+
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{building_silver_layer_v2_files/building_silver_layer_v2_68_1.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \subsection{What I can do from here}\label{what-i-can-do-from-here}
+
+The current work establishes the timetable baseline, cleans the
+available real-time records, and compares the two sources. I can build
+on it in the following ways:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \textbf{Measure feed coverage.} Calculate the proportion of scheduled
+  trips and stop events represented in the real-time feed by service
+  date, route, and operator. Use coverage-aware denominators when
+  reporting observed shares so that missing feed data is not mistaken
+  for poor service.
+\item
+  \textbf{Describe bus punctuality.} For confirmed visits, summarize
+  delay distributions and on-time shares by route, stop, time of day,
+  and service date. Report medians and ranges alongside averages because
+  extreme delays can distort the mean.
+\item
+  \textbf{Investigate cancellations and missing events.} Compare
+  cancellation outcomes and feed gaps across routes and dates, and check
+  whether patterns are concentrated in particular parts of the network.
+\item
+  \textbf{Add service-alert context.} Relate alerts to the affected
+  routes or trips and examine whether they coincide with cancellations
+  or unusual delays. Treat this as descriptive evidence rather than
+  proof that an alert caused an outcome.
+\item
+  \textbf{Present the findings.} Section 9 adds report-ready figures for
+  service volume, feed coverage, punctuality, stop behavior, and data
+  quality. The report should state the study dates, observation rules,
+  and the number of events excluded or unconfirmed.
+\end{enumerate}
+
+Before drawing operational conclusions, I should confirm that the chosen
+dates and routes have adequate real-time coverage and review the delay
+outliers and the distinction between recorded actual times and other
+feed indicators.
+
+
+    % Add a bibliography block to the postdoc
+    
+    
+    
+\end{document}

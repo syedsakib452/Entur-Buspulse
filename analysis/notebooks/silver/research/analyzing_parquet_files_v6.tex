@@ -1,0 +1,993 @@
+\documentclass[11pt]{article}
+
+    \usepackage[breakable]{tcolorbox}
+    \usepackage{parskip} % Stop auto-indenting (to mimic markdown behaviour)
+    
+
+    % Basic figure setup, for now with no caption control since it's done
+    % automatically by Pandoc (which extracts ![](path) syntax from Markdown).
+    \usepackage{graphicx}
+    % Keep aspect ratio if custom image width or height is specified
+    \setkeys{Gin}{keepaspectratio}
+    % Maintain compatibility with old templates. Remove in nbconvert 6.0
+    \let\Oldincludegraphics\includegraphics
+    % Ensure that by default, figures have no caption (until we provide a
+    % proper Figure object with a Caption API and a way to capture that
+    % in the conversion process - todo).
+    \usepackage{caption}
+    \DeclareCaptionFormat{nocaption}{}
+    \captionsetup{format=nocaption,aboveskip=0pt,belowskip=0pt}
+
+    \usepackage{float}
+    \floatplacement{figure}{H} % forces figures to be placed at the correct location
+    \usepackage{xcolor} % Allow colors to be defined
+    \usepackage{enumerate} % Needed for markdown enumerations to work
+    \usepackage{geometry} % Used to adjust the document margins
+    \usepackage{amsmath} % Equations
+    \usepackage{amssymb} % Equations
+    \usepackage{textcomp} % defines textquotesingle
+    % Hack from http://tex.stackexchange.com/a/47451/13684:
+    \AtBeginDocument{%
+        \def\PYZsq{\textquotesingle}% Upright quotes in Pygmentized code
+    }
+    \usepackage{upquote} % Upright quotes for verbatim code
+    \usepackage{eurosym} % defines \euro
+
+    \usepackage{iftex}
+    \ifPDFTeX
+        \usepackage[T1]{fontenc}
+        \IfFileExists{alphabeta.sty}{
+              \usepackage{alphabeta}
+          }{
+              \usepackage[mathletters]{ucs}
+              \usepackage[utf8x]{inputenc}
+          }
+    \else
+        \usepackage{fontspec}
+        \usepackage{unicode-math}
+    \fi
+
+    \usepackage{fancyvrb} % verbatim replacement that allows latex
+    \usepackage{grffile} % extends the file name processing of package graphics
+                         % to support a larger range
+    \makeatletter % fix for old versions of grffile with XeLaTeX
+    \@ifpackagelater{grffile}{2019/11/01}
+    {
+      % Do nothing on new versions
+    }
+    {
+      \def\Gread@@xetex#1{%
+        \IfFileExists{"\Gin@base".bb}%
+        {\Gread@eps{\Gin@base.bb}}%
+        {\Gread@@xetex@aux#1}%
+      }
+    }
+    \makeatother
+    \usepackage[Export]{adjustbox} % Used to constrain images to a maximum size
+    \adjustboxset{max size={0.9\linewidth}{0.9\paperheight}}
+
+    % The hyperref package gives us a pdf with properly built
+    % internal navigation ('pdf bookmarks' for the table of contents,
+    % internal cross-reference links, web links for URLs, etc.)
+    \usepackage{hyperref}
+    % The default LaTeX title has an obnoxious amount of whitespace. By default,
+    % titling removes some of it. It also provides customization options.
+    \usepackage{titling}
+    \usepackage{longtable} % longtable support required by pandoc >1.10
+    \usepackage{booktabs}  % table support for pandoc > 1.12.2
+    \usepackage{array}     % table support for pandoc >= 2.11.3
+    \usepackage{calc}      % table minipage width calculation for pandoc >= 2.11.1
+    \usepackage[inline]{enumitem} % IRkernel/repr support (it uses the enumerate* environment)
+    \usepackage[normalem]{ulem} % ulem is needed to support strikethroughs (\sout)
+                                % normalem makes italics be italics, not underlines
+    \usepackage{soul}      % strikethrough (\st) support for pandoc >= 3.0.0
+    \usepackage{mathrsfs}
+    
+
+    
+    % Colors for the hyperref package
+    \definecolor{urlcolor}{rgb}{0,.145,.698}
+    \definecolor{linkcolor}{rgb}{.71,0.21,0.01}
+    \definecolor{citecolor}{rgb}{.12,.54,.11}
+
+    % ANSI colors
+    \definecolor{ansi-black}{HTML}{3E424D}
+    \definecolor{ansi-black-intense}{HTML}{282C36}
+    \definecolor{ansi-red}{HTML}{E75C58}
+    \definecolor{ansi-red-intense}{HTML}{B22B31}
+    \definecolor{ansi-green}{HTML}{00A250}
+    \definecolor{ansi-green-intense}{HTML}{007427}
+    \definecolor{ansi-yellow}{HTML}{DDB62B}
+    \definecolor{ansi-yellow-intense}{HTML}{B27D12}
+    \definecolor{ansi-blue}{HTML}{208FFB}
+    \definecolor{ansi-blue-intense}{HTML}{0065CA}
+    \definecolor{ansi-magenta}{HTML}{D160C4}
+    \definecolor{ansi-magenta-intense}{HTML}{A03196}
+    \definecolor{ansi-cyan}{HTML}{60C6C8}
+    \definecolor{ansi-cyan-intense}{HTML}{258F8F}
+    \definecolor{ansi-white}{HTML}{C5C1B4}
+    \definecolor{ansi-white-intense}{HTML}{A1A6B2}
+    \definecolor{ansi-default-inverse-fg}{HTML}{FFFFFF}
+    \definecolor{ansi-default-inverse-bg}{HTML}{000000}
+
+    % common color for the border for error outputs.
+    \definecolor{outerrorbackground}{HTML}{FFDFDF}
+
+    % commands and environments needed by pandoc snippets
+    % extracted from the output of `pandoc -s`
+    \providecommand{\tightlist}{%
+      \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+    \DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+    % Add ',fontsize=\small' for more characters per line
+    \newenvironment{Shaded}{}{}
+    \newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{{#1}}}}
+    \newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.56,0.13,0.00}{{#1}}}
+    \newcommand{\DecValTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{{#1}}}
+    \newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{{#1}}}
+    \newcommand{\FloatTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{{#1}}}
+    \newcommand{\CharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{{#1}}}
+    \newcommand{\StringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{{#1}}}
+    \newcommand{\CommentTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textit{{#1}}}}
+    \newcommand{\OtherTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{{#1}}}
+    \newcommand{\AlertTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{{#1}}}}
+    \newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.02,0.16,0.49}{{#1}}}
+    \newcommand{\RegionMarkerTok}[1]{{#1}}
+    \newcommand{\ErrorTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{{#1}}}}
+    \newcommand{\NormalTok}[1]{{#1}}
+
+    % Additional commands for more recent versions of Pandoc
+    \newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.53,0.00,0.00}{{#1}}}
+    \newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{{#1}}}
+    \newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{{#1}}}
+    \newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.73,0.40,0.53}{{#1}}}
+    \newcommand{\ImportTok}[1]{{#1}}
+    \newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.73,0.13,0.13}{\textit{{#1}}}}
+    \newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{{#1}}}}}
+    \newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{{#1}}}}}
+    \newcommand{\VariableTok}[1]{\textcolor[rgb]{0.10,0.09,0.49}{{#1}}}
+    \newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{{#1}}}}
+    \newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.40,0.40,0.40}{{#1}}}
+    \newcommand{\BuiltInTok}[1]{{#1}}
+    \newcommand{\ExtensionTok}[1]{{#1}}
+    \newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.74,0.48,0.00}{{#1}}}
+    \newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.49,0.56,0.16}{{#1}}}
+    \newcommand{\InformationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{{#1}}}}}
+    \newcommand{\WarningTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{{#1}}}}}
+    \makeatletter
+    \newsavebox\pandoc@box
+    \newcommand*\pandocbounded[1]{%
+      \sbox\pandoc@box{#1}%
+      % scaling factors for width and height
+      \Gscale@div\@tempa\textheight{\dimexpr\ht\pandoc@box+\dp\pandoc@box\relax}%
+      \Gscale@div\@tempb\linewidth{\wd\pandoc@box}%
+      % select the smaller of both
+      \ifdim\@tempb\p@<\@tempa\p@
+        \let\@tempa\@tempb
+      \fi
+      % scaling accordingly (\@tempa < 1)
+      \ifdim\@tempa\p@<\p@
+        \scalebox{\@tempa}{\usebox\pandoc@box}%
+      % scaling not needed, use as it is
+      \else
+        \usebox{\pandoc@box}%
+      \fi
+    }
+    \makeatother
+
+    % Define a nice break command that doesn't care if a line doesn't already
+    % exist.
+    \def\br{\hspace*{\fill} \\* }
+    % Math Jax compatibility definitions
+    \def\gt{>}
+    \def\lt{<}
+    \let\Oldtex\TeX
+    \let\Oldlatex\LaTeX
+    \renewcommand{\TeX}{\textrm{\Oldtex}}
+    \renewcommand{\LaTeX}{\textrm{\Oldlatex}}
+    % Document parameters
+    % Document title
+    \title{analyzing\_parquet\_files\_v6}
+    
+    
+    
+    
+    
+    
+    
+% Pygments definitions
+\makeatletter
+\def\PY@reset{\let\PY@it=\relax \let\PY@bf=\relax%
+    \let\PY@ul=\relax \let\PY@tc=\relax%
+    \let\PY@bc=\relax \let\PY@ff=\relax}
+\def\PY@tok#1{\csname PY@tok@#1\endcsname}
+\def\PY@toks#1+{\ifx\relax#1\empty\else%
+    \PY@tok{#1}\expandafter\PY@toks\fi}
+\def\PY@do#1{\PY@bc{\PY@tc{\PY@ul{%
+    \PY@it{\PY@bf{\PY@ff{#1}}}}}}}
+\def\PY#1#2{\PY@reset\PY@toks#1+\relax+\PY@do{#2}}
+
+\@namedef{PY@tok@w}{\def\PY@tc##1{\textcolor[rgb]{0.73,0.73,0.73}{##1}}}
+\@namedef{PY@tok@c}{\let\PY@it=\textit\def\PY@tc##1{\textcolor[rgb]{0.24,0.48,0.48}{##1}}}
+\@namedef{PY@tok@cp}{\def\PY@tc##1{\textcolor[rgb]{0.61,0.40,0.00}{##1}}}
+\@namedef{PY@tok@k}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\@namedef{PY@tok@kp}{\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\@namedef{PY@tok@kt}{\def\PY@tc##1{\textcolor[rgb]{0.69,0.00,0.25}{##1}}}
+\@namedef{PY@tok@o}{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\@namedef{PY@tok@ow}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.67,0.13,1.00}{##1}}}
+\@namedef{PY@tok@nb}{\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\@namedef{PY@tok@nf}{\def\PY@tc##1{\textcolor[rgb]{0.00,0.00,1.00}{##1}}}
+\@namedef{PY@tok@nc}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.00,1.00}{##1}}}
+\@namedef{PY@tok@nn}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.00,1.00}{##1}}}
+\@namedef{PY@tok@ne}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.80,0.25,0.22}{##1}}}
+\@namedef{PY@tok@nv}{\def\PY@tc##1{\textcolor[rgb]{0.10,0.09,0.49}{##1}}}
+\@namedef{PY@tok@no}{\def\PY@tc##1{\textcolor[rgb]{0.53,0.00,0.00}{##1}}}
+\@namedef{PY@tok@nl}{\def\PY@tc##1{\textcolor[rgb]{0.46,0.46,0.00}{##1}}}
+\@namedef{PY@tok@ni}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.44,0.44,0.44}{##1}}}
+\@namedef{PY@tok@na}{\def\PY@tc##1{\textcolor[rgb]{0.41,0.47,0.13}{##1}}}
+\@namedef{PY@tok@nt}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\@namedef{PY@tok@nd}{\def\PY@tc##1{\textcolor[rgb]{0.67,0.13,1.00}{##1}}}
+\@namedef{PY@tok@s}{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\@namedef{PY@tok@sd}{\let\PY@it=\textit\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\@namedef{PY@tok@si}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.64,0.35,0.47}{##1}}}
+\@namedef{PY@tok@se}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.67,0.36,0.12}{##1}}}
+\@namedef{PY@tok@sr}{\def\PY@tc##1{\textcolor[rgb]{0.64,0.35,0.47}{##1}}}
+\@namedef{PY@tok@ss}{\def\PY@tc##1{\textcolor[rgb]{0.10,0.09,0.49}{##1}}}
+\@namedef{PY@tok@sx}{\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\@namedef{PY@tok@m}{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\@namedef{PY@tok@gh}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.00,0.50}{##1}}}
+\@namedef{PY@tok@gu}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.50,0.00,0.50}{##1}}}
+\@namedef{PY@tok@gd}{\def\PY@tc##1{\textcolor[rgb]{0.63,0.00,0.00}{##1}}}
+\@namedef{PY@tok@gi}{\def\PY@tc##1{\textcolor[rgb]{0.00,0.52,0.00}{##1}}}
+\@namedef{PY@tok@gr}{\def\PY@tc##1{\textcolor[rgb]{0.89,0.00,0.00}{##1}}}
+\@namedef{PY@tok@ge}{\let\PY@it=\textit}
+\@namedef{PY@tok@gs}{\let\PY@bf=\textbf}
+\@namedef{PY@tok@ges}{\let\PY@bf=\textbf\let\PY@it=\textit}
+\@namedef{PY@tok@gp}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.00,0.50}{##1}}}
+\@namedef{PY@tok@go}{\def\PY@tc##1{\textcolor[rgb]{0.44,0.44,0.44}{##1}}}
+\@namedef{PY@tok@gt}{\def\PY@tc##1{\textcolor[rgb]{0.00,0.27,0.87}{##1}}}
+\@namedef{PY@tok@err}{\def\PY@bc##1{{\setlength{\fboxsep}{\string -\fboxrule}\fcolorbox[rgb]{1.00,0.00,0.00}{1,1,1}{\strut ##1}}}}
+\@namedef{PY@tok@kc}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\@namedef{PY@tok@kd}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\@namedef{PY@tok@kn}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\@namedef{PY@tok@kr}{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\@namedef{PY@tok@bp}{\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\@namedef{PY@tok@fm}{\def\PY@tc##1{\textcolor[rgb]{0.00,0.00,1.00}{##1}}}
+\@namedef{PY@tok@vc}{\def\PY@tc##1{\textcolor[rgb]{0.10,0.09,0.49}{##1}}}
+\@namedef{PY@tok@vg}{\def\PY@tc##1{\textcolor[rgb]{0.10,0.09,0.49}{##1}}}
+\@namedef{PY@tok@vi}{\def\PY@tc##1{\textcolor[rgb]{0.10,0.09,0.49}{##1}}}
+\@namedef{PY@tok@vm}{\def\PY@tc##1{\textcolor[rgb]{0.10,0.09,0.49}{##1}}}
+\@namedef{PY@tok@sa}{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\@namedef{PY@tok@sb}{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\@namedef{PY@tok@sc}{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\@namedef{PY@tok@dl}{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\@namedef{PY@tok@s2}{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\@namedef{PY@tok@sh}{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\@namedef{PY@tok@s1}{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\@namedef{PY@tok@mb}{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\@namedef{PY@tok@mf}{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\@namedef{PY@tok@mh}{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\@namedef{PY@tok@mi}{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\@namedef{PY@tok@il}{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\@namedef{PY@tok@mo}{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\@namedef{PY@tok@ch}{\let\PY@it=\textit\def\PY@tc##1{\textcolor[rgb]{0.24,0.48,0.48}{##1}}}
+\@namedef{PY@tok@cm}{\let\PY@it=\textit\def\PY@tc##1{\textcolor[rgb]{0.24,0.48,0.48}{##1}}}
+\@namedef{PY@tok@cpf}{\let\PY@it=\textit\def\PY@tc##1{\textcolor[rgb]{0.24,0.48,0.48}{##1}}}
+\@namedef{PY@tok@c1}{\let\PY@it=\textit\def\PY@tc##1{\textcolor[rgb]{0.24,0.48,0.48}{##1}}}
+\@namedef{PY@tok@cs}{\let\PY@it=\textit\def\PY@tc##1{\textcolor[rgb]{0.24,0.48,0.48}{##1}}}
+
+\def\PYZbs{\char`\\}
+\def\PYZus{\char`\_}
+\def\PYZob{\char`\{}
+\def\PYZcb{\char`\}}
+\def\PYZca{\char`\^}
+\def\PYZam{\char`\&}
+\def\PYZlt{\char`\<}
+\def\PYZgt{\char`\>}
+\def\PYZsh{\char`\#}
+\def\PYZpc{\char`\%}
+\def\PYZdl{\char`\$}
+\def\PYZhy{\char`\-}
+\def\PYZsq{\char`\'}
+\def\PYZdq{\char`\"}
+\def\PYZti{\char`\~}
+% for compatibility with earlier versions
+\def\PYZat{@}
+\def\PYZlb{[}
+\def\PYZrb{]}
+\makeatother
+
+
+    % For linebreaks inside Verbatim environment from package fancyvrb.
+    \makeatletter
+        \newbox\Wrappedcontinuationbox
+        \newbox\Wrappedvisiblespacebox
+        \newcommand*\Wrappedvisiblespace {\textcolor{red}{\textvisiblespace}}
+        \newcommand*\Wrappedcontinuationsymbol {\textcolor{red}{\llap{\tiny$\m@th\hookrightarrow$}}}
+        \newcommand*\Wrappedcontinuationindent {3ex }
+        \newcommand*\Wrappedafterbreak {\kern\Wrappedcontinuationindent\copy\Wrappedcontinuationbox}
+        % Take advantage of the already applied Pygments mark-up to insert
+        % potential linebreaks for TeX processing.
+        %        {, <, #, %, $, ' and ": go to next line.
+        %        _, }, ^, &, >, - and ~: stay at end of broken line.
+        % Use of \textquotesingle for straight quote.
+        \newcommand*\Wrappedbreaksatspecials {%
+            \def\PYGZus{\discretionary{\char`\_}{\Wrappedafterbreak}{\char`\_}}%
+            \def\PYGZob{\discretionary{}{\Wrappedafterbreak\char`\{}{\char`\{}}%
+            \def\PYGZcb{\discretionary{\char`\}}{\Wrappedafterbreak}{\char`\}}}%
+            \def\PYGZca{\discretionary{\char`\^}{\Wrappedafterbreak}{\char`\^}}%
+            \def\PYGZam{\discretionary{\char`\&}{\Wrappedafterbreak}{\char`\&}}%
+            \def\PYGZlt{\discretionary{}{\Wrappedafterbreak\char`\<}{\char`\<}}%
+            \def\PYGZgt{\discretionary{\char`\>}{\Wrappedafterbreak}{\char`\>}}%
+            \def\PYGZsh{\discretionary{}{\Wrappedafterbreak\char`\#}{\char`\#}}%
+            \def\PYGZpc{\discretionary{}{\Wrappedafterbreak\char`\%}{\char`\%}}%
+            \def\PYGZdl{\discretionary{}{\Wrappedafterbreak\char`\$}{\char`\$}}%
+            \def\PYGZhy{\discretionary{\char`\-}{\Wrappedafterbreak}{\char`\-}}%
+            \def\PYGZsq{\discretionary{}{\Wrappedafterbreak\textquotesingle}{\textquotesingle}}%
+            \def\PYGZdq{\discretionary{}{\Wrappedafterbreak\char`\"}{\char`\"}}%
+            \def\PYGZti{\discretionary{\char`\~}{\Wrappedafterbreak}{\char`\~}}%
+        }
+        % Some characters . , ; ? ! / are not pygmentized.
+        % This macro makes them "active" and they will insert potential linebreaks
+        \newcommand*\Wrappedbreaksatpunct {%
+            \lccode`\~`\.\lowercase{\def~}{\discretionary{\hbox{\char`\.}}{\Wrappedafterbreak}{\hbox{\char`\.}}}%
+            \lccode`\~`\,\lowercase{\def~}{\discretionary{\hbox{\char`\,}}{\Wrappedafterbreak}{\hbox{\char`\,}}}%
+            \lccode`\~`\;\lowercase{\def~}{\discretionary{\hbox{\char`\;}}{\Wrappedafterbreak}{\hbox{\char`\;}}}%
+            \lccode`\~`\:\lowercase{\def~}{\discretionary{\hbox{\char`\:}}{\Wrappedafterbreak}{\hbox{\char`\:}}}%
+            \lccode`\~`\?\lowercase{\def~}{\discretionary{\hbox{\char`\?}}{\Wrappedafterbreak}{\hbox{\char`\?}}}%
+            \lccode`\~`\!\lowercase{\def~}{\discretionary{\hbox{\char`\!}}{\Wrappedafterbreak}{\hbox{\char`\!}}}%
+            \lccode`\~`\/\lowercase{\def~}{\discretionary{\hbox{\char`\/}}{\Wrappedafterbreak}{\hbox{\char`\/}}}%
+            \catcode`\.\active
+            \catcode`\,\active
+            \catcode`\;\active
+            \catcode`\:\active
+            \catcode`\?\active
+            \catcode`\!\active
+            \catcode`\/\active
+            \lccode`\~`\~
+        }
+    \makeatother
+
+    \let\OriginalVerbatim=\Verbatim
+    \makeatletter
+    \renewcommand{\Verbatim}[1][1]{%
+        %\parskip\z@skip
+        \sbox\Wrappedcontinuationbox {\Wrappedcontinuationsymbol}%
+        \sbox\Wrappedvisiblespacebox {\FV@SetupFont\Wrappedvisiblespace}%
+        \def\FancyVerbFormatLine ##1{\hsize\linewidth
+            \vtop{\raggedright\hyphenpenalty\z@\exhyphenpenalty\z@
+                \doublehyphendemerits\z@\finalhyphendemerits\z@
+                \strut ##1\strut}%
+        }%
+        % If the linebreak is at a space, the latter will be displayed as visible
+        % space at end of first line, and a continuation symbol starts next line.
+        % Stretch/shrink are however usually zero for typewriter font.
+        \def\FV@Space {%
+            \nobreak\hskip\z@ plus\fontdimen3\font minus\fontdimen4\font
+            \discretionary{\copy\Wrappedvisiblespacebox}{\Wrappedafterbreak}
+            {\kern\fontdimen2\font}%
+        }%
+
+        % Allow breaks at special characters using \PYG... macros.
+        \Wrappedbreaksatspecials
+        % Breaks at punctuation characters . , ; ? ! and / need catcode=\active
+        \OriginalVerbatim[#1,codes*=\Wrappedbreaksatpunct]%
+    }
+    \makeatother
+
+    % Exact colors from NB
+    \definecolor{incolor}{HTML}{303F9F}
+    \definecolor{outcolor}{HTML}{D84315}
+    \definecolor{cellborder}{HTML}{CFCFCF}
+    \definecolor{cellbackground}{HTML}{F7F7F7}
+
+    % prompt
+    \makeatletter
+    \newcommand{\boxspacing}{\kern\kvtcb@left@rule\kern\kvtcb@boxsep}
+    \makeatother
+    \newcommand{\prompt}[4]{
+        {\ttfamily\llap{{\color{#2}[#3]:\hspace{3pt}#4}}\vspace{-\baselineskip}}
+    }
+    
+
+    
+    % Prevent overflowing lines due to hard-to-break entities
+    \sloppy
+    % Setup hyperref package
+    \hypersetup{
+      breaklinks=true,  % so long urls are correctly broken across lines
+      colorlinks=true,
+      urlcolor=urlcolor,
+      linkcolor=linkcolor,
+      citecolor=citecolor,
+      }
+    % Slightly bigger margins than the latex defaults
+    
+    \geometry{verbose,tmargin=1in,bmargin=1in,lmargin=1in,rmargin=1in}
+    
+    
+
+\begin{document}
+    
+    \maketitle
+    
+    
+
+    
+    \section{Did the bus actually stop? All-days analysis
+(v6)}\label{did-the-bus-actually-stop-all-days-analysis-v6}
+
+\textbf{Question.} For each scheduled bus call across all available
+days: did the bus stop at the stop, or drive past?
+
+\textbf{Data.} Every dated bronze folder containing
+\texttt{stop\_visits} and \texttt{vehicle\_positions}. The latest
+complete GTFS snapshot supplies the timetable; the real-time files
+define the analysis window.
+
+\textbf{What changed from v4}
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{vehicle\_positions.speed} is empty in the whole file, so v4's
+  stopped/passed test could never fire: every event with a nearby ping
+  ended up as \texttt{near\_no\_speed}. Speed is now derived from
+  consecutive pings of the same vehicle.
+\item
+  v4 matched GPS to a stop by line + time only. That can pick up a
+  \emph{different} bus on the same line, or one far away (likely where
+  the ``\textgreater1 km nearest ping'' rows came from). Now each trip
+  is first matched to one specific vehicle, and only that vehicle's
+  track is used.
+\item
+  All available dated real-time files are analyzed together, with daily
+  summaries. The latest complete GTFS snapshot is loaded once to avoid
+  duplicating timetable rows. The side analyses (alerts, route-type
+  checks, ferry checks, delays) are gone.
+\end{itemize}
+
+\textbf{What changed in v6} (new section 7b)
+
+\begin{itemize}
+\tightlist
+\item
+  Every call now gets evidence from the ping interval around the stop,
+  measured along the route, so the \texttt{no\_ping\_at\_stop} blind
+  spot is no longer empty.
+\item
+  \texttt{time\_lost\_s} / \texttt{p\_excess}: how much time the bus
+  lost around the stop compared with ping intervals that contain no
+  stop.
+\item
+  \texttt{ts\_offset\_enter\_s} / \texttt{ts\_offset\_leave\_s}: how the
+  feed's \texttt{visit\_time} compares with when GPS says the bus
+  entered / left the stop zone.
+\end{itemize}
+
+    \subsection{How to read the result}\label{how-to-read-the-result}
+
+The ET feed cannot answer the question by itself: it copies one time
+into both \texttt{actual\_arrival} and \texttt{actual\_departure} (so
+there is no dwell time), and a ``recorded'' call only says the system
+registered the bus there. GPS is the only evidence of standing still.
+
+GPS pings arrive about every 30 s, and a bus that stands at a stop for
+10--20 s is often between two pings. Speed is measured over those 30 s
+steps, so even a real stop rarely shows speed 0: the step averages
+driving and standing. That is why ``driving past'' is judged against the
+bus's own usual speed nearby, not a fixed number. The result is a set of
+evidence levels, not a yes/no:
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+\texttt{gps\_class}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Meaning
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\texttt{stopped\_confirmed} & 2+ pings within \texttt{NEAR\_M} of the
+stop that look stopped: standing (\texttt{SLOW\_MS}) or well below the
+bus's usual speed there (\texttt{SLOW\_RATIO}) \\
+\texttt{likely\_stopped} & 1 such ping within \texttt{NEAR\_M} of the
+stop \\
+\texttt{likely\_passed} & ping(s) within \texttt{NEAR\_M}, all at or
+above \texttt{FAST\_RATIO} of the bus's usual speed \\
+\texttt{near\_unclear} & ping within \texttt{NEAR\_M}, speed in between
+(or no usable speed) \\
+\texttt{no\_ping\_at\_stop} & the bus track exists, but no ping landed
+within \texttt{NEAR\_M}: cannot tell \\
+\texttt{no\_gps} & bus matched, but there is a GPS hole at the time of
+the stop \\
+\texttt{no\_vehicle} & no bus could be matched to the trip \\
+\end{longtable}
+
+A bus driving past a stop is normal when nobody is waiting or has asked
+to get off. ``Passed'' is not a service failure.
+
+    \subsection{0. Setup}\label{setup}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+Analyzing 24 days (2026-10-20 through 2026-11-12); GTFS: 2026-11-12
+    \end{Verbatim}
+
+    \subsection{1. Timetable (GTFS)}\label{timetable-gtfs}
+
+Only what the analysis needs: bus routes, their trips, stop coordinates,
+and the ordered stop calls of each trip. \texttt{occ} numbers repeated
+calls at the same stop within one trip (loops), so a call is identified
+by trip + stop + occurrence.
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+297 bus routes | 11,404 bus trips | 358,813 bus stop calls
+calls timetabled as 'does not stop': 31
+OK   stop calls whose stop\_id is not in gtfs\_stops: 0 of 358,813
+OK   stop calls without coordinates: 0 of 358,813
+    \end{Verbatim}
+
+    \begin{Verbatim}[commandchars=\\\{\}, frame=single, framerule=2mm, rulecolor=\color{outerrorbackground}]
+\textcolor{ansi-red-intense}{\textbf{The Kernel crashed while executing code in the current cell or a previous cell. 
+}}
+\textcolor{ansi-red-intense}{\textbf{Please review the code in the cell(s) to identify a possible cause of the failure. 
+}}
+\textcolor{ansi-red-intense}{\textbf{Click <a href='https://aka.ms/vscodeJupyterKernelCrash'>here</a> for more info. 
+}}
+\textcolor{ansi-red-intense}{\textbf{View Jupyter <a href='command:jupyter.viewOutput'>log</a> for further details.}}
+    \end{Verbatim}
+
+    \subsection{\texorpdfstring{2. Real-time stop calls
+(\texttt{stop\_visits})}{2. Real-time stop calls (stop\_visits)}}\label{real-time-stop-calls-stop_visits}
+
+The feed repeats every call in many snapshots as predictions change.
+Each dated file is reduced before the next is loaded to keep memory
+bounded. One call = \texttt{data\_frame\_ref} + \texttt{journey\_ref} +
+\texttt{stop\_order}. Across snapshots I keep the newest record, but
+take \texttt{actual\_*} from an older snapshot if the newest one lacks
+it. Ferries are excluded and the rest is checked against the bus
+allow-list from GTFS.
+
+Only the columns the analysis uses are read (v4 read 21, most of them
+unused here).
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+328,121,410 snapshot rows -> 3,067,811 distinct calls
+kept bus calls at known stops: 3,062,857 (removed 4,954)
+visit\_status
+observed       3037453
+cancelled        14940
+unconfirmed      10464
+
+calls with both actual times where arrival == departure: 100.0\%  (so the feed
+has no dwell time)
+    \end{Verbatim}
+
+    \subsection{3. Scheduled calls in the window, and what the feed says
+about
+each}\label{scheduled-calls-in-the-window-and-what-the-feed-says-about-each}
+
+Active services come from \texttt{calendar} and
+\texttt{calendar\_dates}. GTFS times can run past 24:00; the feed labels
+a trip that starts after midnight with the clock date of its start, so
+each scheduled call gets that same label (\texttt{service\_date}) before
+it is joined to the feed. Only calls whose scheduled time falls inside
+the window are kept, so no day is judged on data we do not have.
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+scheduled bus calls inside the window: 462,953 on 16,170 trips
+    \end{Verbatim}
+
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+                   calls  share
+final\_status                   
+observed          452924  0.978
+trip\_not\_in\_feed    6275  0.014
+cancelled           2445  0.005
+unconfirmed         1309  0.003
+    \end{Verbatim}
+
+    
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+final\_status  cancelled  observed  trip\_not\_in\_feed  unconfirmed   calls
+service\_date                                                            
+2026-11-10          520    148613              2002          499  151634
+2026-11-11          795    151722              2019          542  155078
+2026-11-12         1109    151197              2254          250  154810
+2026-11-13           21      1392                 0           18    1431
+    \end{Verbatim}
+
+    
+    \begin{itemize}
+\tightlist
+\item
+  \texttt{observed}: the feed has an actual time for the call.
+\item
+  \texttt{cancelled}: the feed marks the journey or call as cancelled.
+\item
+  \texttt{unconfirmed}: a feed record exists but has no actual time yet
+  (mostly calls right at the end of the window).
+\item
+  \texttt{stop\_not\_in\_feed}, \texttt{trip\_not\_in\_feed}: nothing in
+  the feed. This is a coverage gap, not proof that the bus did not run.
+\end{itemize}
+
+Only \texttt{observed} calls go on to the GPS test: the recorded time is
+what lets us find the right bus.
+
+    \subsection{\texorpdfstring{4. GPS positions
+(\texttt{vehicle\_positions})}{4. GPS positions (vehicle\_positions)}}\label{gps-positions-vehicle_positions}
+
+A position is repeated in every snapshot until the bus reports a new
+one, so I keep one row per vehicle + \texttt{last\_updated}. Coordinates
+are converted to metres on a local flat grid (accurate to about a metre
+at these distances). The \texttt{speed} column is empty, so speed is
+derived from consecutive pings of the same vehicle (metres moved ÷
+seconds), both for the step into a ping and the step out of it.
+\texttt{speed\_min} is the slower of the two: a bus standing at a stop
+usually has at least one slow step next to the ping. \texttt{cruise\_ms}
+is the bus's usual speed around that moment (the 75th percentile of the
+neighbouring step speeds, i.e.~how fast it goes when it is not standing)
+and \texttt{ratio\_min\ =\ speed\_min\ /\ cruise\_ms} says how much
+slower than usual the bus was at that ping: about 1 when driving
+normally, clearly lower when it stood or crawled.
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+speed values present in the raw file: 0 of 10,493,828
+10,493,828 raw rows across 24 days -> 7,552,289 distinct positions | 487
+vehicles | 287 lines
+positions from 2026-10-20 14:09:53.471000+00:00 to 2026-11-12 23:59:54+00:00
+line\_ref found in GTFS route\_id: 99.8\%
+
+seconds between positions of the same vehicle:
+count    7543634.0
+mean          47.4
+std          483.0
+min            0.1
+10\%           29.0
+50\%           30.0
+90\%           31.0
+max        79797.0
+
+derived speed, m/s:
+count    7458623.00
+mean           6.84
+std            7.68
+min            0.00
+10\%            0.35
+50\%            6.11
+90\%           13.19
+max         1491.41
+
+pings with a usable ratio to the bus's usual speed: 92.6\%
+
+GPS coverage per hour (look for holes):
+    \end{Verbatim}
+
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+                           pings  vehicles
+hour\_utc                                  
+2026-10-20 14:00:00+00:00     18         9
+2026-10-20 15:00:00+00:00  14439       237
+2026-10-20 16:00:00+00:00  16714       194
+2026-10-20 17:00:00+00:00  14912       158
+2026-10-20 18:00:00+00:00  12158       147
+{\ldots}                          {\ldots}       {\ldots}
+2026-11-12 19:00:00+00:00  12090       147
+2026-11-12 20:00:00+00:00  10300       116
+2026-11-12 21:00:00+00:00   9886       101
+2026-11-12 22:00:00+00:00   8993        96
+2026-11-12 23:00:00+00:00   4462        75
+
+[562 rows x 2 columns]
+    \end{Verbatim}
+
+    
+    \subsection{5. Which bus ran which
+trip?}\label{which-bus-ran-which-trip}
+
+The GPS has no trip id, only \texttt{vehicle\_id} and
+\texttt{line\_ref}. For every trip, each candidate vehicle on that line
+is placed (by interpolating its track) at the recorded time of every
+stop of the trip. The right bus is next to the stops at those times, so
+it wins with a small median distance. Another bus on the same line (the
+one before or after) is hundreds of metres off. A trip is matched only
+if the best vehicle is within \texttt{ASSIGN\_MAX\_M} on at least
+\texttt{ASSIGN\_MIN\_STOPS} stops. \texttt{runner\_up\_m} shows how
+clear the choice was.
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+observed calls to test: 452,924 on 15,588 trips
+trips with a matched vehicle: 13,387 of 15,588 (85.9\%)
+
+median distance of the matched bus to the trip's stops (m):
+count    13387.0
+mean        37.3
+std          8.5
+min         13.1
+50\%         36.5
+90\%         47.9
+99\%         62.7
+max         98.4
+trips where the runner-up is within 2x of the winner (ambiguous): 27
+    \end{Verbatim}
+
+    \subsection{6. Stopped or not?}\label{stopped-or-not}
+
+For each observed call, the matched bus is looked at in a window of
+\texttt{WIN\_S} seconds around the recorded time. A ping within
+\texttt{NEAR\_M} of the stop is ``at the stop''; it looks stopped if the
+bus was standing (\texttt{speed\_min\ \textless{}=\ SLOW\_MS}) or at
+most \texttt{SLOW\_RATIO} of its usual speed, and looks like driving
+past if it was at least \texttt{FAST\_RATIO} of its usual speed. Classes
+are explained at the top of the notebook.
+
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+                    calls  share
+gps\_class                       
+stopped\_confirmed   29268  0.065
+likely\_stopped     151579  0.335
+likely\_passed       17622  0.039
+near\_unclear        16363  0.036
+no\_ping\_at\_stop    164084  0.362
+no\_gps              12791  0.028
+no\_vehicle          61217  0.135
+    \end{Verbatim}
+
+    
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+gps\_class     stopped\_confirmed  likely\_stopped  likely\_passed  near\_unclear  no\_ping\_at\_stop  no\_gps  no\_vehicle   calls  likely\_passed\_share
+service\_date                                                                                                                                  
+2026-11-10                 6528           32176           3852          3538            35921    6245       60353  148613                0.026
+2026-11-11                11337           59396           6866          6400            64133    3160         430  151722                0.045
+2026-11-12                11326           59743           6819          6355            63225    3306         423  151197                0.045
+2026-11-13                   77             264             85            70              805      80          11    1392                0.061
+    \end{Verbatim}
+
+    
+    \subsection{7. Sanity checks and
+results}\label{sanity-checks-and-results}
+
+Read these before trusting the classes:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  How many trips got a bus, and how clearly (section 5 printout).
+\item
+  Whether \texttt{likely\_stopped} and \texttt{likely\_passed} both
+  occur at plausible places and times. If one class is almost empty, the
+  thresholds are off.
+\item
+  The speed ratio right next to stops (left chart): stopped and passed
+  pings should form two groups, with the dashed lines in the gap between
+  them.
+\end{enumerate}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+calls with a ping within 30 m of the stop: 216,259 of 452,924 (47.7\%)
+
+slowest speed (m/s) among the pings at the stop, for those calls:
+count    216192.00
+mean          3.87
+std           2.86
+min           0.00
+10\%           0.51
+25\%           2.05
+50\%           3.42
+75\%           5.10
+90\%           7.37
+max          88.92
+
+same as a share of the bus's usual speed:
+count    214125.00
+mean          0.45
+std           0.28
+min           0.00
+10\%           0.08
+25\%           0.25
+50\%           0.42
+75\%           0.63
+90\%           0.86
+max          13.13
+    \end{Verbatim}
+
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{analyzing_parquet_files_v6_files/analyzing_parquet_files_v6_20_1.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+stops where buses most often drove past (at least 10 conclusive calls):
+    \end{Verbatim}
+
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+             stop\_id  calls  stopped  passed       stop\_name  conclusive  passed\_share
+2057  NSR:Quay:46369     96        0      10  Nedre Øksnavad          10         1.000
+2047  NSR:Quay:46359     90        0      14          Meland          14         1.000
+2090  NSR:Quay:46415    140        0      13         Merland          13         1.000
+2594  NSR:Quay:47094    122        1      10       Lutsiskog          11         0.909
+2701  NSR:Quay:47220     96        1       9        Storhaug          10         0.900
+2091  NSR:Quay:46416    126        2      17         Merland          19         0.895
+3531  NSR:Quay:48320    125        2      13     Andakrossen          15         0.867
+2700  NSR:Quay:47219     90        2      12        Storhaug          14         0.857
+1759  NSR:Quay:46002    116        4      22        Vågsgata          26         0.846
+1660  NSR:Quay:45878    102        2      11   Visteveien 25          13         0.846
+3536  NSR:Quay:48328     90        2      11       Postvegen          13         0.846
+2194  NSR:Quay:46558    221        6      32        Laberget          38         0.842
+2486  NSR:Quay:46939    147        3      15   Nautanes nord          18         0.833
+2492  NSR:Quay:46948    147        3      15    Nautanes sør          18         0.833
+2597  NSR:Quay:47097    122        2       9     Lutsivatnet          11         0.818
+    \end{Verbatim}
+
+    
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+    stop\_sequence                   stop\_name                          visit\_time vehicle\_id  min\_dist\_m  n\_near  slowest\_near\_ms  slowest\_near\_ratio          gps\_class
+0               1               Jernbaneveien 2026-11-10 04:47:32.317000000+00:00       4074    4.168315       1         0.008822            0.001367     likely\_stopped
+1               2     Stavanger politistasjon 2026-11-10 04:48:50.299000000+00:00       4074   30.232224       0              NaN                 NaN    no\_ping\_at\_stop
+2               3                 Statens hus 2026-11-10 04:49:19.310000000+00:00       4074   73.586838       0              NaN                 NaN    no\_ping\_at\_stop
+3               4               Vålandsbakken 2026-11-10 04:49:54.335000000+00:00       4074   16.170792       1         9.735159            1.104730      likely\_passed
+4               5              Lindahlsbakken 2026-11-10 04:50:17.316000000+00:00       4074   72.017896       0              NaN                 NaN    no\_ping\_at\_stop
+5               6                  Strømsbrua 2026-11-10 04:52:10.323000000+00:00       4074    6.540639       2         0.012494            0.001479  stopped\_confirmed
+6               7           Hillevågstunnelen 2026-11-10 04:53:22.322000000+00:00       4074   25.761305       1         2.186779            0.321575     likely\_stopped
+7               8                    Hillevåg 2026-11-10 04:54:28.333000000+00:00       4074    3.992692       2         0.589669            0.078352  stopped\_confirmed
+8               9             Kvaleberg skole 2026-11-10 04:55:26.323000000+00:00       4074    6.102876       1         7.890624            0.967747      likely\_passed
+9              10                    Sjøhagen 2026-11-10 04:56:00.327000000+00:00       4074   22.922277       1         6.197042            0.760037       near\_unclear
+10             11                    Eikeberg 2026-11-10 04:57:28.325000000+00:00       4074    2.705034       1         2.718116            0.316657     likely\_stopped
+11             12                     Mariero 2026-11-10 04:58:29.344000000+00:00       4074    4.292308       1         2.491586            0.290267     likely\_stopped
+12             13                Lyngnesveien 2026-11-10 05:00:03.342000000+00:00       4074    8.352319       1         4.222723            0.468552     likely\_stopped
+13             14               Hinnasvingene 2026-11-10 05:01:29.335000000+00:00       4074    5.301269       1         4.276948            0.455229     likely\_stopped
+14             15                  Skråtårnet 2026-11-10 05:03:03.361000000+00:00       4074    8.788076       1         4.946945            0.526543     likely\_stopped
+15             16               Stadionparken 2026-11-10 05:03:51.334000000+00:00       4074   58.920090       0              NaN                 NaN    no\_ping\_at\_stop
+16             17                       Jåttå 2026-11-10 05:04:42.347000000+00:00       4074    2.251302       1         2.700244            0.280162     likely\_stopped
+17             18              Gausel sentrum 2026-11-10 05:06:03.349000000+00:00       4074   47.160487       0              NaN                 NaN    no\_ping\_at\_stop
+18             19                 Gauselhagen 2026-11-10 05:06:58.337000000+00:00       4074   20.406823       1        10.753728            1.056655      likely\_passed
+19             20              Gausel stasjon 2026-11-10 05:08:12.356000000+00:00       4074  115.828239       0              NaN                 NaN    no\_ping\_at\_stop
+20             21              Nådlandsbråtet 2026-11-10 05:09:14.346000000+00:00       4074   17.946101       1         5.112693            0.487576     likely\_stopped
+21             22                   2020 park 2026-11-10 05:10:43.306000000+00:00       4074    1.903336       1         4.525619            0.471510     likely\_stopped
+22             23                Løwenstrasse 2026-11-10 05:11:43.311000000+00:00       4074    4.888894       1         2.406803            0.243189     likely\_stopped
+23             24         Jakob Askelands vei 2026-11-10 05:12:54.320000000+00:00       4074   14.354816       1         3.421828            0.339717     likely\_stopped
+24             25                Porsmyrveien 2026-11-10 05:13:24.303000000+00:00       4074    9.029248       1        10.197917            1.012444      likely\_passed
+25             26                     Kvadrat 2026-11-10 05:14:13.311000000+00:00       4074  140.526278       0              NaN                 NaN    no\_ping\_at\_stop
+26             27                  Seljeveien 2026-11-10 05:14:51.308000000+00:00       4074   57.396127       0              NaN                 NaN    no\_ping\_at\_stop
+27             28               Gamle Postvei 2026-11-10 05:16:07.312000000+00:00       4074    3.076219       1         5.658198            0.555898     likely\_stopped
+28             29             Strandgata nord 2026-11-10 05:17:27.311000000+00:00       4074    4.860651       1         5.395898            0.513520     likely\_stopped
+29             30                  Strandgata 2026-11-10 05:18:46.319000000+00:00       4074  108.799764       0              NaN                 NaN    no\_ping\_at\_stop
+30             31               Jernbaneveien 2026-11-10 05:19:44.311000000+00:00       4074  125.351594       0              NaN                 NaN    no\_ping\_at\_stop
+31             32               Olav Vs plass 2026-11-10 05:20:45.316000000+00:00       4074   26.883566       1         2.461860            0.233955     likely\_stopped
+32             33  Sandnes bussterminal Ruten 2026-11-10 05:21:42.844645200+00:00       4074    7.104772       1         4.136262            0.581009             no\_gps
+    \end{Verbatim}
+
+    
+    \subsection{7b. Evidence along the route
+(v6)}\label{b.-evidence-along-the-route-v6}
+
+v5 only counts a ping that lands within \texttt{NEAR\_M} of the stop, so
+43\% of calls end up as \texttt{no\_ping\_at\_stop}. Here every call
+gets evidence from the \textbf{ping interval that surrounds the stop},
+measured \textbf{along the route} (GTFS shape, or the stop-to-stop line
+if there is no shape):
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Each ping is snapped to the route, giving a distance along the route
+  \texttt{s}. Jitter that makes \texttt{s} go backwards is removed
+  (isotonic regression), because a bus does not drive backwards.
+\item
+  For each ping interval:
+  \texttt{time\_lost\ =\ (time\ between\ the\ pings)\ -\ (distance\ covered\ /\ the\ bus\textquotesingle{}s\ usual\ speed)}.
+  A bus that stood at a stop inside the interval loses time.
+\item
+  The same number is computed for ping intervals that contain \textbf{no
+  stop} (traffic lights, turns, congestion stay in that comparison).
+  \texttt{p\_excess} = share of stop-free intervals that lost at least
+  as much time as this stop. Low = looks like a stop. High = no
+  stop-like time loss, which is \textbf{not} proof of ``passed''.
+\item
+  Linear interpolation gives the time the bus enters and leaves the stop
+  zone (\texttt{R\_STOP\_M} along the route). Compared with the feed's
+  \texttt{visit\_time}, that tells whether the ET time is arrival or
+  departure, and how accurate it is.
+\end{enumerate}
+
+\subsubsection{Comparing the feed with
+GPS}\label{comparing-the-feed-with-gps}
+
+The feed's \texttt{call\_type\ ==\ "recorded"} means ET marked the call
+as recorded; it does not prove that the bus physically stopped. For a
+side-by-side comparison, 7b marks a GPS call as \textbf{stop-like} when
+\texttt{p\_excess\ \textless{}=\ 0.05}. This means its delay is rare
+among stop-free intervals, not that there is a 95\% probability the bus
+stopped. \textbf{ET only} means ET marked it recorded but GPS did not
+find unusually high delay; \textbf{GPS only} means GPS found unusually
+high delay but ET did not mark it recorded. These are disagreements
+between indicators, not proof either method is wrong. The comparison
+also shows how the older nearby-ping classes compare.
+\texttt{likely\_passed} is not treated as the opposite of a recorded
+call: a bus can pass a stop when nobody needs service.
+
+I tested Newton and monotone-cubic interpolation against plain linear on
+simulated data: no accuracy gain at 30 s pings, so only linear is used.
+\texttt{dwell\_s} is not estimated: a 10-20 s stop between two pings
+cannot be seen.
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+route geometry: 5,386 trips from GTFS shapes, 0 from the stop-to-stop line, 0
+without any
+391,707 calls processed | 265,055 stop-free ping intervals for the comparison
+    \end{Verbatim}
+
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{analyzing_parquet_files_v6_files/analyzing_parquet_files_v6_26_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \subsection{8. Results stay in memory}\label{results-stay-in-memory}
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+Analysis complete. Results remain in notebook memory; no files were written.
+    \end{Verbatim}
+
+    \subsection{Limits}\label{limits}
+
+\begin{itemize}
+\item
+  \textbf{30-second pings.} A short dwell can fall between two pings, so
+  \texttt{no\_ping\_at\_stop} is a blind spot, not a ``passed''. Only
+  \texttt{likely\_passed} is evidence of a bus driving past; absence of
+  \texttt{stopped} is not.
+\item
+  \textbf{Standing near a stop is not the same as opening the doors.} A
+  bus held at a red light within \texttt{NEAR\_M} of a stop looks the
+  same as a bus that stopped. Door-open or passenger-count data would
+  settle it; this dataset has neither.
+\item
+  \textbf{Matching depends on the recorded times.} The bus is found by
+  where it was at the feed's actual times, so calls without an actual
+  time (\texttt{unconfirmed}, \texttt{cancelled}, not in feed) cannot be
+  tested.
+\item
+  \textbf{Thresholds are judgement.} \texttt{NEAR\_M},
+  \texttt{SLOW\_MS}, \texttt{SLOW\_RATIO} and \texttt{FAST\_RATIO} are
+  in the setup cell. They were set on simulated data, so check the
+  histogram in section 7 on the real data and move the dashed lines into
+  the gap between the two groups.
+\item
+  \textbf{\texttt{p\_excess} is a ranking score, not a strict test.}
+  Traffic lights and congestion sit in the stop-free comparison, so it
+  is conservative. ``No stop-like time loss'' is not proof that the bus
+  drove past.
+\item
+  \textbf{The stop-free comparison needs enough stop-free intervals.}
+  The notebook warns when there are fewer than \texttt{MIN\_NULL}. It
+  also over-represents the stretches between stops.
+\item
+  \textbf{No dwell time.} A stop of 10-20 s between two ping intervals
+  that look normal cannot be seen by any interpolation; only
+  \texttt{time\_lost\_s} picks it up indirectly. \texttt{local\_gap\_s}
+  shows the ping spacing behind each result.
+\item
+  \textbf{Route geometry.} Without GTFS shapes the route is the
+  stop-to-stop straight line, which is coarser on curves (larger
+  \texttt{MAX\_OFFROUTE\_STOPS}).
+\end{itemize}
+
+
+    % Add a bibliography block to the postdoc
+    
+    
+    
+\end{document}
