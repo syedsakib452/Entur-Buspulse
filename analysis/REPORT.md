@@ -114,10 +114,3 @@
 | `archive/legacy-swift-spark-pipeline/tests/test_spark_jobs.py` | Tests for the former combined Spark jobs. |
 | `archive/legacy-swift-spark-pipeline/tests/test_swift_storage.py` | Tests for the former Swift storage helpers. |
 
-## Validation notes
-
-- Python syntax, Compose YAML, Dockerfile source paths and changed-image routing were checked.
-- The pure GPS/geometry test suite passed: 8 tests.
-- The Docker CLI was not available here, so the three images were not built or launched.
-- Full ETL was not executed: the inspection environment lacks the container runtime dependencies (PySpark/PyArrow/DuckDB) and your OpenStack Swift credentials.
-- Bronze writes local Parquet by design; there are no active Silver/Gold Swift writes.
