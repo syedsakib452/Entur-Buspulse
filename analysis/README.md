@@ -83,6 +83,7 @@ Gold code is skipped; a Gold code/dependency change invalidates the saved build 
 
 See the standalone [data-quality, cleaning, and formulas report](DATA_QUALITY.md) for
 Bronze/Silver/Gold rules, quality checks, recorded audit results, and interpretation notes.
+For mathematical notation only, see [Silver and Gold formulae](formulae/README.md).
 
 ## Rebuild only images affected by code changes
 
