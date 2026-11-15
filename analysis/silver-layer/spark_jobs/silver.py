@@ -43,7 +43,8 @@ from pyspark.sql import Window, functions as F
 
 from spark_jobs import common
 
-KEY = ["data_frame_ref", "journey_ref", "stop_order"]          # one real visit = this key
+# one real visit = this key
+KEY = ["data_frame_ref", "journey_ref", "stop_order"]
 ACTUALS = ["actual_arrival", "actual_departure"]
 TIME_COLS = ["aimed_arrival", "expected_arrival", "actual_arrival",
              "aimed_departure", "expected_departure", "actual_departure"]
@@ -53,17 +54,22 @@ ET_COLS = ["snapshot_time", "data_frame_ref", "journey_ref", "line_ref", "direct
 BRONZE = Path(common.tables_dir() or "tables") / "bronze-layer"
 GTFS_REQUIRED = ["routes", "stops", "trips", "stop_times"]
 
-DELAY_MIN_S, DELAY_MAX_S = -30 * 60, 3 * 3600         # outlier bounds: > 30 min early or > 3 h late
+# outlier bounds: > 30 min early or > 3 h late
+DELAY_MIN_S, DELAY_MAX_S = -30 * 60, 3 * 3600
 # Project thresholds, the same as in gold (analysis/gold/build_gold.py): change them in both places.
-EARLY_S, LATE_S = -60, 300                            # early < -60 s | on time -60 <= delay < 300 s | late >= 300 s
-BUNCH_RATIO, GAP_RATIO = 0.25, 2.0                    # headway < 0.25 x scheduled = bunched, > 2 x = gap
-SEGMENT_MAX_S = 3600                                  # a stop-to-stop run longer than 1 h is not plausible
+# early < -60 s | on time -60 <= delay < 300 s | late >= 300 s
+EARLY_S, LATE_S = -60, 300
+# headway < 0.25 x scheduled = bunched, > 2 x = gap
+BUNCH_RATIO, GAP_RATIO = 0.25, 2.0
+# a stop-to-stop run longer than 1 h is not plausible
+SEGMENT_MAX_S = 3600
 EARTH_M = 6_371_000.0
 BUS_ROUTE_TYPES = ["3"] + [str(x) for x in range(700, 800)]
 ROUTE_TYPE_NAMES = {"704": "Local bus", "705": "Night bus", "712": "School bus",
                     "1004": "Local car ferry", "1008": "Local passenger ferry",
                     "1014": "High-speed passenger ferry"}
-WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+WEEKDAYS = ["monday", "tuesday", "wednesday",
+            "thursday", "friday", "saturday", "sunday"]
 
 
 # ------------------------------------------------------------------ timetable
@@ -103,12 +109,15 @@ def read_gtfs(spark, day):
             if required:
                 raise FileNotFoundError(f"gtfs {name} missing in {d}")
             return None
-        uri = p.resolve().as_uri()                      # file:///... so Spark reads local disk
+        # file:///... so Spark reads local disk
+        uri = p.resolve().as_uri()
         if p.suffix == ".parquet":
             return spark.read.parquet(uri)
-        return spark.read.option("header", True).csv(uri)   # all strings: keeps "25:10:00" and "0012" intact
+        # all strings: keeps "25:10:00" and "0012" intact
+        return spark.read.option("header", True).csv(uri)
 
-    name_map = F.create_map(*[x for k, v in ROUTE_TYPE_NAMES.items() for x in (F.lit(k), F.lit(v))])
+    name_map = F.create_map(
+        *[x for k, v in ROUTE_TYPE_NAMES.items() for x in (F.lit(k), F.lit(v))])
     routes = (t("routes").dropDuplicates(["route_id"])
               .select("route_id", "route_short_name", F.trim("route_type").alias("route_type"))
               .withColumns({"route_type_name": F.coalesce(name_map[F.col("route_type")], F.lit("unknown")),
@@ -120,17 +129,20 @@ def read_gtfs(spark, day):
                      (F.col("parent_station") if "parent_station" in stops_raw.columns
                       else F.lit(None).cast("string")).alias("parent_station")))
     trips = t("trips").select("trip_id", "route_id", "service_id")
-    st_cols = ["trip_id", "stop_id", "arrival_time", "departure_time", "stop_sequence"]
+    st_cols = ["trip_id", "stop_id", "arrival_time",
+               "departure_time", "stop_sequence"]
     st = t("stop_times")
     st = st.select(*st_cols,
                    *[F.col(c) if c in st.columns else F.lit(None).cast("string").alias(c)
                      for c in ["pickup_type", "drop_off_type"]])
 
-    cal = t("calendar", required=False)                  # small: a few hundred rows
+    # small: a few hundred rows
+    cal = t("calendar", required=False)
     cal_dates = t("calendar_dates", required=False)
     calendar = cal.toPandas() if cal is not None else pd.DataFrame()
     calendar_dates = cal_dates.toPandas() if cal_dates is not None else pd.DataFrame()
     return routes, stops, trips, st, calendar, calendar_dates
+
 
 def active_service_ids(calendar, calendar_dates, service_date):
     """service_ids running on service_date: calendar range + weekday, plus added, minus removed."""
@@ -165,15 +177,18 @@ def expected_calls(spark, day, routes, trips, st, calendar, calendar_dates):
                         "first_dep": F.first("departure_time").over(
                             w_trip.rowsBetween(Window.unboundedPreceding, Window.unboundedFollowing)),
                         "sched_no_stop": (F.trim("pickup_type") == "1") & (F.trim("drop_off_type") == "1")}))
-    st = st.withColumn("day_shift", (F.substring("first_dep", 1, 2).cast("int") / 24).cast("int"))
+    st = st.withColumn("day_shift", (F.substring(
+        "first_dep", 1, 2).cast("int") / 24).cast("int"))
 
     # (service_id, GTFS service date, local "noon minus 12 h" anchor in UTC seconds) for D-1 and D
     rows = []
     for s in [common.shift(day, -1), day]:
-        anchor = (pd.Timestamp(f"{s} 12:00", tz=common.LOCAL_TZ) - pd.Timedelta(hours=12)).tz_convert("UTC")
+        anchor = (pd.Timestamp(
+            f"{s} 12:00", tz=common.LOCAL_TZ) - pd.Timedelta(hours=12)).tz_convert("UTC")
         for sid in active_service_ids(calendar, calendar_dates, s):
             rows.append((sid, s, int(anchor.timestamp())))
-    active = spark.createDataFrame(rows, "service_id string, gtfs_service_date string, anchor_s long")
+    active = spark.createDataFrame(
+        rows, "service_id string, gtfs_service_date string, anchor_s long")
 
     bus_trips = (trips.join(routes.where("is_bus").select("route_id", "route_short_name", "route_type",
                                                           "route_type_name", "is_bus"), "route_id")
@@ -204,8 +219,10 @@ def read_feed(spark, day):
         ])
     else:
         src = common.path(common.BRONZE, "stop_visits")
-        raw = spark.read.option("basePath", src).parquet(*[f"{src}/date={d}" for d in days])
-    not_ferry = F.col("vehicle_mode").isNull() | (F.col("vehicle_mode") != "ferry")   # null-safe
+        raw = spark.read.option("basePath", src).parquet(
+            *[f"{src}/date={d}" for d in days])
+    not_ferry = F.col("vehicle_mode").isNull() | (
+        F.col("vehicle_mode") != "ferry")   # null-safe
     return raw, raw.where(not_ferry).select(*ET_COLS)
 
 
@@ -227,11 +244,14 @@ def clean_visits(spark, day, raw, et, routes, stops, log):
     agg = [F.max_by(F.struct(*others), "snapshot_time").alias("s"),
            F.max("snapshot_time").alias("snapshot_time"),
            F.count("*").alias("n_snapshots")]
-    agg += [F.max_by(a, F.when(F.col(a).isNotNull(), F.col("snapshot_time"))).alias(a) for a in ACTUALS]
-    v = et.groupBy(*KEY).agg(*agg).select(*KEY, "snapshot_time", "n_snapshots", *ACTUALS, "s.*")
+    agg += [F.max_by(a, F.when(F.col(a).isNotNull(),
+                     F.col("snapshot_time"))).alias(a) for a in ACTUALS]
+    v = et.groupBy(*KEY).agg(*agg).select(*KEY, "snapshot_time",
+                                          "n_snapshots", *ACTUALS, "s.*")
     v = v.persist()
     n_visits = v.count()
-    log("de-duplicate snapshots (keep latest per visit)", c["n_key"] or 0, n_visits)
+    log("de-duplicate snapshots (keep latest per visit)",
+        c["n_key"] or 0, n_visits)
 
     v = v.withColumns({col: common.ts(col) for col in TIME_COLS})
 
@@ -239,7 +259,8 @@ def clean_visits(spark, day, raw, et, routes, stops, log):
     rt = F.col("route_type").cast("int")
     ferry_by_type = routes.where((rt == 4) | rt.between(1000, 1099) | rt.between(1200, 1299)) \
                           .select(F.col("route_id").alias("line_ref"))
-    ferry_by_mode = raw.where(F.col("vehicle_mode") == "ferry").select("line_ref").distinct()
+    ferry_by_mode = raw.where(F.col("vehicle_mode") ==
+                              "ferry").select("line_ref").distinct()
     ferry = ferry_by_type.union(ferry_by_mode).distinct()
     v2 = v.join(F.broadcast(ferry), "line_ref", "left_anti")
     n_ferry = v2.count()
@@ -257,8 +278,10 @@ def clean_visits(spark, day, raw, et, routes, stops, log):
     log("keep stops that exist in GTFS", n_bus, n_stop)
 
     # classify the visit, one event per visit: departure if it has an actual departure, else arrival
-    cancelled = common.to_bool("journey_cancelled") | common.to_bool("call_cancelled")
-    has_dep, has_arr = F.col("actual_departure").isNotNull(), F.col("actual_arrival").isNotNull()
+    cancelled = common.to_bool(
+        "journey_cancelled") | common.to_bool("call_cancelled")
+    has_dep, has_arr = F.col("actual_departure").isNotNull(), F.col(
+        "actual_arrival").isNotNull()
     v4 = v4.withColumns({
         "cancelled": cancelled,
         "visit_status": F.when(cancelled, "cancelled").when(has_dep | has_arr, "observed").otherwise("unconfirmed"),
@@ -266,10 +289,11 @@ def clean_visits(spark, day, raw, et, routes, stops, log):
         "delay_event": F.when(has_dep, "departure").when(has_arr, "arrival"),
         "visit_time": F.coalesce("actual_departure", "actual_arrival"),
         "aimed_time": F.when(has_dep, F.col("aimed_departure"))
-                       .when(has_arr, F.col("aimed_arrival"))
-                       .otherwise(F.coalesce("aimed_departure", "aimed_arrival")),
+        .when(has_arr, F.col("aimed_arrival"))
+        .otherwise(F.coalesce("aimed_departure", "aimed_arrival")),
     })
-    secs = lambda a, b: F.unix_micros(F.col(a)) / 1e6 - F.unix_micros(F.col(b)) / 1e6
+    def secs(a, b): return F.unix_micros(F.col(a)) / \
+        1e6 - F.unix_micros(F.col(b)) / 1e6
     v4 = v4.withColumns({
         "delay_s": secs("visit_time", "aimed_time"),
         "delay_arrival_s": secs("actual_arrival", "aimed_arrival"),
@@ -303,15 +327,18 @@ def secs_between(later, earlier):
 def headways(clean):
     """Per stop and line direction: time since the previous bus (by actual time) vs the timetable's
     gap between the same two trips. Outlier delays are left out, they would distort the order."""
-    w = Window.partitionBy("line_ref", "direction_ref", "stop_ref").orderBy("visit_time", "journey_ref")
+    w = Window.partitionBy("line_ref", "dir_ns", "direction_ref",
+                           "stop_ref").orderBy("visit_time", "journey_ref")
     h = clean.where(~F.col("delay_outlier"))
     h = h.withColumns({"previous_visit_time": F.lag("visit_time").over(w),
                        "previous_aimed_time": F.lag("aimed_time").over(w),
                        "previous_trip_id": F.lag("journey_ref").over(w)})
-    h = h.where(F.col("previous_visit_time").isNotNull() & (F.col("previous_trip_id") != F.col("journey_ref")))
+    h = h.where(F.col("previous_visit_time").isNotNull() & (
+        F.col("previous_trip_id") != F.col("journey_ref")))
     sched = secs_between(F.col("aimed_time"), F.col("previous_aimed_time"))
     h = h.withColumns({"headway_s": secs_between(F.col("visit_time"), F.col("previous_visit_time")),
-                       "sched_headway_s": F.when(sched > 0, sched)})       # <= 0: buses swapped order
+                       # <= 0: buses swapped order
+                       "sched_headway_s": F.when(sched > 0, sched)})
     ratio = F.col("headway_s") / F.col("sched_headway_s")
     return h.withColumns({"headway_dev_s": F.col("headway_s") - F.col("sched_headway_s"),
                           "headway_ratio": F.round(ratio, 3),
@@ -333,46 +360,90 @@ def segments(clean):
     nxt = {f"to_{c}": F.lead(c).over(w) for c in
            ["stop_order", "stop_ref", "actual_arrival", "actual_departure", "aimed_arrival",
             "aimed_departure", "stop_lat", "stop_lon", "delay_outlier"]}
-    s = clean.withColumns(nxt).where(F.col("to_stop_order") == F.col("stop_order") + 1)
+    s = clean.withColumns(nxt).where(
+        F.col("to_stop_order") == F.col("stop_order") + 1)
     dep = F.coalesce("actual_departure", "actual_arrival")
     arr = F.coalesce("to_actual_arrival", "to_actual_departure")
     elapsed = secs_between(arr, dep)
     sched = secs_between(F.coalesce("to_aimed_arrival", "to_aimed_departure"),
                          F.coalesce("aimed_departure", "aimed_arrival"))
-    dist = haversine_m(F.col("stop_lat"), F.col("stop_lon"), F.col("to_stop_lat"), F.col("to_stop_lon"))
-    valid = (elapsed > 0) & (elapsed <= SEGMENT_MAX_S) & ~F.col("delay_outlier") & ~F.col("to_delay_outlier")
+    dist = haversine_m(F.col("stop_lat"), F.col("stop_lon"),
+                       F.col("to_stop_lat"), F.col("to_stop_lon"))
+    valid = (elapsed > 0) & (elapsed <= SEGMENT_MAX_S) & ~F.col(
+        "delay_outlier") & ~F.col("to_delay_outlier")
     return s.select(
-        F.col("journey_ref").alias("trip_id"), F.col("line_ref").alias("route_id"), "route_short_name",
-        "direction_ref", F.col("stop_order").alias("from_stop_order"),
-        F.col("stop_ref").alias("from_stop_id"), F.col("to_stop_ref").alias("to_stop_id"),
+        F.col("journey_ref").alias("trip_id"), F.col(
+            "line_ref").alias("route_id"), "route_short_name",
+        "direction_ref", "dir_ns", F.col(
+            "stop_order").alias("from_stop_order"),
+        F.col("stop_ref").alias("from_stop_id"), F.col(
+            "to_stop_ref").alias("to_stop_id"),
         dep.alias("from_visit_time"), arr.alias("to_visit_time"),
-        elapsed.alias("observed_elapsed_s"), sched.alias("scheduled_running_time_s"),
+        elapsed.alias("observed_elapsed_s"), sched.alias(
+            "scheduled_running_time_s"),
         (elapsed - sched).alias("running_time_deviation_s"),
         F.round(dist, 1).alias("segment_distance_m"),
-        F.when(valid, F.round(dist / elapsed * 3.6, 2)).alias("average_speed_kmh"),
+        F.when(valid, F.round(dist / elapsed * 3.6, 2)
+               ).alias("average_speed_kmh"),
         "local_hour", "period", "weekday", F.coalesce(valid, F.lit(False)).alias("is_valid"))
 
 
 # ------------------------------------------------------------------ job
+# a trip must move at least this far to get a north/south or east/west direction
+DIR_MIN_M = 500
+
+
+def trip_direction(st, stops):
+    """0 = ends further north (else further east; for a loop: anticlockwise);
+    1 = ends further south (else further west; for a loop: clockwise)."""
+    s = (st.select("trip_id", "stop_id", F.col("stop_sequence").cast("int").alias("seq"))
+           .join(F.broadcast(stops.select("stop_id", "stop_lat", "stop_lon")), "stop_id"))
+    w = Window.partitionBy("trip_id").orderBy("seq")
+    s = s.withColumns({"next_lat": F.lead("stop_lat").over(
+        w), "next_lon": F.lead("stop_lon").over(w)})
+    ends = s.groupBy("trip_id").agg(
+        F.min_by("stop_lat", "seq").alias("lat0"), F.min_by(
+            "stop_lon", "seq").alias("lon0"),
+        F.max_by("stop_lat", "seq").alias("lat1"), F.max_by(
+            "stop_lon", "seq").alias("lon1"),
+        # shoelace: > 0 = the stops go round anticlockwise, < 0 = clockwise
+        F.sum(F.col("stop_lon") * F.col("next_lat") - F.col("next_lon") * F.col("stop_lat")).alias("turn"))
+    north_m = (F.col("lat1") - F.col("lat0")) * 111_320
+    east_m = (F.col("lon1") - F.col("lon0")) * \
+        111_320 * F.cos(F.radians(F.col("lat0")))
+    return ends.select("trip_id",
+                       F.when(F.abs(north_m) >= DIR_MIN_M, F.when(
+                           north_m > 0, 0).otherwise(1))      # north / south
+                       # east / west
+                       .when(F.abs(east_m) >= DIR_MIN_M, F.when(east_m > 0, 0).otherwise(1))
+                       # loop: anticlockwise / clockwise
+                       .when(F.col("turn") > 0, 0).when(F.col("turn") < 0, 1)
+                       .alias("dir_ns"))
+
+
 def run(spark, day):
     print(f"=== clean {day}")
     removal_log = []
 
     def log(rule, before, after):
-        removal_log.append((rule, int(before), int(after), int(before) - int(after)))
-        print(f"  {rule:<52} {before:>12,} -> {after:>12,}   removed {before - after:>12,}")
+        removal_log.append(
+            (rule, int(before), int(after), int(before) - int(after)))
+        print(
+            f"  {rule:<52} {before:>12,} -> {after:>12,}   removed {before - after:>12,}")
 
     routes, stops, trips, st, calendar, calendar_dates = read_gtfs(spark, day)
     raw, et = read_feed(spark, day)
     visits = clean_visits(spark, day, raw, et, routes, stops, log).persist()
 
     # timetable vs feed
-    expected = expected_calls(spark, day, routes, trips, st, calendar, calendar_dates).persist()
+    expected = expected_calls(
+        spark, day, routes, trips, st, calendar, calendar_dates).persist()
     feed_trips = visits.select(F.col("data_frame_ref").alias("service_date"),
                                F.col("journey_ref").alias("trip_id")).distinct() \
-                       .withColumn("trip_in_feed", F.lit(True))
+        .withColumn("trip_in_feed", F.lit(True))
     et_cols = visits.select(F.col("data_frame_ref").alias("service_date"), F.col("journey_ref").alias("trip_id"),
-                            F.col("stop_ref").alias("stop_id"), "occ", "visit_status", "visit_time",
+                            F.col("stop_ref").alias(
+                                "stop_id"), "occ", "visit_status", "visit_time",
                             "aimed_time", "delay_s", "delay_outlier", "n_snapshots")
     cmp = (expected.join(et_cols, ["service_date", "trip_id", "stop_id", "occ"], "left")
            .join(feed_trips, ["service_date", "trip_id"], "left"))
@@ -390,21 +461,30 @@ def run(spark, day):
                   "local_date", "local_hour", "weekday", "period", "hour_utc"]
     clean = visits.where(F.col("visit_status") == "observed").select(*clean_cols) \
                   .withColumnRenamed("data_frame_ref", "service_date")
+    # north/south direction per trip (east/west if it barely moves north/south)
+    clean = clean.join(trip_direction(st, stops).withColumnRenamed("trip_id", "journey_ref"),
+                       "journey_ref", "left")
     # change of delay since the previous stop of the trip: > 0 = time lost on the way here
     w_trip = Window.partitionBy("journey_ref").orderBy("stop_order")
     clean = clean.withColumn("delay_change_s", F.when(
-        (F.lag("stop_order").over(w_trip) == F.col("stop_order") - 1) & ~F.col("delay_outlier")
+        (F.lag("stop_order").over(w_trip) == F.col(
+            "stop_order") - 1) & ~F.col("delay_outlier")
         & ~F.lag("delay_outlier").over(w_trip), F.col("delay_s") - F.lag("delay_s").over(w_trip)))
     clean = clean.persist()
 
     hw = headways(clean).persist()
-    hw_cols = ["headway_s", "sched_headway_s", "headway_dev_s", "headway_ratio", "is_bunched", "is_gapped"]
-    clean_out = clean.join(hw.select("journey_ref", "stop_order", *hw_cols), ["journey_ref", "stop_order"], "left")
+    hw_cols = ["headway_s", "sched_headway_s", "headway_dev_s",
+               "headway_ratio", "is_bunched", "is_gapped"]
+    clean_out = clean.join(hw.select(
+        "journey_ref", "stop_order", *hw_cols), ["journey_ref", "stop_order"], "left")
     stop_headways = hw.select(
-        "line_ref", "direction_ref", F.col("stop_ref").alias("stop_id"), "stop_name",
-        F.col("journey_ref").alias("trip_id"), "visit_time", "previous_trip_id", "previous_visit_time",
+        "line_ref", "direction_ref", "dir_ns", F.col(
+            "stop_ref").alias("stop_id"), "stop_name",
+        F.col("journey_ref").alias(
+            "trip_id"), "visit_time", "previous_trip_id", "previous_visit_time",
         "headway_s", F.col("sched_headway_s").alias("scheduled_headway_s"),
-        F.col("headway_dev_s").alias("headway_deviation_s"), "headway_ratio", "is_bunched",
+        F.col("headway_dev_s").alias(
+            "headway_deviation_s"), "headway_ratio", "is_bunched",
         F.col("is_gapped").alias("is_large_gap"), "local_hour", "period")
     trip_segments = segments(clean)
 
@@ -412,8 +492,10 @@ def run(spark, day):
     out = {}
     out["clean_stop_visits"] = common.write(clean_out.drop("service_date"), common.SILVER, "clean_stop_visits",
                                             "service_date", day, files=2)
-    out["stop_headways"] = common.write(stop_headways, common.SILVER, "stop_headways", "service_date", day, files=1)
-    out["trip_segments"] = common.write(trip_segments, common.SILVER, "trip_segments", "service_date", day, files=1)
+    out["stop_headways"] = common.write(
+        stop_headways, common.SILVER, "stop_headways", "service_date", day, files=1)
+    out["trip_segments"] = common.write(
+        trip_segments, common.SILVER, "trip_segments", "service_date", day, files=1)
     out["stop_event_status"] = common.write(cmp.drop("service_date"), common.SILVER, "stop_event_status",
                                             "service_date", day, files=2)
     out["expected_per_stop"] = common.write(expected_per_stop.drop("service_date"), common.SILVER,
@@ -425,15 +507,18 @@ def run(spark, day):
               spark.read.parquet(out["stop_event_status"]).groupBy("final_status").count().collect()}
     n_clean = spark.read.parquet(out["clean_stop_visits"]).count()
     print(f"  clean_stop_visits: {n_clean:,} observed bus visits")
-    print(f"  stop_event_status: {sum(status.values()):,} scheduled bus calls {status}")
+    print(
+        f"  stop_event_status: {sum(status.values()):,} scheduled bus calls {status}")
     h = spark.read.parquet(out["stop_headways"]).agg(
         F.count("*").alias("n"), F.avg(F.col("is_bunched").cast("int")).alias("b"),
         F.avg(F.col("is_large_gap").cast("int")).alias("g")).first()
-    print(f"  stop_headways: {h['n']:,} headways, bunched {h['b'] or 0:.1%}, large gaps {h['g'] or 0:.1%}")
+    print(
+        f"  stop_headways: {h['n']:,} headways, bunched {h['b'] or 0:.1%}, large gaps {h['g'] or 0:.1%}")
     sg = spark.read.parquet(out["trip_segments"]).agg(
         F.count("*").alias("n"), F.sum(F.col("is_valid").cast("int")).alias("ok"),
         F.percentile_approx("average_speed_kmh", 0.5).alias("v")).first()
-    print(f"  trip_segments: {sg['n']:,} segments ({sg['ok'] or 0:,} valid), median speed {sg['v']} km/h")
+    print(
+        f"  trip_segments: {sg['n']:,} segments ({sg['ok'] or 0:,} valid), median speed {sg['v']} km/h")
     hw.unpersist()
     clean.unpersist()
     visits.unpersist()
@@ -442,17 +527,22 @@ def run(spark, day):
 
 
 def main():
-    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--date", required=True, help="service date (the feed's data_frame_ref), e.g. 2026-10-30")
-    p.add_argument("--force", action="store_true", help="run even if bronze of D or D+1 is not complete yet")
+    p = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("--date", required=True,
+                   help="service date (the feed's data_frame_ref), e.g. 2026-10-30")
+    p.add_argument("--force", action="store_true",
+                   help="run even if bronze of D or D+1 is not complete yet")
     a = p.parse_args()
     date.fromisoformat(a.date)
     spark = common.spark_session("buspulse-silver")
     if not a.force:
-        missing = [d for d in (a.date, common.shift(a.date, 1)) if not common.bronze_ready(spark, d)]
+        missing = [d for d in (a.date, common.shift(
+            a.date, 1)) if not common.bronze_ready(spark, d)]
         if missing:
             # reading now would give a silver day without its last snapshots: stop instead
-            print(f"bronze not complete for {missing}: not building silver {a.date} yet (use --force to override)")
+            print(
+                f"bronze not complete for {missing}: not building silver {a.date} yet (use --force to override)")
             spark.stop()
             raise SystemExit(3)
     run(spark, a.date)
